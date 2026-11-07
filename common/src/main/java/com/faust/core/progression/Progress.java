@@ -61,7 +61,7 @@ public final class Progress {
         unlocked.add(id);revision++;return true;
     }
     public double effect(String effect,Balance b) {return b.abilities.stream().filter(a->unlocked.contains(a.id())&&a.effect().equals(effect)).mapToDouble(Balance.Ability::value).sum();}
-    public double baseStamina(Balance b) {return b.stamina.get("base")+track(Skill.constitution).level*b.stamina.get("constitutionPerLevel")+effect("stamina",b);}
+    public double baseStamina(Balance b) {return b.stamina.get("base")+SkillEffects.attribute(this,b,"faustcore:stamina",false)+effect("stamina",b);}
     public double maxStamina(Balance b) {return Math.max(b.fatigue.get("minimum"),baseStamina(b)-(b.fatigue.get("enabled")>0?Math.min(fatigue,b.fatigue.get("maximum")):0));}
     public double capacity(Balance b) {return b.armor.get("baseCapacity")+track(Skill.defense).level*b.armor.get("capacityPerLevel")+effect("capacity",b);}
     public double spend(double requested,Balance b) {
@@ -84,7 +84,9 @@ public final class Progress {
         if(b.stamina.get("enabled")==0||b.fatigue.get("enabled")==0)return;
         fatigue=Math.min(b.fatigue.get("maximum"),fatigue+dt*((soulCampfire?b.fatigue.get("soulCampfirePerSecond"):0)+(soulFire?b.fatigue.get("soulFirePerSecond"):0)));stamina=Math.min(stamina,maxStamina(b));updateExhaustion(b);
     }
+    public void recover(double dt,boolean sleep,boolean campfire,boolean delayReady,boolean shielding,Balance b){if(!shielding)secondWind(dt,b);rest(dt,sleep,campfire,delayReady&&!shielding,b);}
     public void secondWind(double dt,Balance b){if(b.stamina.get("enabled")>0&&effect("second_wind",b)>0){stamina=Math.min(maxStamina(b),stamina+dt*b.stamina.get("runCost"));updateExhaustion(b);}}
+    public void sweetFood(String item,Balance b){if(b.stamina.get("enabled")>0&&b.fatigue.get("enabled")>0)fatigue=Math.max(0,fatigue-b.sweetFoods.getOrDefault(item,0.0));}
     public void updateExhaustion(Balance b) {
         if(b.stamina.get("exhaustionLock")==0){exhausted=false;return;}
         if(stamina<=1e-9)exhausted=true;

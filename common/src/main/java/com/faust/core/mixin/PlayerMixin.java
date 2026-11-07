@@ -12,6 +12,10 @@ import org.spongepowered.asm.mixin.injection.callback.*;
 
 @Mixin(Player.class)
 public abstract class PlayerMixin {
+    @Inject(method="jumpFromGround",at=@At("HEAD"),cancellable=true)
+    private void core$jump(CallbackInfo ci){if(((Player)(Object)this).level().isClientSide&&!com.faust.core.runtime.ClientActions.jumpAllowed.getAsBoolean()){ci.cancel();return;}if((Object)this instanceof ServerPlayer p&&!CoreRuntime.jump(p))ci.cancel();}
+    @Inject(method="eat(Lnet/minecraft/world/level/Level;Lnet/minecraft/world/item/ItemStack;Lnet/minecraft/world/food/FoodProperties;)Lnet/minecraft/world/item/ItemStack;",at=@At("HEAD"))
+    private void core$food(net.minecraft.world.level.Level level,net.minecraft.world.item.ItemStack food,net.minecraft.world.food.FoodProperties properties,CallbackInfoReturnable<net.minecraft.world.item.ItemStack> ci){if((Object)this instanceof ServerPlayer p)CoreRuntime.food(p,food);}
     @Inject(method="attack",at=@At("HEAD"),cancellable=true)
     private void core$attackStart(net.minecraft.world.entity.Entity target,CallbackInfo ci) {
         if((Object)this instanceof ServerPlayer player&&!CoreRuntime.attack(player,false)){ci.cancel();return;}

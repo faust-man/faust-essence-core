@@ -13,17 +13,18 @@ public final class Balance {
         public Skill read(com.google.gson.stream.JsonReader in) throws IOException {return Skill.saved(in.nextString());}
     }).setPrettyPrinting().create();
     public Map<String, Double> progression = numbers("levelBase",100,"levelSlope",20,"initialCap",10,"capStep",1,"maximumCap",20,"costDivisor",5,"maximumGrowth",2,"trainingMultiplier",2,"slowdown",0.5);
-    public Map<String, Double> stamina = numbers("enabled",1,"base",20,"constitutionPerLevel",1,"regeneration",4,"delaySeconds",1.5,"armorCost",0.5,"waterCost",1,"exhaustionLock",1,"attackCost",1,"runCost",0.2,"flowThreshold",0.05);
+    public Map<String, Double> stamina = numbers("enabled",1,"base",20,"constitutionPerLevel",1,"regeneration",4,"delaySeconds",1.5,"armorCost",0.5,"waterCost",1,"exhaustionLock",0,"attackCost",1,"maceCost",2,"shieldCost",2,"sprintJumpCost",1,"jumpArmorCost",0.1,"runCost",0.2,"flowThreshold",0.05);
     public Map<String, Double> fatigue = numbers("enabled",1,"perSpentFraction",0.05,"maximum",16,"minimum",4,"sleepPerSecond",0.2,"campfirePerSecond",0.04,"campfireRadius",4,"soulCampfirePerSecond",0.04,"soulFirePerSecond",0.1);
-    public Map<String, Double> armor = numbers("baseCapacity",2,"capacityPerLevel",0.5,"fallbackWeight",2,"leather",1,"chainmail",2,"iron",2.5,"golden",2,"diamond",3,"netherite",3.5);
-    public Map<String, Double> skills = numbers("damagePerLevel",0.002,"damageMaximum",0.10,"speedPerLevel",0.001,"speedMaximum",0.05,"breakingPerLevel",0.01,"breakingMaximum",1000000000,"hitCharge",0.9,"hitMaximum",10,"shieldMaximum",5,"shieldIntervalTicks",20,"shieldBudgetPerMinute",20,"runMetresPerMinute",200,"blockMaximumPerMinute",300,"readCooldownSeconds",30,"structureIntervalTicks",40,"healthPerLevel",1,"luckPerLevel",0.01,"luckMaximum",0.2,"reachEveryLevels",10,"reachPerStep",1,"buildingReachMaximum",3,"iconTier1",5,"iconTier2",10,"iconTier3",20);
+    public Map<String, Double> armor = numbers("baseCapacity",0,"capacityPerLevel",0,"fallbackWeight",2,"leather",1,"chainmail",2,"iron",2.5,"golden",2,"diamond",3,"netherite",3.5);
+    public Map<String, Double> skills = numbers("damagePerLevel",0.002,"damageMaximum",0.10,"speedPerLevel",0.001,"speedMaximum",0.05,"breakingPerLevel",0.01,"breakingMaximum",1000000000,"damageMinimumHP",2,"hitCharge",0.9,"hitMaximum",10,"shieldMaximum",5,"shieldIntervalTicks",20,"shieldBudgetPerMinute",20,"runMetresPerMinute",200,"blockMaximumPerMinute",300,"readCooldownSeconds",30,"structureIntervalTicks",40,"healthPerLevel",1,"luckPerLevel",0.01,"luckMaximum",0.2,"reachEveryLevels",10,"reachPerStep",1,"buildingReachMaximum",3,"iconTier1",5,"iconTier2",10,"iconTier3",20);
     public Map<String, Double> client = numbers("hud",1,"hudX",0,"hudY",0,"hudWidth",81);
     public Map<String, Double> integrations = numbers("weaponDefenseEnabled",0);
     public Map<String, Rule> actions = new LinkedHashMap<>();
+    public Map<String,Double> sweetFoods=numbers("minecraft:cookie",1,"minecraft:pumpkin_pie",3,"minecraft:honey_bottle",2,"minecraft:apple",1,"minecraft:melon_slice",0.5,"minecraft:sweet_berries",0.5,"minecraft:glow_berries",0.5);
     public List<Ability> abilities = new ArrayList<>();
     public List<StatBonus> statBonuses = new ArrayList<>();
     public static final class StatBonus {
-        public String id,attribute,operation="add";
+        public String id,attribute,operation="add",requiresAbility="";
         public Skill skill;
         public double perLevel,maximum=1e9;
         public int everyLevels=1;
@@ -74,6 +75,13 @@ public final class Balance {
         ability("tool_handling",Skill.building,5,"placed",100,"","breaking",0.02);
         ability("master_builder",Skill.building,20,"crafted",300,"tool_handling","breaking",0.03);
         for(int i=0;i<abilities.size();i++){var a=abilities.get(i);abilities.set(i,new Ability(a.id(),a.skill(),a.level(),a.counter(),a.amount(),a.parent(),a.effect(),a.effect().equals("second_wind")?1:a.effect().startsWith("shield_")?Math.min(0.95,a.value()*10):a.value()*10));}
+        abilities.removeIf(a->a.skill()!=Skill.defense&&!a.id().equals("faustcore:second_wind"));
+        for(int i=0;i<abilities.size();i++){var a=abilities.get(i);if(a.id().equals("faustcore:armor_familiarity")||a.id().equals("faustcore:armor_mastery"))abilities.set(i,new Ability(a.id(),a.skill(),a.level(),a.counter(),a.amount(),a.parent(),"capacity",a.id().endsWith("familiarity")?10:4));}
+        stat("constitution_stamina",Skill.constitution,"max_health","add",1,1,1e9,false);statBonuses.getLast().attribute="faustcore:stamina";
+        stat("building_breaking",Skill.building,"max_health","add",0.01,1,1e9,false);statBonuses.getLast().attribute="faustcore:breaking";
+        for(var rule:statBonuses){String id="training_"+rule.id;rule.requiresAbility="faustcore:"+id;String counter=switch(rule.skill.name()){case "strength"->"hits";case "constitution"->"damage_taken";case "dexterity"->"run_metres";case "defense"->"blocks";case "building"->"placed";default->"books";};String perk=rule.id.startsWith("building_")&&rule.id.endsWith("reach")?"training_building_reach":id;rule.requiresAbility="faustcore:"+perk;if(abilities.stream().noneMatch(a->a.id().equals(rule.requiresAbility)))ability(perk,rule.skill,1,counter,1,"","stat_unlock",0);}
+        ability("shield_efficiency",Skill.defense,5,"blocks",30,"","shield_cost_reduction",1);
+
     }
     private void action(String id, Skill skill, double xp, String counter) { actions.put(id,new Rule(skill,xp,counter)); }
     private void ability(String id, Skill skill,int level,String counter,double amount,String parent,String effect,double value) {
@@ -93,7 +101,7 @@ public final class Balance {
                 if(value==null) throw new IllegalArgumentException("Missing "+field.getName());
                 if(value instanceof Map<?,?> map && !field.getName().equals("actions")) {
                     Map<?,?> required=(Map<?,?>)field.get(defaults);
-                    if(!map.keySet().containsAll(required.keySet())) throw new IllegalArgumentException("Missing settings in "+field.getName());
+                    if(!field.getName().equals("sweetFoods")&&!map.keySet().containsAll(required.keySet())) throw new IllegalArgumentException("Missing settings in "+field.getName());
                     for(Object n:map.values()) if(!(n instanceof Double d)||!Double.isFinite(d)||d<0||d>1e9) throw new IllegalArgumentException("Invalid number in "+field.getName());
                 }
             }
@@ -102,12 +110,13 @@ public final class Balance {
         if(skills.get("iconTier1")>skills.get("iconTier2")||skills.get("iconTier2")>skills.get("iconTier3"))throw new IllegalArgumentException("Invalid skill stat/ icon bounds");
         if(fatigue.get("campfireRadius")>16||client.get("hudWidth")>2000)throw new IllegalArgumentException("Invalid radius/HUD/key bound");
         for(var r:actions.values()) if(r==null||r.skill()==null||r.counter()==null||!Double.isFinite(r.xp())||r.xp()<0) throw new IllegalArgumentException("Invalid action");
+        for(var rule:statBonuses){if(rule==null||rule.id==null||rule.skill==null)continue;if(rule.requiresAbility==null||rule.requiresAbility.isEmpty())rule.requiresAbility="faustcore:training_"+rule.id;String gate=rule.requiresAbility;if(abilities.stream().noneMatch(a->a.id().equals(gate))){String counter=actions.values().stream().filter(a->a.skill()==rule.skill).map(Rule::counter).findFirst().orElse("progress");abilities.add(new Ability(gate,rule.skill,1,counter,1,"","stat_unlock",0));}}
         Set<String> statIds=new HashSet<>();
-        for(var rule:statBonuses)if(rule==null||rule.id==null||!rule.id.matches("[a-z0-9_./-]+")||!statIds.add(rule.id)||rule.skill==null||rule.attribute==null||!rule.attribute.matches("[a-z0-9_.-]+:[a-z0-9_./-]+")||!Set.of("add","multiply_base","multiply_total").contains(rule.operation)||rule.everyLevels<1||!Double.isFinite(rule.perLevel)||rule.perLevel<0||!Double.isFinite(rule.maximum)||rule.maximum<0)throw new IllegalArgumentException("Invalid stat bonus rule");
+        for(var rule:statBonuses)if(rule==null||rule.id==null||!rule.id.matches("[a-z0-9_./-]+")||!statIds.add(rule.id)||rule.skill==null||rule.requiresAbility==null||rule.attribute==null||!rule.attribute.matches("[a-z0-9_.-]+:[a-z0-9_./-]+")||!Set.of("add","multiply_base","multiply_total").contains(rule.operation)||rule.everyLevels<1||!Double.isFinite(rule.perLevel)||rule.perLevel<0||!Double.isFinite(rule.maximum)||rule.maximum<0)throw new IllegalArgumentException("Invalid stat bonus rule");
         Set<String> ids=new HashSet<>();
         for(var a:abilities) {
             if(a==null||a.id()==null||!a.id().matches("[a-z0-9_.-]+:[a-z0-9_./-]+")||!ids.add(a.id())||a.skill()==null||a.level()<0||a.level()>20||a.counter()==null||a.parent()==null||!(BonusEffects.known(a.effect())||(a.effect()!=null&&a.effect().matches("[a-z0-9_.-]+:[a-z0-9_./-]+")))||!Double.isFinite(a.amount())||a.amount()<0||!Double.isFinite(a.value())||a.value()<0) throw new IllegalArgumentException("Invalid ability");
-            if((a.effect().startsWith("shield_"))&&a.value()>0.95) throw new IllegalArgumentException("Shield discount exceeds 95%");
+            if((Set.of("shield_durability","shield_recovery").contains(a.effect()))&&a.value()>0.95) throw new IllegalArgumentException("Shield discount exceeds 95%");
         }
         for(var a:abilities) {
             Set<String> visited=new HashSet<>(); var cursor=a;
@@ -154,7 +163,7 @@ public final class Balance {
         Path backup=directory.resolve("migration-v1.1-resource");Files.createDirectories(backup);
         if(!Files.exists(backup.resolve("stamina.json")))Files.copy(file,backup.resolve("stamina.json"));
         if(data.has("armorCost")&&Math.abs(data.get("armorCost").getAsDouble()-0.1)<1e-9)data.addProperty("armorCost",0.5);
-        data.addProperty("exhaustionLock",1);Files.writeString(file,JSON.toJson(data)+"\n");
+        data.addProperty("exhaustionLock",0);Files.writeString(file,JSON.toJson(data)+"\n");
     }
     private static void migrateGrowth(Path directory) throws IOException {
         Path file=directory.resolve("progression.json");if(!Files.exists(file))return;
@@ -196,8 +205,17 @@ public final class Balance {
         file=directory.resolve("progression.json");if(Files.exists(file)){var data=JSON.fromJson(Files.readString(file),com.google.gson.JsonObject.class);if(data.has("slowdown"))data.addProperty("slowdown",data.get("slowdown").getAsDouble()*2);Files.writeString(file,JSON.toJson(data)+"\n");}
         file=directory.resolve("statBonuses.json");if(Files.exists(file)){var list=new java.util.ArrayList<StatBonus>(java.util.Arrays.asList(JSON.fromJson(Files.readString(file),StatBonus[].class)));for(var r:list)if(r.skill==Skill.building&&(r.attribute.equals("minecraft:player.block_interaction_range")||r.attribute.equals("minecraft:player.entity_interaction_range")))r.maximum=Math.min(3,r.maximum);if(list.stream().noneMatch(r->r.id.equals("defense_armor")))list.add(new Balance().statBonuses.stream().filter(r->r.id.equals("defense_armor")).findFirst().orElseThrow());Files.writeString(file,JSON.toJson(list)+"\n");}
     }
+    private static void migrateV13(Path directory) throws IOException {
+        if(Files.exists(directory.resolve(".format-1.3"))||!Files.exists(directory.resolve("abilities.json")))return;
+        Path backup=directory.resolve("migration-v1.3");Files.createDirectories(backup);Balance defaults=new Balance();
+        for(String name:List.of("stamina","skills","armor","abilities","statBonuses")){Path file=directory.resolve(name+".json");if(Files.exists(file)&&!Files.exists(backup.resolve(name+".json")))Files.copy(file,backup.resolve(name+".json"));}
+        for(String group:List.of("stamina","skills","armor")){Path file=directory.resolve(group+".json");if(!Files.exists(file))continue;var data=JSON.fromJson(Files.readString(file),com.google.gson.JsonObject.class);var base=JSON.fromJson(defaults.group(group),com.google.gson.JsonObject.class);for(var entry:base.entrySet())if(!data.has(entry.getKey()))data.add(entry.getKey(),entry.getValue());if(group.equals("armor")){data.addProperty("baseCapacity",0);data.addProperty("capacityPerLevel",0);}Files.writeString(file,JSON.toJson(data)+"\n");}
+        // Preserve external/custom abilities; retire only original built-in nodes requested for removal.
+        Path file=directory.resolve("abilities.json");var old=JSON.fromJson(Files.readString(file),Ability[].class);var merged=new ArrayList<>(defaults.abilities);Set<String> retired=Set.of("controlled_strike","strong_grip","enduring_body","steady_pace","sure_footing","applied_knowledge","deep_understanding","tool_handling","master_builder");for(var a:old)if(!retired.contains(a.id().replace("faustcore:",""))&&merged.stream().noneMatch(n->n.id().equals(a.id())))merged.add(a);Files.writeString(file,JSON.toJson(merged)+"\n");
+        file=directory.resolve("statBonuses.json");var rules=new ArrayList<>(Arrays.asList(JSON.fromJson(Files.readString(file),StatBonus[].class)));for(var rule:rules){var match=defaults.statBonuses.stream().filter(r->r.id.equals(rule.id)).findFirst();rule.requiresAbility=match.isPresent()?match.get().requiresAbility:"";}for(var rule:defaults.statBonuses)if(rules.stream().noneMatch(r->r.id.equals(rule.id)))rules.add(rule);Files.writeString(file,JSON.toJson(rules)+"\n");
+    }
     public static Balance load(Path directory) throws IOException {
-        Files.createDirectories(directory); migrate(directory); migrateExhaustion(directory); migrateGrowth(directory); migrateStats(directory); migrateV12(directory); migrateEnvironment(directory);
+        Files.createDirectories(directory); migrate(directory); migrateExhaustion(directory); migrateGrowth(directory); migrateStats(directory); migrateV12(directory); migrateEnvironment(directory); migrateV13(directory);
         Path skillsFile=directory.resolve("skills.json");if(Files.exists(skillsFile)){var data=JSON.fromJson(Files.readString(skillsFile),com.google.gson.JsonObject.class);if(!data.has("buildingReachMaximum")){data.addProperty("buildingReachMaximum",3);Files.writeString(skillsFile,JSON.toJson(data)+"\n");}}
         Balance result=new Balance();
         try {
@@ -209,7 +227,7 @@ public final class Balance {
             }
         } catch(ReflectiveOperationException|RuntimeException e) { throw new IOException("Invalid core configuration",e); }
         try {result.validate();} catch(RuntimeException e) {throw new IOException("Invalid core balance",e);}
-        Files.writeString(directory.resolve(".balance-format"),"1.2\n");
+        Files.writeString(directory.resolve(".balance-format"),"1.2\n");Files.writeString(directory.resolve(".format-1.3"),"1\n");
         return result;
     }
     public static List<String> groups() {

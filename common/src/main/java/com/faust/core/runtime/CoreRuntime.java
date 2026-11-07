@@ -93,10 +93,14 @@ public final class CoreRuntime {
     public static boolean attack(ServerPlayer player,boolean air) {
         if(player.isCreative()||player.isSpectator()||balance.stamina.get("enabled")==0)return true;
         Session s=session(player);if(air&&s.paidSwing&&player.tickCount-s.attackTick<=5){s.paidSwing=false;return true;}
-        var data=data(player);double cost=balance.stamina.get("attackCost");
-        if(data.exhausted||data.stamina<cost)return false;
+        var data=data(player);double cost=balance.stamina.get(player.getMainHandItem().is(Items.MACE)?"maceCost":"attackCost");
+        if(data.stamina<cost)return false;
         data.spend(cost,balance);s.lastSpent=player.tickCount;s.attackTick=player.tickCount;s.paidSwing=!air;return true;
     }
+    public static boolean pay(ServerPlayer player,double cost){if(player.isCreative()||player.isSpectator()||balance.stamina.get("enabled")==0)return true;var p=data(player);if(p.stamina<cost)return false;p.spend(cost,balance);session(player).lastSpent=player.tickCount;return true;}
+    public static boolean shieldPayment(ServerPlayer player){return pay(player,Math.max(0,balance.stamina.get("shieldCost")-data(player).effect("shield_cost_reduction",balance)));}
+    public static boolean jump(ServerPlayer player){return !player.isSprinting()||pay(player,balance.stamina.get("sprintJumpCost")+weight(player)*balance.stamina.get("jumpArmorCost"));}
+    public static void food(ServerPlayer player,net.minecraft.world.item.ItemStack stack){if(!active(player))return;data(player).sweetFood(BuiltInRegistries.ITEM.getKey(stack.getItem()).toString(),balance);}
     public static void read(ServerPlayer p,ItemStack stack) {
         if(!(stack.is(Items.WRITTEN_BOOK)||stack.is(Items.WRITABLE_BOOK)))return;
         Session s=session(p);
@@ -125,7 +129,7 @@ public final class CoreRuntime {
     public static void tick(ServerPlayer player) {
         if(!active(player)) {if(player.tickCount%20==0)sync(player);return;}
         Progress p=data(player); Session s=session(player); Balance b=balance;p.reconcile(b);
-        if(b.stamina.get("enabled")>0&&p.exhausted)player.setSprinting(false);
+        if(b.stamina.get("enabled")>0&&p.stamina<=0)player.setSprinting(false);
         if(s.lastPosition!=null&&s.lastPosition.distanceToSqr(player.position())>0.0001)s.movedTick=player.tickCount;
         s.lastPosition=player.position();
         double armorRate=player.isSprinting()&&player.tickCount-s.ranTick<=1?b.stamina.get("armorCost")*Math.max(0,weight(player)-p.capacity(b)):0;
@@ -136,7 +140,7 @@ public final class CoreRuntime {
         double waterRate=upstream?b.stamina.get("waterCost")*Math.max(0,-look.dot(flow)):0;
         double runRate=player.isSprinting()&&player.tickCount-s.ranTick<=1?b.stamina.get("runCost"):0;
         double rate=runRate+armorRate+waterRate;
-        if(!p.exhausted&&rate>0&&b.stamina.get("enabled")>0) {p.spend(rate/20,b);s.lastSpent=player.tickCount;}
+        if(p.stamina>0&&rate>0&&b.stamina.get("enabled")>0) {p.spend(rate/20,b);s.lastSpent=player.tickCount;}
         if(player.tickCount%20==0) {
             s.campfire=false;s.soulCampfire=false;
             {
@@ -151,10 +155,10 @@ public final class CoreRuntime {
         }
         if(!player.isOnFire())p.soulFireBurn=false;else if(player.level().getBlockState(player.blockPosition()).is(Blocks.SOUL_FIRE)||player.level().getBlockState(player.blockPosition().below()).is(Blocks.SOUL_FIRE))p.soulFireBurn=true;
         p.environmentalFatigue(0.05,s.soulCampfire,p.soulFireBurn&&player.isOnFire(),b);
-        p.secondWind(0.05,b);
-        p.rest(0.05,player.isSleeping(),s.campfire&&player.tickCount-s.movedTick>5,player.tickCount-s.lastSpent>=b.stamina.get("delaySeconds")*20,b);
-        if(b.stamina.get("enabled")>0&&p.exhausted)player.setSprinting(false);
-        if(b.stamina.get("enabled")>0&&p.exhausted&&upstream)player.setSprinting(false);
+        boolean shielding=player.isUsingItem()&&player.getUseItem().is(Items.SHIELD);
+        p.recover(0.05,player.isSleeping(),s.campfire&&player.tickCount-s.movedTick>5,player.tickCount-s.lastSpent>=b.stamina.get("delaySeconds")*20,shielding,b);
+        if(b.stamina.get("enabled")>0&&p.stamina<=0)player.setSprinting(false);
+        if(b.stamina.get("enabled")>0&&p.stamina<=0&&upstream)player.setSprinting(false);
         if(player.tickCount%20==0||s.wasSprinting!=player.isSprinting()){s.wasSprinting=player.isSprinting();attributes(player);}
         int interval=Math.max(1,b.skills.get("structureIntervalTicks").intValue());
         if(player.tickCount%interval==0) {
@@ -181,6 +185,7 @@ public final class CoreRuntime {
         for(var old:session.statModifiers.entrySet()){var instance=player.getAttribute(old.getValue());if(instance!=null)instance.removeModifier(old.getKey());}session.statModifiers.clear();
         Map<String,Double> buildingReachUsed=new HashMap<>();
         for(var rule:b.statBonuses){
+            if(!rule.requiresAbility.isEmpty()&&!p.unlocked.contains(rule.requiresAbility))continue;
             var key=ResourceLocation.tryParse(rule.attribute);if(key==null)continue;
             var attribute=BuiltInRegistries.ATTRIBUTE.getHolder(key);if(attribute.isEmpty())continue;
             var instance=player.getAttribute(attribute.get());if(instance==null)continue;

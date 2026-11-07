@@ -15,6 +15,8 @@ import java.util.ArrayDeque;
 public abstract class LivingEntityMixin {
     @Unique private final ArrayDeque<Float> faustcore$health=new ArrayDeque<>();
     @Unique private double faustcore$budget=-1;
+    @Inject(method="isDamageSourceBlocked",at=@At("RETURN"),cancellable=true)
+    private void core$blockCost(DamageSource source,CallbackInfoReturnable<Boolean> ci){if(ci.getReturnValue()&&(Object)this instanceof ServerPlayer p&&CombatContext.DAMAGE.get().peek()==source&&!CoreRuntime.shieldPayment(p))ci.setReturnValue(false);}
     @Inject(method="hurt",at=@At("HEAD"))
     private void core$before(DamageSource source,float amount,CallbackInfoReturnable<Boolean> ci) {faustcore$health.push(((LivingEntity)(Object)this).getHealth());CombatContext.DAMAGE.get().push(source);}
     @Inject(method="hurt",at=@At("RETURN"))
@@ -23,7 +25,7 @@ public abstract class LivingEntityMixin {
         float before=faustcore$health.pop();CombatContext.DAMAGE.get().pop();double lost=Math.max(0,before-entity.getHealth());
         if(entity.level().isClientSide||lost<=0)return;
         // All sources count for constitution. Intentional damage training is explicitly allowed.
-        if(entity instanceof ServerPlayer player) CoreRuntime.grant(player,"damage",lost,lost);
+        if(entity instanceof ServerPlayer player&&com.faust.core.progression.SkillEffects.damageCounts(lost,CoreRuntime.balance)) CoreRuntime.grant(player,"damage",lost,lost);
         var attack=CombatContext.ATTACK.get().peek();
         if(entity instanceof Enemy && source.getDirectEntity() instanceof ServerPlayer attacker && !attacker.isAlliedTo(entity)
             && attack!=null && attack.target()==entity && attack.charge()>=CoreRuntime.balance.skills.get("hitCharge")) {

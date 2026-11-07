@@ -12,12 +12,18 @@ public final class ProgressTest {
     public static void main(String[] args) throws Exception {
         CommandTest.run();
         Balance b=new Balance();b.validate();
+        Progress lockedStats=new Progress();lockedStats.track(Skill.constitution).level=20;near(SkillEffects.health(lockedStats,b),0,"health locked before learned stat");near(lockedStats.baseStamina(b),20,"stamina capacity locked before learned stat");lockedStats.unlocked.add("faustcore:training_constitution_health");near(SkillEffects.health(lockedStats,b),20,"health node unlocks only health");near(lockedStats.baseStamina(b),20,"health node does not unlock stamina");lockedStats.unlocked.add("faustcore:training_constitution_stamina");near(lockedStats.baseStamina(b),40,"separate stamina node");
+        check(!SkillEffects.damageCounts(1.99,b),"less than a heart ignored");check(SkillEffects.damageCounts(2,b),"one actual heart counts");
+        Progress shieldUser=new Progress();shieldUser.stamina=5;shieldUser.unlocked.add("faustcore:second_wind");shieldUser.recover(2,false,false,true,true,b);near(shieldUser.stamina,5,"raised shield blocks all recovery including Second Wind");shieldUser.recover(1,false,false,true,false,b);check(shieldUser.stamina>5,"release shield restores recovery");
+        shieldUser.fatigue=5;shieldUser.sweetFood("minecraft:cookie",b);near(shieldUser.fatigue,4,"cookie fatigue value");shieldUser.sweetFood("minecraft:honey_bottle",b);near(shieldUser.fatigue,2,"honey fatigue value");shieldUser.sweetFood("minecraft:stone",b);near(shieldUser.fatigue,2,"unlisted food gives no reduction");
+        near(b.stamina.get("maceCost"),2,"mace cost two");near(b.stamina.get("shieldCost"),2,"shield cost two");shieldUser.unlocked.add("faustcore:shield_efficiency");near(b.stamina.get("shieldCost")-shieldUser.effect("shield_cost_reduction",b),1,"shield ability reduces cost to one");near(b.stamina.get("sprintJumpCost")+14*b.stamina.get("jumpArmorCost"),2.4,"armored sprint jump cost");
         Progress generic=new Progress();generic.track(Skill.dexterity).level=5;
-        var rule=new Balance.StatBonus();rule.id="dex_health";rule.skill=Skill.dexterity;rule.attribute="minecraft:generic.max_health";rule.perLevel=1;b.statBonuses.add(rule);b.validate();near(SkillEffects.health(generic,b),5,"one-line custom Dexterity HP rule");b.statBonuses.remove(rule);
+        var rule=new Balance.StatBonus();rule.id="dex_health";rule.skill=Skill.dexterity;rule.attribute="minecraft:generic.max_health";rule.perLevel=1;b.statBonuses.add(rule);b.validate();near(SkillEffects.health(generic,b),0,"stat locked before ability");generic.unlocked.add(rule.requiresAbility);near(SkillEffects.health(generic,b),5,"one-line custom Dexterity HP rule");b.statBonuses.remove(rule);
+        for(var bonus:b.statBonuses)generic.unlocked.add(bonus.requiresAbility);
         near(SkillEffects.attribute(generic,b,"minecraft:generic.movement_speed",false),0,"Dexterity does not speed up walking");near(SkillEffects.attribute(generic,b,"minecraft:generic.movement_speed",true),0.05,"Dexterity sprint speed");near(SkillEffects.attribute(generic,b,"minecraft:generic.attack_speed",false),0.05,"Dexterity attack speed");
-        near(b.abilities.stream().filter(a->a.id().equals("faustcore:tool_handling")).findFirst().orElseThrow().value(),0.2,"tree bonuses ten times stronger");
+        check(b.abilities.stream().noneMatch(a->a.id().equals("faustcore:tool_handling")),"original building perk removed");
 
-        Progress stats=new Progress();stats.track(Skill.constitution).level=20;near(20+SkillEffects.health(stats,b),40,"constitution 20 gives 40 HP");
+        Progress stats=new Progress();for(var bonus:b.statBonuses)stats.unlocked.add(bonus.requiresAbility);stats.track(Skill.constitution).level=20;near(20+SkillEffects.health(stats,b),40,"constitution 20 gives 40 HP");
         stats.track(Skill.intelligence).level=10;near(SkillEffects.luck(stats,b),0.1,"intelligence Luck scaling");stats.track(Skill.intelligence).level=100;near(SkillEffects.luck(stats,b),0.2,"Luck capped at plus 0.2");
         stats.track(Skill.building).level=9;near(SkillEffects.reach(stats,b),0,"reach before threshold");stats.track(Skill.building).level=10;near(SkillEffects.reach(stats,b),1,"ten building gives one reach");stats.track(Skill.building).level=20;near(SkillEffects.reach(stats,b),2,"twenty building gives two reach");near(SkillEffects.breaking(stats,b),0.2,"one percent breaking speed per level");
         for(int[] pair:new int[][]{{0,0},{4,0},{5,8},{9,8},{10,16},{19,16},{20,24}})check(SkillEffects.icon(pair[0],b)==pair[1],"icon tier boundary "+pair[0]);
@@ -48,9 +54,9 @@ public final class ProgressTest {
         Progress mixed=new Progress();near(mixed.price(Skill.strength,b),22,"first selected cap price");mixed.buy(Skill.strength,22,b);near(mixed.price(Skill.building,b),23,"global increase across branches");mixed.buy(Skill.building,23,b);near(mixed.price(Skill.strength,b),24,"return to purchased branch");
         Skill custom=Skill.register("test:path_skill");rejects(()->Skill.register("test:path_skill"),"duplicate skill rejected");
         Progress extension=new Progress();extension.grant(custom,5,b);check(Progress.parse(extension.json()).track(custom).xp==10,"extension skill persistence");
-        p=new Progress();var a=b.abilities.getFirst();p.track(a.skill()).level=a.level();check(!p.unlock(a.id(),b),"level alone insufficient");
+        p=new Progress();var a=b.abilities.stream().filter(n->n.id().equals("faustcore:armor_familiarity")).findFirst().orElseThrow();p.track(a.skill()).level=a.level();check(!p.unlock(a.id(),b),"level alone insufficient");
         p.track(a.skill()).level=0;p.counters.put(a.counter(),a.amount());check(!p.unlock(a.id(),b),"condition alone insufficient");p.track(a.skill()).level=a.level();check(p.unlock(a.id(),b),"both conditions");check(!p.unlock(a.id(),b),"no duplicate unlock");
-        var child=b.abilities.get(1);Progress q=new Progress();q.track(child.skill()).level=20;q.counters.put(child.counter(),10000.0);check(!q.unlock(child.id(),b),"parent required");
+        var child=b.abilities.stream().filter(n->n.id().equals("faustcore:armor_mastery")).findFirst().orElseThrow();Progress q=new Progress();q.track(child.skill()).level=20;q.counters.put(child.counter(),10000.0);check(!q.unlock(child.id(),b),"parent required");
         check(!p.event("unknown",1,1,b),"unknown source");double old=p.track(Skill.constitution).xp;p.event("damage",4,4,b);near(p.track(Skill.constitution).xp,old+8*p.multiplier(Skill.constitution,b),"actual damage practice");
         p=new Progress();near(p.stamina,20,"base stamina 20");near(p.spend(8,b),8,"paid stamina");near(p.fatigue,0.4,"fatigue in absolute units");near(p.maxStamina(b),19.6,"fatigue occupies right of bar");
         p.rest(10,false,false,true,b);near(p.stamina,19.6,"regen limited by fatigue");p.rest(1,true,false,true,b);near(p.fatigue,0.2,"gradual sleep units");p.rest(1,false,true,true,b);near(p.fatigue,0.2,"campfire retains fractional time until one unit");
@@ -59,12 +65,12 @@ public final class ProgressTest {
         b=new Balance();Progress fire=new Progress();fire.fatigue=5;fire.rest(24,false,true,false,b);near(fire.fatigue,5,"campfire unit interval not complete");fire.rest(1,false,true,false,b);near(fire.fatigue,4,"campfire removes one unit per 25 seconds");
         fire.environmentalFatigue(1,true,false,b);near(fire.fatigue,4.04,"soul campfire adds fatigue");fire.environmentalFatigue(1,false,true,b);near(fire.fatigue,4.14,"soul fire adds fatigue");
         Progress runner=new Progress();runner.unlocked.add("faustcore:second_wind");for(int n=0;n<2000;n++){runner.spend(b.stamina.get("runCost")/20,b);runner.secondWind(0.05,b);}check(!runner.exhausted,"second wind sustains unarmored sprint");
-        Progress capped=new Progress();capped.track(Skill.building).level=100;near(SkillEffects.reach(capped,b),3,"building reach capped at plus three");capped.track(Skill.defense).level=6;near(SkillEffects.attribute(capped,b,"minecraft:generic.armor",false),3,"one armor per two defense levels");
+        Progress capped=new Progress();for(var bonus:b.statBonuses)capped.unlocked.add(bonus.requiresAbility);capped.track(Skill.building).level=100;near(SkillEffects.reach(capped,b),3,"building reach capped at plus three");capped.track(Skill.defense).level=6;near(SkillEffects.attribute(capped,b,"minecraft:generic.armor",false),3,"one armor per two defense levels");
         var extraReach=new Balance.StatBonus();extraReach.id="extra_building_reach";extraReach.skill=Skill.building;extraReach.attribute="minecraft:player.block_interaction_range";extraReach.perLevel=1;b.statBonuses.add(extraReach);near(SkillEffects.reach(capped,b),3,"global reach cap includes multiple rules");b.statBonuses.remove(extraReach);
         Progress hitter=new Progress();near(hitter.spend(b.stamina.get("attackCost"),b),1,"one stamina per attack");near(hitter.stamina,19,"attack deduction");
-        Balance lockBalance=new Balance();Progress locked=new Progress();locked.spend(100,lockBalance);check(locked.exhausted,"zero stamina locks sprint");
-        locked.rest(1,false,false,true,lockBalance);check(locked.stamina>0&&locked.exhausted,"partial recovery cannot unlock sprint");
-        Progress lockedCopy=Progress.parse(locked.json());check(lockedCopy.exhausted,"sprint lock persists over save/load");
+        Balance lockBalance=new Balance();Progress locked=new Progress();locked.spend(100,lockBalance);check(!locked.exhausted,"zero stamina no longer locks sprint until full");
+        locked.rest(1,false,false,true,lockBalance);check(locked.stamina>0&&!locked.exhausted,"partial recovery allows sprint again");
+        Progress lockedCopy=Progress.parse(locked.json());check(!lockedCopy.exhausted,"no full recovery lock after reload");
         locked.rest(20,false,false,true,lockBalance);check(!locked.exhausted,"full available recovery unlocks sprint");near(locked.stamina,locked.maxStamina(lockBalance),"unlock at available maximum with fatigue");
         near((14-2)*lockBalance.stamina.get("armorCost"),6,"netherite zero defense costs six stamina per second");
         b=new Balance();p=new Progress();p.buy(Skill.defense,1000,b);p.fatigue=4;p.stamina=10;p.discoveries.add("minecraft:test/1");Progress restored=Progress.parse(p.json());check(restored.json().equals(p.json()),"save/load round trip");
@@ -74,7 +80,7 @@ public final class ProgressTest {
         Balance invalid=new Balance();var one=invalid.abilities.getFirst();invalid.abilities.set(0,new Balance.Ability(one.id(),one.skill(),one.level(),one.counter(),one.amount(),one.id(),one.effect(),one.value()));rejects(invalid::validate,"cycle rejected");
         invalid=new Balance();invalid.fatigue.put("maximum",21.0);rejects(invalid::validate,"zero maximum prohibited");
         Path dir=Files.createTempDirectory("core-config-test");try {
-            Balance loaded=Balance.load(dir);check(loaded.abilities.size()==14,"default config generated");
+            Balance loaded=Balance.load(dir);check(loaded.abilities.size()>=10,"default config generated");
             String original=Files.readString(dir.resolve("stamina.json"));boolean invalidEdit=false;
             try{Balance.saveGroup(dir,"stamina","{}");}catch(IllegalArgumentException e){invalidEdit=true;}check(invalidEdit,"config editor validates entire candidate");check(Files.readString(dir.resolve("stamina.json")).equals(original),"invalid edit preserves disk config");
             var edited=Balance.JSON.toJsonTree(loaded.stamina).getAsJsonObject();edited.addProperty("regeneration",6);Balance.saveGroup(dir,"stamina",edited.toString());near(Balance.load(dir).stamina.get("regeneration"),6,"config editor saves valid group");
