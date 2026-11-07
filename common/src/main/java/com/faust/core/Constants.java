@@ -1,0 +1,11 @@
+package com.faust.core;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+public class Constants {
+
+	public static final String MOD_ID = "faustcore";
+	public static final String MOD_NAME = "core";
+	public static final Logger LOG = LoggerFactory.getLogger(MOD_NAME);
+}
