@@ -17,6 +17,8 @@ public abstract class LivingEntityMixin {
     @Unique private double faustcore$budget=-1;
     @Inject(method="isDamageSourceBlocked",at=@At("RETURN"),cancellable=true)
     private void core$blockCost(DamageSource source,CallbackInfoReturnable<Boolean> ci){if(ci.getReturnValue()&&(Object)this instanceof ServerPlayer p&&CombatContext.DAMAGE.get().peek()==source&&!CoreRuntime.shieldPayment(p))ci.setReturnValue(false);}
+    @Inject(method="startUsingItem",at=@At("HEAD"),cancellable=true)
+    private void core$shieldStance(net.minecraft.world.InteractionHand hand,org.spongepowered.asm.mixin.injection.callback.CallbackInfo ci){if((Object)this instanceof ServerPlayer p&&p.getItemInHand(hand).is(net.minecraft.world.item.Items.SHIELD)&&!CoreRuntime.canAct(p))ci.cancel();}
     @Inject(method="hurt",at=@At("HEAD"))
     private void core$before(DamageSource source,float amount,CallbackInfoReturnable<Boolean> ci) {faustcore$health.push(((LivingEntity)(Object)this).getHealth());CombatContext.DAMAGE.get().push(source);}
     @Inject(method="hurt",at=@At("RETURN"))
@@ -33,6 +35,7 @@ public abstract class LivingEntityMixin {
             double q=Math.min(Math.min(lost,faustcore$budget),CoreRuntime.balance.skills.get("hitMaximum"));
             faustcore$budget-=q;
             CoreRuntime.grant(attacker,"melee",q,1);
+            if(attacker.getMainHandItem().is(net.minecraft.world.item.Items.MACE))CoreRuntime.grant(attacker,"mace",1,1);
         }
     }
 }

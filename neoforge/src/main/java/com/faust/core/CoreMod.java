@@ -19,10 +19,10 @@ public final class CoreMod {
   NeoForge.EVENT_BUS.addListener((PlayerEvent.PlayerLoggedOutEvent event)->{if(event.getEntity() instanceof net.minecraft.server.level.ServerPlayer p)CoreRuntime.disconnected(p);});
  }
  private void payloads(RegisterPayloadHandlersEvent event) {
-  event.registrar("2").playToServer(ConfigEdit.TYPE,ConfigEdit.CODEC,(payload,context)->context.enqueueWork(()->{if(context.player() instanceof net.minecraft.server.level.ServerPlayer p)com.faust.core.platform.Services.PLATFORM.configResult(p,CoreRuntime.editConfig(p,payload));}));
-  event.registrar("2").playToServer(SwimInput.TYPE,SwimInput.CODEC,(payload,context)->context.enqueueWork(()->{if(context.player() instanceof net.minecraft.server.level.ServerPlayer p)CoreRuntime.input(p,payload.forward());}));
+  event.registrar("3").playToServer(ConfigEdit.TYPE,ConfigEdit.CODEC,(payload,context)->context.enqueueWork(()->{if(context.player() instanceof net.minecraft.server.level.ServerPlayer p)com.faust.core.platform.Services.PLATFORM.configResult(p,CoreRuntime.editConfig(p,payload));}));
+  event.registrar("3").playToServer(SwimInput.TYPE,SwimInput.CODEC,(payload,context)->context.enqueueWork(()->{if(context.player() instanceof net.minecraft.server.level.ServerPlayer p)CoreRuntime.input(p,payload.forward(),payload.airVisible());}));
   if(FMLEnvironment.dist==Dist.CLIENT) ClientRegistration.register(event);
-  else {event.registrar("2").playToClient(Snapshot.TYPE,Snapshot.CODEC,(payload,context)->{});event.registrar("2").playToClient(ConfigResult.TYPE,ConfigResult.CODEC,(payload,context)->{});}
+  else {event.registrar("3").playToClient(Snapshot.TYPE,Snapshot.CODEC,(payload,context)->{});event.registrar("3").playToClient(ConfigResult.TYPE,ConfigResult.CODEC,(payload,context)->{});}
  }
  private static final class ClientRegistration {
   static void keys(IEventBus bus,net.neoforged.fml.ModContainer container){
@@ -30,8 +30,8 @@ public final class CoreMod {
    container.registerExtensionPoint(net.neoforged.neoforge.client.gui.IConfigScreenFactory.class,(net.neoforged.neoforge.client.gui.IConfigScreenFactory)(c,parent)->new com.faust.core.client.CoreConfigScreen(parent));bus.addListener((net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent event)->event.register(com.faust.core.client.CoreClient.OPEN));}
   static void register(RegisterPayloadHandlersEvent event) {
    com.faust.core.client.CoreClient.sendConfig=value->net.neoforged.neoforge.network.PacketDistributor.sendToServer(value);
-   event.registrar("2").playToClient(ConfigResult.TYPE,ConfigResult.CODEC,(payload,context)->context.enqueueWork(()->com.faust.core.client.CoreClient.configResult(payload)));
-   com.faust.core.client.CoreClient.sendInput=value->net.neoforged.neoforge.network.PacketDistributor.sendToServer(new SwimInput(value));
-   event.registrar("2").playToClient(Snapshot.TYPE,Snapshot.CODEC,(payload,context)->context.enqueueWork(()->com.faust.core.client.CoreClient.receive(payload)));}
+   event.registrar("3").playToClient(ConfigResult.TYPE,ConfigResult.CODEC,(payload,context)->context.enqueueWork(()->com.faust.core.client.CoreClient.configResult(payload)));
+   com.faust.core.client.CoreClient.sendInput=value->net.neoforged.neoforge.network.PacketDistributor.sendToServer(value);
+   event.registrar("3").playToClient(Snapshot.TYPE,Snapshot.CODEC,(payload,context)->context.enqueueWork(()->com.faust.core.client.CoreClient.receive(payload)));}
  }
 }

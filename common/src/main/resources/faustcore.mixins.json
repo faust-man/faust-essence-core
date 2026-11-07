@@ -8,12 +8,16 @@
     "ServerPlayerMixin",
     "LivingEntityMixin",
     "PlayerMixin",
-    "SwingMixin"
+    "SwingMixin",
+    "BowItemMixin",
+    "CrossbowItemMixin",
+    "SleepMixin"
   ],
   "client": [
     "ClientMixin",
     "GuiMixin",
-    "InventoryScreenMixin"
+    "InventoryScreenMixin",
+    "AirHudMixin"
   ],
   "server": [],
   "injectors": {

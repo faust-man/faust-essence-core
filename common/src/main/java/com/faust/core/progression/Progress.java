@@ -46,12 +46,15 @@ public final class Progress {
         if(t.threshold>0&&t.threshold!=next)t.xp=Math.min(1,t.xp/t.threshold)*next;
         t.threshold=next;
     }
-    public void reconcile(Balance b) {for(Skill skill:List.copyOf(tracks.keySet()))reconcile(skill,b);stamina=Math.min(stamina,maxStamina(b));updateExhaustion(b);}
+    private void normalizeFatigue(){if(Math.abs(fatigue)<1e-9)fatigue=0;}
+    public void reconcile(Balance b) {normalizeFatigue();fatigue=Math.max(-b.fatigue.get("sleepReserve"),fatigue);for(Skill skill:List.copyOf(tracks.keySet()))reconcile(skill,b);stamina=Math.min(stamina,maxStamina(b));updateExhaustion(b);}
     public boolean event(String event,double units,double count,Balance b) {
         var rule=b.actions.get(event);
         if(rule==null||!Double.isFinite(units)||units<=0||!Double.isFinite(count)||count<0) return false;
         counters.merge(rule.counter(),count,Double::sum); grant(rule.skill(),units*rule.xp()*b.progression.get("trainingMultiplier"),b); revision++;return true;
     }
+    public double requirementCount(Balance.Ability a){return Math.max(0,Math.min(a.amount(),counters.getOrDefault(a.counter(),0.0)));}
+    public double requirementProgress(Balance.Ability a){return a.amount()<=0?1:requirementCount(a)/a.amount();}
     public boolean canUnlock(Balance.Ability a) {
         return !unlocked.contains(a.id())&&track(a.skill()).level>=a.level()&&counters.getOrDefault(a.counter(),0.0)>=a.amount()&&(a.parent().isEmpty()||unlocked.contains(a.parent()));
     }
@@ -62,41 +65,58 @@ public final class Progress {
     }
     public double effect(String effect,Balance b) {return b.abilities.stream().filter(a->unlocked.contains(a.id())&&a.effect().equals(effect)).mapToDouble(Balance.Ability::value).sum();}
     public double baseStamina(Balance b) {return b.stamina.get("base")+SkillEffects.attribute(this,b,"faustcore:stamina",false)+effect("stamina",b);}
-    public double maxStamina(Balance b) {return Math.max(b.fatigue.get("minimum"),baseStamina(b)-(b.fatigue.get("enabled")>0?Math.min(fatigue,b.fatigue.get("maximum")):0));}
+    public double maxStamina(Balance b) {return Math.max(b.fatigue.get("minimum"),baseStamina(b)-(b.fatigue.get("enabled")>0?Math.max(0,Math.min(fatigue,b.fatigue.get("maximum"))):0));}
     public double capacity(Balance b) {return b.armor.get("baseCapacity")+track(Skill.defense).level*b.armor.get("capacityPerLevel")+effect("capacity",b);}
     public double spend(double requested,Balance b) {
         if(b.stamina.get("enabled")==0||!Double.isFinite(requested)||requested<=0) return 0;
         double paid=Math.min(stamina,requested);stamina-=paid;
         if(b.fatigue.get("enabled")>0) fatigue=Math.min(b.fatigue.get("maximum"),fatigue+b.fatigue.get("perSpentFraction")*paid);
-        stamina=Math.min(stamina,maxStamina(b));updateExhaustion(b); return paid;
+        normalizeFatigue();stamina=Math.min(stamina,maxStamina(b));updateExhaustion(b); return paid;
     }
-    public void rest(double dt,boolean sleeping,boolean campfire,boolean regenerate,Balance b) {
+    public void rest(double dt,boolean sleeping,boolean campfire,boolean regenerate,Balance b) {rest(dt,sleeping,campfire,regenerate,1,b);}
+    private void rest(double dt,boolean sleeping,boolean campfire,boolean regenerate,double recoveryScale,Balance b) {
         if(b.stamina.get("enabled")==0) return;
         if(b.fatigue.get("enabled")>0){
-            if(sleeping)fatigue=Math.max(0,fatigue-dt*b.fatigue.get("sleepPerSecond"));
-            else if(campfire){campfireRest+=dt*b.fatigue.get("campfirePerSecond");double whole=Math.floor(campfireRest+1e-9);campfireRest-=whole;fatigue=Math.max(0,fatigue-whole);}
+            if(sleeping&&fatigue>0)fatigue=Math.max(0,fatigue-dt*b.fatigue.get("sleepPerSecond"));
+            else if(campfire){campfireRest+=dt*b.fatigue.get("campfirePerSecond");double whole=Math.floor(campfireRest+1e-9);campfireRest-=whole;if(fatigue>0)fatigue=Math.max(0,fatigue-whole);}
         }
-        if(regenerate) stamina=Math.min(maxStamina(b),stamina+dt*(b.stamina.get("regeneration")+effect("regeneration",b)));
+        if(regenerate) stamina=Math.min(maxStamina(b),stamina+dt*recoveryScale*(b.stamina.get("regeneration")+effect("regeneration",b)));
         else stamina=Math.min(stamina,maxStamina(b));
         updateExhaustion(b);
     }
     public void environmentalFatigue(double dt,boolean soulCampfire,boolean soulFire,Balance b){
         if(b.stamina.get("enabled")==0||b.fatigue.get("enabled")==0)return;
-        fatigue=Math.min(b.fatigue.get("maximum"),fatigue+dt*((soulCampfire?b.fatigue.get("soulCampfirePerSecond"):0)+(soulFire?b.fatigue.get("soulFirePerSecond"):0)));stamina=Math.min(stamina,maxStamina(b));updateExhaustion(b);
+        fatigue=Math.min(b.fatigue.get("maximum"),fatigue+dt*((soulCampfire?b.fatigue.get("soulCampfirePerSecond"):0)+(soulFire?b.fatigue.get("soulFirePerSecond"):0)));normalizeFatigue();stamina=Math.min(stamina,maxStamina(b));updateExhaustion(b);
     }
-    public void recover(double dt,boolean sleep,boolean campfire,boolean delayReady,boolean shielding,Balance b){if(!shielding)secondWind(dt,b);rest(dt,sleep,campfire,delayReady&&!shielding,b);}
-    public void secondWind(double dt,Balance b){if(b.stamina.get("enabled")>0&&effect("second_wind",b)>0){stamina=Math.min(maxStamina(b),stamina+dt*b.stamina.get("runCost"));updateExhaustion(b);}}
-    public void sweetFood(String item,Balance b){if(b.stamina.get("enabled")>0&&b.fatigue.get("enabled")>0)fatigue=Math.max(0,fatigue-b.sweetFoods.getOrDefault(item,0.0));}
+    public void recover(double dt,boolean sleep,boolean campfire,boolean delayReady,boolean shielding,Balance b){recover(dt,sleep,campfire,delayReady,shielding,false,false,b);}
+    public void recover(double dt,boolean sleep,boolean campfire,boolean delayReady,boolean shielding,boolean flying,boolean airVisible,Balance b){
+        double scale=airVisible?b.stamina.get("airRecoveryMultiplier"):1;
+        if(!shielding&&!flying)secondWind(dt*scale,b);
+        // Fatigue relief still uses real elapsed time, only stamina regeneration is slowed.
+        rest(dt,sleep,campfire,delayReady&&!shielding&&!flying,scale,b);
+    }
+    public double exhaustionThreshold(Balance b){return Math.min(maxStamina(b),b.stamina.get("exhaustionRecovery")*Math.max(0,1-effect("exhaustion_threshold_reduction",b)));}
+    public boolean actionsBlocked(Balance b){return b.stamina.get("enabled")>0&&(exhausted||stamina<=0);}
+    public double actionCost(String action,Balance b){
+        double cost=b.stamina.get(action+"Cost");
+        if(action.equals("bow")||action.equals("crossbow")||action.equals("mace"))cost-=effect(action+"_cost_reduction",b);
+        if(action.equals("mace"))cost=Math.max(b.stamina.get("attackCost"),cost);
+        return Math.max(0,cost);
+    }
+    public void sleptNight(Balance b){if(b.fatigue.get("enabled")>0&&b.fatigue.get("resetAfterNight")>0)fatigue=-b.fatigue.get("sleepReserve");}
+
+    public void secondWind(double dt,Balance b){if(b.stamina.get("enabled")>0&&effect("second_wind",b)>0){stamina=Math.min(maxStamina(b),stamina+dt*b.stamina.get("runCost")*b.stamina.get("secondWindMultiplier"));updateExhaustion(b);}}
+    public void sweetFood(String item,Balance b){if(b.stamina.get("enabled")>0&&b.fatigue.get("enabled")>0&&fatigue>0)fatigue=Math.max(0,fatigue-b.sweetFoods.getOrDefault(item,0.0));}
     public void updateExhaustion(Balance b) {
         if(b.stamina.get("exhaustionLock")==0){exhausted=false;return;}
         if(stamina<=1e-9)exhausted=true;
-        else if(stamina>=maxStamina(b)-1e-9)exhausted=false;
+        else if(stamina>=exhaustionThreshold(b)-1e-9)exhausted=false;
     }
     public String json() {return Balance.JSON.toJson(this);}
     public static Progress parse(String json) {return parse(json,new Balance());}
     public static Progress parse(String json,Balance config) {
         Progress p=Balance.JSON.fromJson(json,Progress.class);
-        if(p==null||(p.schema!=1&&p.schema!=2)||p.tracks==null||p.counters==null||p.unlocked==null||p.discoveries==null||p.path==null||p.purchases<0||!Double.isFinite(p.stamina)||p.stamina<0||!Double.isFinite(p.fatigue)||p.fatigue<0) throw new IllegalArgumentException("Invalid saved core data");
+        if(p==null||(p.schema!=1&&p.schema!=2)||p.tracks==null||p.counters==null||p.unlocked==null||p.discoveries==null||p.path==null||p.purchases<0||!Double.isFinite(p.stamina)||p.stamina<0||!Double.isFinite(p.fatigue)||p.fatigue< -1e9) throw new IllegalArgumentException("Invalid saved core data");
         for(Skill s:Skill.values()) {Track t=p.track(s);if(t.level<0||!Double.isFinite(t.xp)||t.xp<0||t.purchases<0) throw new IllegalArgumentException("Invalid skill data");}
         if(p.schema==1) {
             double newBase=p.baseStamina(config);

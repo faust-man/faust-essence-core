@@ -12,7 +12,7 @@ public final class CoreMod implements ModInitializer {
   PayloadTypeRegistry.playC2S().register(ConfigEdit.TYPE,ConfigEdit.CODEC);
   ServerPlayNetworking.registerGlobalReceiver(ConfigEdit.TYPE,(payload,context)->context.server().execute(()->com.faust.core.platform.Services.PLATFORM.configResult(context.player(),CoreRuntime.editConfig(context.player(),payload))));
   PayloadTypeRegistry.playC2S().register(SwimInput.TYPE,SwimInput.CODEC);
-  ServerPlayNetworking.registerGlobalReceiver(SwimInput.TYPE,(payload,context)->context.server().execute(()->CoreRuntime.input(context.player(),payload.forward())));
+  ServerPlayNetworking.registerGlobalReceiver(SwimInput.TYPE,(payload,context)->context.server().execute(()->CoreRuntime.input(context.player(),payload.forward(),payload.airVisible())));
   CommandRegistrationCallback.EVENT.register((dispatcher,registry,environment)->CoreCommands.register(dispatcher));
   ServerPlayConnectionEvents.DISCONNECT.register((handler,server)->CoreRuntime.disconnected(handler.player));
  }

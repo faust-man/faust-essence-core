@@ -20,7 +20,7 @@ public final class CoreScreen extends Screen {
     private int y(){return Math.round((height/scale()-panelHeight()+28)/2);}
     private List<Balance.Ability> abilities(){return CoreClient.balance.abilities.stream().filter(a->a.skill()==selected).toList();}
     private List<Balance.Ability> visible(){var list=abilities();int start=Math.min(page*2,Math.max(0,list.size()-1));return list.subList(start,Math.min(list.size(),start+2));}
-    private static String number(double value){return String.format(Locale.ROOT,"%.1f",value);}
+    private static String number(double value){return java.math.BigDecimal.valueOf(value).setScale(4,java.math.RoundingMode.HALF_UP).stripTrailingZeros().toPlainString();}
     private static Component skillName(Skill skill){return Component.translatableWithFallback("core.skill."+skill,skill.name());}
     private static Component abilityName(Balance.Ability ability){return Component.translatableWithFallback("core.ability."+ability.id().split(":")[1],ability.id());}
     private void command(String text){if(minecraft!=null&&minecraft.getConnection()!=null)minecraft.getConnection().sendCommand(text);}
@@ -49,13 +49,12 @@ public final class CoreScreen extends Screen {
                 g.blit(icon,cx+4,cy+4,18,18,0,0,16,16,16,16);
                 g.drawString(font,Component.translatable("core.short."+skill),cx+25,cy+4,0xFFFFFF,false);
                 g.drawString(font,p.track(skill).level+" / "+(int)p.cap(skill,b),cx+25,cy+15,0xC6C6C6,false);
-                g.drawWordWrap(font,Component.translatable("core.brief."+skill),cx+4,cy+28,94,0xD8D8D8);
                 if(PanelTabs.inside(mx,my,cx,cy,100,42))hoveredTooltip=List.of(skillName(skill));
             }
             center(g,Component.translatable("core.select_skill"),x+w/2,y+187,0x505050);
         } else {
             center(g,skillName(selected),x+w/2,y+7,0x505050);
-            g.drawWordWrap(font,Component.translatable("core.description."+selected),x+10,y+22,w-20,0x505050);
+            g.drawWordWrap(font,Component.translatable("core.description."+selected,number(b.skills.get("damageMinimumHP"))),x+10,y+22,w-20,0x505050);
             g.drawString(font,Component.translatable("core.skill_progress",p.track(selected).level,number(100*p.track(selected).xp/p.needed(selected,b))),x+10,y+47,0x404040,false);
             g.drawString(font,Component.translatable("core.cap_status",(int)p.cap(selected,b),(int)Math.round(p.multiplier(selected,b)*100)),x+10,y+61,0x404040,false);
             long cost=p.price(selected,b);boolean full=p.cap(selected,b)>=b.progression.get("maximumCap");
@@ -64,10 +63,15 @@ public final class CoreScreen extends Screen {
             for(var a:visible()) {
                 int ay=y+100+row++*37;boolean unlocked=p.unlocked.contains(a.id());
                 box(g,x+10,ay,w-20,33,abilityName(a),p.canUnlock(a)||unlocked);
-                g.drawString(font,unlocked?Component.translatable("core.unlocked"):Component.translatable("core.node_condition",a.level(),number(p.counters.getOrDefault(a.counter(),0.0)),number(a.amount()),Component.translatable("core.counter."+a.counter())),x+16,ay+18,0xCFCFCF,false);
+                g.fill(x+11,ay+2,x+14,ay+31,0xFF202020);
+                g.fill(x+11,ay+31-(int)(29*p.requirementProgress(a)),x+14,ay+31,0xFF80B938);
+                Component condition=Component.translatable("core.node_condition",a.level(),number(p.requirementCount(a)),number(a.amount()),Component.translatable("core.counter."+a.counter()));
+                String label=(unlocked?Component.translatable("core.unlocked"):condition).getString();
+                if(font.width(label)>w-32)label=font.plainSubstrByWidth(label,w-42)+"...";
+                g.drawString(font,label,x+16,ay+18,0xCFCFCF,false);
                 if(PanelTabs.inside(mx,my,x+10,ay,w-20,33)) {
-                    var lines=new ArrayList<Component>();lines.add(Component.translatable("core.effect."+a.effect(),number(a.value()*(Set.of("damage","speed","breaking","shield_durability","shield_recovery").contains(a.effect())?100:1))));
-                    if(!a.parent().isEmpty())lines.add(Component.translatable("core.parent",a.parent()));
+                    var lines=abilityDescription(a,p,b);lines.add(condition);
+                    if(!a.parent().isEmpty())lines.add(Component.translatable("core.parent",b.abilities.stream().filter(parent->parent.id().equals(a.parent())).map(CoreScreen::abilityName).findFirst().orElse(Component.literal(a.parent()))));
                     hoveredTooltip=lines;
                 }
             }
@@ -76,6 +80,23 @@ public final class CoreScreen extends Screen {
             box(g,x+w-36,y+177,22,16,Component.literal(">"),(page+1)*2<abilities().size());
         }
         PanelTabs.draw(g,x,y,true,mx,my);if(hoveredTooltip!=null)PanelTabs.tooltip(g,hoveredTooltip,mx,my);g.pose().popPose();
+    }
+    private static ArrayList<Component> abilityDescription(Balance.Ability a,Progress p,Balance b){
+        var lines=new ArrayList<Component>();
+        if(a.effect().equals("stat_unlock")){
+            for(var rule:b.statBonuses)if(a.id().equals(rule.requiresAbility)){
+                boolean percent=!rule.operation.equals("add")||rule.attribute.equals("faustcore:breaking");
+                String name=rule.attribute.equals("faustcore:stamina")?"core.stat.stamina":rule.attribute.equals("faustcore:breaking")?"core.stat.breaking":"attribute.name."+rule.attribute.split(":")[1];
+                lines.add(Component.translatable("core.stat.rate",Component.translatableWithFallback(name,rule.attribute),number(rule.perLevel*(percent?100:1)),percent?"%":"",rule.everyLevels));
+                if(rule.maximum<1e9)lines.add(Component.translatable("core.stat.maximum",number(rule.maximum*(percent?100:1)),percent?"%":""));
+                if(rule.sprintOnly)lines.add(Component.translatable("core.stat.sprint_only"));
+            }
+        }else {
+            if(a.effect().equals("second_wind"))lines.add(Component.translatable("core.second_wind.rate",number(b.stamina.get("secondWindMultiplier")*100),number(b.stamina.get("runCost")*b.stamina.get("secondWindMultiplier"))));
+            else lines.add(Component.translatable("core.effect."+a.effect(),number(a.value()*(Set.of("damage","speed","breaking","shield_durability","shield_recovery","exhaustion_threshold_reduction").contains(a.effect())?100:1))));
+            if(a.effect().equals("exhaustion_threshold_reduction"))lines.add(Component.translatable("core.recovery_threshold",number(b.stamina.get("exhaustionRecovery")*(1-a.value()))));
+        }
+        return lines;
     }
     private void center(GuiGraphics g,Component text,int x,int y,int color){g.drawString(font,text,x-font.width(text)/2,y,color,false);}
     private void box(GuiGraphics g,int x,int y,int w,int h,Component text,boolean active) {
