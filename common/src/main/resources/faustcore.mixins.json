@@ -17,7 +17,8 @@
     "ClientMixin",
     "GuiMixin",
     "InventoryScreenMixin",
-    "AirHudMixin"
+    "AirHudMixin",
+    "LocalPlayerMixin"
   ],
   "server": [],
   "injectors": {

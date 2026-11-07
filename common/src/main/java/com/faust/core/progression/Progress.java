@@ -20,7 +20,7 @@ public final class Progress {
     public double cap(Skill skill,Balance b) {return Math.min(b.progression.get("maximumCap"),track(skill).limitOverride!=null?track(skill).limitOverride:b.progression.get("initialCap")+b.progression.get("capStep")*track(skill).purchases);}
     public double multiplier(Skill skill,Balance b) {
         double level=track(skill).level,cap=cap(skill,b);
-        return level<cap?Math.min(b.progression.get("maximumGrowth"),cap/Math.max(1,level)):1/(1+b.progression.get("slowdown")*(level-cap+1));
+        return level<cap?Math.min(b.progression.get("maximumGrowth"),cap/Math.max(1,level)):b.progression.get("overCapGrowth");
     }
     public long price(Skill skill,Balance b) {
         double sum=Arrays.stream(Skill.values()).mapToDouble(s->cap(s,b)).sum();
@@ -70,7 +70,7 @@ public final class Progress {
     public double spend(double requested,Balance b) {
         if(b.stamina.get("enabled")==0||!Double.isFinite(requested)||requested<=0) return 0;
         double paid=Math.min(stamina,requested);stamina-=paid;
-        if(b.fatigue.get("enabled")>0) fatigue=Math.min(b.fatigue.get("maximum"),fatigue+b.fatigue.get("perSpentFraction")*paid);
+        if(b.fatigue.get("enabled")>0) fatigue=Math.min(b.fatigue.get("maximum"),fatigue+b.fatigue.get("perSpentFraction")*paid*b.fatigue.get("accumulationMultiplier"));
         normalizeFatigue();stamina=Math.min(stamina,maxStamina(b));updateExhaustion(b); return paid;
     }
     public void rest(double dt,boolean sleeping,boolean campfire,boolean regenerate,Balance b) {rest(dt,sleeping,campfire,regenerate,1,b);}
@@ -86,7 +86,7 @@ public final class Progress {
     }
     public void environmentalFatigue(double dt,boolean soulCampfire,boolean soulFire,Balance b){
         if(b.stamina.get("enabled")==0||b.fatigue.get("enabled")==0)return;
-        fatigue=Math.min(b.fatigue.get("maximum"),fatigue+dt*((soulCampfire?b.fatigue.get("soulCampfirePerSecond"):0)+(soulFire?b.fatigue.get("soulFirePerSecond"):0)));normalizeFatigue();stamina=Math.min(stamina,maxStamina(b));updateExhaustion(b);
+        fatigue=Math.min(b.fatigue.get("maximum"),fatigue+dt*b.fatigue.get("accumulationMultiplier")*((soulCampfire?b.fatigue.get("soulCampfirePerSecond"):0)+(soulFire?b.fatigue.get("soulFirePerSecond"):0)));normalizeFatigue();stamina=Math.min(stamina,maxStamina(b));updateExhaustion(b);
     }
     public void recover(double dt,boolean sleep,boolean campfire,boolean delayReady,boolean shielding,Balance b){recover(dt,sleep,campfire,delayReady,shielding,false,false,b);}
     public void recover(double dt,boolean sleep,boolean campfire,boolean delayReady,boolean shielding,boolean flying,boolean airVisible,Balance b){
@@ -96,7 +96,8 @@ public final class Progress {
         rest(dt,sleep,campfire,delayReady&&!shielding&&!flying,scale,b);
     }
     public double exhaustionThreshold(Balance b){return Math.min(maxStamina(b),b.stamina.get("exhaustionRecovery")*Math.max(0,1-effect("exhaustion_threshold_reduction",b)));}
-    public boolean actionsBlocked(Balance b){return b.stamina.get("enabled")>0&&(exhausted||stamina<=0);}
+    public boolean empty(Balance b){return stamina<=1e-9||stamina<b.stamina.get("exhaustionTrigger");}
+    public boolean actionsBlocked(Balance b){return b.stamina.get("enabled")>0&&(exhausted||empty(b));}
     public double actionCost(String action,Balance b){
         double cost=b.stamina.get(action+"Cost");
         if(action.equals("bow")||action.equals("crossbow")||action.equals("mace"))cost-=effect(action+"_cost_reduction",b);
@@ -109,7 +110,7 @@ public final class Progress {
     public void sweetFood(String item,Balance b){if(b.stamina.get("enabled")>0&&b.fatigue.get("enabled")>0&&fatigue>0)fatigue=Math.max(0,fatigue-b.sweetFoods.getOrDefault(item,0.0));}
     public void updateExhaustion(Balance b) {
         if(b.stamina.get("exhaustionLock")==0){exhausted=false;return;}
-        if(stamina<=1e-9)exhausted=true;
+        if(empty(b))exhausted=true;
         else if(stamina>=exhaustionThreshold(b)-1e-9)exhausted=false;
     }
     public String json() {return Balance.JSON.toJson(this);}

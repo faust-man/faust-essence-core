@@ -15,6 +15,8 @@ import java.util.ArrayDeque;
 public abstract class LivingEntityMixin {
     @Unique private final ArrayDeque<Float> faustcore$health=new ArrayDeque<>();
     @Unique private double faustcore$budget=-1;
+    @ModifyVariable(method="setSprinting",at=@At("HEAD"),argsOnly=true)
+    private boolean core$sprint(boolean sprinting){if(!sprinting)return false;if((Object)this instanceof ServerPlayer p)return CoreRuntime.canAct(p);return com.faust.core.runtime.ClientActions.sprintAllowed.test(this);}
     @Inject(method="isDamageSourceBlocked",at=@At("RETURN"),cancellable=true)
     private void core$blockCost(DamageSource source,CallbackInfoReturnable<Boolean> ci){if(ci.getReturnValue()&&(Object)this instanceof ServerPlayer p&&CombatContext.DAMAGE.get().peek()==source&&!CoreRuntime.shieldPayment(p))ci.setReturnValue(false);}
     @Inject(method="startUsingItem",at=@At("HEAD"),cancellable=true)

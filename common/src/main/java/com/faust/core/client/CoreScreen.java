@@ -46,9 +46,9 @@ public final class CoreScreen extends Screen {
                 int cx=x+9+(i%2)*102,cy=y+49+(i/2)*45;i++;
                 g.blit(PANEL,cx,cy,100,42,12,50,76,26,256,256);
                 ResourceLocation icon=ResourceLocation.fromNamespaceAndPath("faustcore","textures/skill/"+skill+"/locked_"+SkillEffects.icon(p.track(skill).level,b)+".png");
-                g.blit(icon,cx+4,cy+4,18,18,0,0,16,16,16,16);
-                g.drawString(font,Component.translatable("core.short."+skill),cx+25,cy+4,0xFFFFFF,false);
-                g.drawString(font,p.track(skill).level+" / "+(int)p.cap(skill,b),cx+25,cy+15,0xC6C6C6,false);
+                g.blit(icon,cx+10,cy+12,18,18,0,0,16,16,16,16);
+                g.drawString(font,Component.translatable("core.short."+skill),cx+36,cy+12,0xFFFFFF,false);
+                g.drawString(font,p.track(skill).level+" / "+(int)p.cap(skill,b),cx+36,cy+23,0xC6C6C6,false);
                 if(PanelTabs.inside(mx,my,cx,cy,100,42))hoveredTooltip=List.of(skillName(skill));
             }
             center(g,Component.translatable("core.select_skill"),x+w/2,y+187,0x505050);
@@ -70,8 +70,8 @@ public final class CoreScreen extends Screen {
                 if(font.width(label)>w-32)label=font.plainSubstrByWidth(label,w-42)+"...";
                 g.drawString(font,label,x+16,ay+18,0xCFCFCF,false);
                 if(PanelTabs.inside(mx,my,x+10,ay,w-20,33)) {
-                    var lines=abilityDescription(a,p,b);lines.add(condition);
-                    if(!a.parent().isEmpty())lines.add(Component.translatable("core.parent",b.abilities.stream().filter(parent->parent.id().equals(a.parent())).map(CoreScreen::abilityName).findFirst().orElse(Component.literal(a.parent()))));
+                    var lines=abilityDescription(a,p,b);if(!unlocked)lines.add(condition);
+                    if(!unlocked&&!a.parent().isEmpty())lines.add(Component.translatable("core.parent",b.abilities.stream().filter(parent->parent.id().equals(a.parent())).map(CoreScreen::abilityName).findFirst().orElse(Component.literal(a.parent()))));
                     hoveredTooltip=lines;
                 }
             }

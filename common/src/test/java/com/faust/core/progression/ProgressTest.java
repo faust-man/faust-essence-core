@@ -10,7 +10,7 @@ public final class ProgressTest {
     private static void near(double actual,double expected,String message){check(Math.abs(actual-expected)<1e-7,message+": "+actual+" != "+expected);}
     private static void rejects(Runnable task,String message){try{task.run();}catch(IllegalArgumentException e){checks++;return;}throw new AssertionError(message);}
     public static void main(String[] args) throws Exception {
-        CommandTest.run();Revision14Test.run();
+        CommandTest.run();Revision14Test.run();Revision141Test.run();
         Balance b=new Balance();b.validate();
         Progress lockedStats=new Progress();lockedStats.track(Skill.constitution).level=20;near(SkillEffects.health(lockedStats,b),0,"health locked before learned stat");near(lockedStats.baseStamina(b),20,"stamina capacity locked before learned stat");lockedStats.unlocked.add("faustcore:training_constitution_health");near(SkillEffects.health(lockedStats,b),20,"health node unlocks only health");near(lockedStats.baseStamina(b),20,"health node does not unlock stamina");lockedStats.unlocked.add("faustcore:training_constitution_stamina");near(lockedStats.baseStamina(b),40,"separate stamina node");
         check(!SkillEffects.damageCounts(1.99,b),"less than a heart ignored");check(SkillEffects.damageCounts(2,b),"one actual heart counts");
@@ -41,7 +41,7 @@ public final class ProgressTest {
         Progress p=new Progress();near(p.multiplier(Skill.strength,b),2,"zero level growth limited to 200 percent");
         p.track(Skill.strength).level=2;near(p.multiplier(Skill.strength,b),2,"cap double -> 200 percent");
         p.track(Skill.strength).level=3;p.track(Skill.strength).limitOverride=9;near(p.multiplier(Skill.strength,b),2,"cap triple still limited to 200 percent");
-        p=new Progress();p.track(Skill.strength).level=4;p.track(Skill.strength).xp=175;p.grant(Skill.strength,20,b);check(p.track(Skill.strength).level==5,"cross soft cap");near(p.track(Skill.strength).xp,(20-4)/1.5,"split award at accelerated boundary");
+        p=new Progress();p.track(Skill.strength).level=4;p.track(Skill.strength).xp=175;p.grant(Skill.strength,20,b);check(p.track(Skill.strength).level==5,"cross soft cap");near(p.track(Skill.strength).xp,(20-4)*0.33,"split award at accelerated boundary");
         Progress small=new Progress(),large=new Progress();
         for(int i=0;i<1000;i++)small.grant(Skill.strength,0.5,b);large.grant(Skill.strength,500,b);
         check(small.track(Skill.strength).level==large.track(Skill.strength).level,"grouping invariant below and above cap");near(small.track(Skill.strength).xp,large.track(Skill.strength).xp,"fractional precision");
@@ -58,12 +58,12 @@ public final class ProgressTest {
         p.track(a.skill()).level=0;p.counters.put(a.counter(),a.amount());check(!p.unlock(a.id(),b),"condition alone insufficient");p.track(a.skill()).level=a.level();check(p.unlock(a.id(),b),"both conditions");check(!p.unlock(a.id(),b),"no duplicate unlock");
         var child=b.abilities.stream().filter(n->n.id().equals("faustcore:armor_mastery")).findFirst().orElseThrow();Progress q=new Progress();q.track(child.skill()).level=20;q.counters.put(child.counter(),10000.0);check(!q.unlock(child.id(),b),"parent required");
         check(!p.event("unknown",1,1,b),"unknown source");double old=p.track(Skill.constitution).xp;p.event("damage",4,4,b);near(p.track(Skill.constitution).xp,old+8*p.multiplier(Skill.constitution,b),"actual damage practice");
-        p=new Progress();near(p.stamina,20,"base stamina 20");near(p.spend(8,b),8,"paid stamina");near(p.fatigue,0.4,"fatigue in absolute units");near(p.maxStamina(b),19.6,"fatigue occupies right of bar");
-        p.rest(10,false,false,true,b);near(p.stamina,19.6,"regen limited by fatigue");p.rest(1,true,false,true,b);near(p.fatigue,0.2,"gradual sleep units");p.rest(1,false,true,true,b);near(p.fatigue,0.2,"campfire retains fractional time until one unit");
+        p=new Progress();near(p.stamina,20,"base stamina 20");near(p.spend(8,b),8,"paid stamina");near(p.fatigue,0.2,"fatigue in absolute units");near(p.maxStamina(b),19.8,"fatigue occupies right of bar");
+        p.rest(10,false,false,true,b);near(p.stamina,19.8,"regen limited by fatigue");p.rest(1,true,false,true,b);near(p.fatigue,0,"gradual sleep units");p.rest(1,false,true,true,b);near(p.fatigue,0,"campfire retains fractional time until one unit");
         p.stamina=1;near(p.spend(20,b),1,"cannot overspend");double f=p.fatigue;p.spend(20,b);near(p.fatigue,f,"no fatigue for unpaid request");
         b.fatigue.put("enabled",0.0);near(p.maxStamina(b),20,"fatigue disabled");b.stamina.put("enabled",0.0);near(p.spend(20,b),0,"stamina disabled");near(p.fatigue,f,"disable preserves history");
         b=new Balance();Progress fire=new Progress();fire.fatigue=5;fire.rest(24,false,true,false,b);near(fire.fatigue,5,"campfire unit interval not complete");fire.rest(1,false,true,false,b);near(fire.fatigue,4,"campfire removes one unit per 25 seconds");
-        fire.environmentalFatigue(1,true,false,b);near(fire.fatigue,4.04,"soul campfire adds fatigue");fire.environmentalFatigue(1,false,true,b);near(fire.fatigue,4.14,"soul fire adds fatigue");
+        fire.environmentalFatigue(1,true,false,b);near(fire.fatigue,4.02,"soul campfire adds fatigue");fire.environmentalFatigue(1,false,true,b);near(fire.fatigue,4.07,"soul fire adds fatigue");
         Progress runner=new Progress();runner.unlocked.add("faustcore:second_wind");for(int n=0;n<2000;n++){runner.spend(b.stamina.get("runCost")/20,b);runner.secondWind(0.05,b);}check(!runner.exhausted,"second wind sustains unarmored sprint");
         Progress capped=new Progress();for(var bonus:b.statBonuses)capped.unlocked.add(bonus.requiresAbility);capped.track(Skill.building).level=100;near(SkillEffects.reach(capped,b),3,"building reach capped at plus three");capped.track(Skill.defense).level=6;near(SkillEffects.attribute(capped,b,"minecraft:generic.armor",false),3,"one armor per two defense levels");
         var extraReach=new Balance.StatBonus();extraReach.id="extra_building_reach";extraReach.skill=Skill.building;extraReach.attribute="minecraft:player.block_interaction_range";extraReach.perLevel=1;b.statBonuses.add(extraReach);near(SkillEffects.reach(capped,b),3,"global reach cap includes multiple rules");b.statBonuses.remove(extraReach);
