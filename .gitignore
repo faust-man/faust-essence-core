@@ -1,0 +1,46 @@
+# Local notes
+/work_notes/
+
+# Gradle caches and build outputs (all modules)
+**/.gradle/
+**/build/
+/.gradle-user-home/
+
+# Development game instances
+**/run/
+**/runs/
+**/logs/
+**/crash-reports/
+
+# IntelliJ IDEA / Eclipse / VS Code local settings
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.classpath
+.project
+.settings/
+.metadata/
+*.launch
+**/out/
+**/bin/
+
+# Local configuration and credentials
+.env
+.env.*
+!.env.example
+local.properties
+*.jks
+*.keystore
+
+# OS / editor temporary files
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.swp
+*.swo
+*~
+
+# Keep Gradle Wrapper and generated mod resources versioned.
+# Do not ignore *.jar or src/generated/resources globally.
