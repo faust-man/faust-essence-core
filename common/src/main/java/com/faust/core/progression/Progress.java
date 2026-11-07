@@ -10,7 +10,8 @@ public final class Progress {
     public Set<String> unlocked=new HashSet<>(), discoveries=new HashSet<>();
     public long purchases, revision;
     public double stamina=20, fatigue;
-    public boolean exhausted;
+    public boolean exhausted,soulFireBurn;
+    public double campfireRest;
     public String path="";
     public static final class Track { public int level; public double xp, threshold; public Integer limitOverride; public long purchases; }
     public Progress() {for(Skill s:Skill.values()) tracks.put(s,new Track());}
@@ -49,7 +50,7 @@ public final class Progress {
     public boolean event(String event,double units,double count,Balance b) {
         var rule=b.actions.get(event);
         if(rule==null||!Double.isFinite(units)||units<=0||!Double.isFinite(count)||count<0) return false;
-        counters.merge(rule.counter(),count,Double::sum); grant(rule.skill(),units*rule.xp(),b); revision++;return true;
+        counters.merge(rule.counter(),count,Double::sum); grant(rule.skill(),units*rule.xp()*b.progression.get("trainingMultiplier"),b); revision++;return true;
     }
     public boolean canUnlock(Balance.Ability a) {
         return !unlocked.contains(a.id())&&track(a.skill()).level>=a.level()&&counters.getOrDefault(a.counter(),0.0)>=a.amount()&&(a.parent().isEmpty()||unlocked.contains(a.parent()));
@@ -71,11 +72,19 @@ public final class Progress {
     }
     public void rest(double dt,boolean sleeping,boolean campfire,boolean regenerate,Balance b) {
         if(b.stamina.get("enabled")==0) return;
-        if(b.fatigue.get("enabled")>0) fatigue=Math.max(0,fatigue-dt*(sleeping?b.fatigue.get("sleepPerSecond"):campfire?b.fatigue.get("campfirePerSecond"):0));
+        if(b.fatigue.get("enabled")>0){
+            if(sleeping)fatigue=Math.max(0,fatigue-dt*b.fatigue.get("sleepPerSecond"));
+            else if(campfire){campfireRest+=dt*b.fatigue.get("campfirePerSecond");double whole=Math.floor(campfireRest+1e-9);campfireRest-=whole;fatigue=Math.max(0,fatigue-whole);}
+        }
         if(regenerate) stamina=Math.min(maxStamina(b),stamina+dt*(b.stamina.get("regeneration")+effect("regeneration",b)));
         else stamina=Math.min(stamina,maxStamina(b));
         updateExhaustion(b);
     }
+    public void environmentalFatigue(double dt,boolean soulCampfire,boolean soulFire,Balance b){
+        if(b.stamina.get("enabled")==0||b.fatigue.get("enabled")==0)return;
+        fatigue=Math.min(b.fatigue.get("maximum"),fatigue+dt*((soulCampfire?b.fatigue.get("soulCampfirePerSecond"):0)+(soulFire?b.fatigue.get("soulFirePerSecond"):0)));stamina=Math.min(stamina,maxStamina(b));updateExhaustion(b);
+    }
+    public void secondWind(double dt,Balance b){if(b.stamina.get("enabled")>0&&effect("second_wind",b)>0){stamina=Math.min(maxStamina(b),stamina+dt*b.stamina.get("runCost"));updateExhaustion(b);}}
     public void updateExhaustion(Balance b) {
         if(b.stamina.get("exhaustionLock")==0){exhausted=false;return;}
         if(stamina<=1e-9)exhausted=true;

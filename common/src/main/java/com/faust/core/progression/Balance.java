@@ -12,21 +12,42 @@ public final class Balance {
         public void write(com.google.gson.stream.JsonWriter out,Skill skill) throws IOException {out.value(skill.name());}
         public Skill read(com.google.gson.stream.JsonReader in) throws IOException {return Skill.saved(in.nextString());}
     }).setPrettyPrinting().create();
-    public Map<String, Double> progression = numbers("levelBase",100,"levelSlope",20,"initialCap",10,"capStep",1,"maximumCap",20,"costDivisor",5,"maximumGrowth",2,"slowdown",0.25);
-    public Map<String, Double> stamina = numbers("enabled",1,"base",20,"constitutionPerLevel",0.2,"regeneration",4,"delaySeconds",1.5,"armorCost",0.5,"waterCost",1,"exhaustionLock",1,"flowThreshold",0.05);
-    public Map<String, Double> fatigue = numbers("enabled",1,"perSpentFraction",0.05,"maximum",16,"minimum",4,"sleepPerSecond",0.2,"campfirePerSecond",0.04,"campfireRadius",4);
+    public Map<String, Double> progression = numbers("levelBase",100,"levelSlope",20,"initialCap",10,"capStep",1,"maximumCap",20,"costDivisor",5,"maximumGrowth",2,"trainingMultiplier",2,"slowdown",0.5);
+    public Map<String, Double> stamina = numbers("enabled",1,"base",20,"constitutionPerLevel",1,"regeneration",4,"delaySeconds",1.5,"armorCost",0.5,"waterCost",1,"exhaustionLock",1,"attackCost",1,"runCost",0.2,"flowThreshold",0.05);
+    public Map<String, Double> fatigue = numbers("enabled",1,"perSpentFraction",0.05,"maximum",16,"minimum",4,"sleepPerSecond",0.2,"campfirePerSecond",0.04,"campfireRadius",4,"soulCampfirePerSecond",0.04,"soulFirePerSecond",0.1);
     public Map<String, Double> armor = numbers("baseCapacity",2,"capacityPerLevel",0.5,"fallbackWeight",2,"leather",1,"chainmail",2,"iron",2.5,"golden",2,"diamond",3,"netherite",3.5);
-    public Map<String, Double> skills = numbers("damagePerLevel",0.002,"damageMaximum",0.10,"speedPerLevel",0.001,"speedMaximum",0.05,"breakingPerLevel",0.01,"breakingMaximum",1000000000,"hitCharge",0.9,"hitMaximum",10,"shieldMaximum",5,"shieldIntervalTicks",20,"shieldBudgetPerMinute",20,"runMetresPerMinute",200,"blockMaximumPerMinute",300,"readCooldownSeconds",30,"structureIntervalTicks",40,"healthPerLevel",1,"luckPerLevel",0.01,"luckMaximum",0.2,"reachEveryLevels",10,"reachPerStep",1,"iconTier1",5,"iconTier2",10,"iconTier3",20);
-    public Map<String, Double> client = numbers("hud",1,"hudX",8,"hudY",8,"hudWidth",140);
+    public Map<String, Double> skills = numbers("damagePerLevel",0.002,"damageMaximum",0.10,"speedPerLevel",0.001,"speedMaximum",0.05,"breakingPerLevel",0.01,"breakingMaximum",1000000000,"hitCharge",0.9,"hitMaximum",10,"shieldMaximum",5,"shieldIntervalTicks",20,"shieldBudgetPerMinute",20,"runMetresPerMinute",200,"blockMaximumPerMinute",300,"readCooldownSeconds",30,"structureIntervalTicks",40,"healthPerLevel",1,"luckPerLevel",0.01,"luckMaximum",0.2,"reachEveryLevels",10,"reachPerStep",1,"buildingReachMaximum",3,"iconTier1",5,"iconTier2",10,"iconTier3",20);
+    public Map<String, Double> client = numbers("hud",1,"hudX",0,"hudY",0,"hudWidth",81);
     public Map<String, Double> integrations = numbers("weaponDefenseEnabled",0);
     public Map<String, Rule> actions = new LinkedHashMap<>();
     public List<Ability> abilities = new ArrayList<>();
+    public List<StatBonus> statBonuses = new ArrayList<>();
+    public static final class StatBonus {
+        public String id,attribute,operation="add";
+        public Skill skill;
+        public double perLevel,maximum=1e9;
+        public int everyLevels=1;
+        public boolean sprintOnly;
+        public double amount(int level){return Math.min(maximum,Math.floor((double)level/everyLevels)*perLevel);}
+    }
+    private void stat(String id,Skill skill,String attribute,String operation,double rate,int every,double max,boolean sprint) {
+        StatBonus bonus=new StatBonus();bonus.id=id;bonus.skill=skill;bonus.attribute="minecraft:"+(attribute.equals("block_interaction_range")||attribute.equals("entity_interaction_range")?"player.":"generic.")+attribute;bonus.operation=operation;bonus.perLevel=rate;bonus.everyLevels=every;bonus.maximum=max;bonus.sprintOnly=sprint;statBonuses.add(bonus);
+    }
 
     public record Rule(Skill skill, double xp, String counter) {}
     public record Ability(String id, Skill skill, int level, String counter, double amount,
                           String parent, String effect, double value) {}
 
     public Balance() {
+        skills.keySet().removeAll(List.of("damagePerLevel","damageMaximum","speedPerLevel","speedMaximum","healthPerLevel","luckPerLevel","luckMaximum","reachEveryLevels","reachPerStep"));
+        stat("strength_damage",Skill.strength,"attack_damage","multiply_base",0.01,1,1e9,false);
+        stat("dexterity_sprint",Skill.dexterity,"movement_speed","multiply_base",0.01,1,1e9,true);
+        stat("dexterity_attack",Skill.dexterity,"attack_speed","multiply_base",0.01,1,1e9,false);
+        stat("constitution_health",Skill.constitution,"max_health","add",1,1,1e9,false);
+        stat("defense_armor",Skill.defense,"armor","add",1,2,1e9,false);
+        stat("intelligence_luck",Skill.intelligence,"luck","add",0.01,1,0.2,false);
+        stat("building_block_reach",Skill.building,"block_interaction_range","add",1,10,3,false);
+        stat("building_entity_reach",Skill.building,"entity_interaction_range","add",1,10,3,false);
         action("melee",Skill.strength,1,"hits");
         action("damage",Skill.constitution,1,"damage_taken");
         action("run",Skill.dexterity,0.05,"run_metres");
@@ -40,7 +61,7 @@ public final class Balance {
         action("craft",Skill.building,1,"crafted");
         ability("controlled_strike",Skill.strength,5,"hits",30,"","damage",0.01);
         ability("strong_grip",Skill.strength,10,"hits",100,"controlled_strike","damage",0.02);
-        ability("second_wind",Skill.constitution,5,"damage_taken",50,"","regeneration",0.4);
+        ability("second_wind",Skill.constitution,5,"damage_taken",50,"","second_wind",1);
         ability("enduring_body",Skill.constitution,15,"damage_taken",200,"second_wind","stamina",2);
         ability("steady_pace",Skill.dexterity,5,"run_metres",1000,"","speed",0.01);
         ability("sure_footing",Skill.dexterity,10,"run_metres",3000,"steady_pace","speed",0.01);
@@ -52,6 +73,7 @@ public final class Balance {
         ability("deep_understanding",Skill.intelligence,15,"enchants",20,"applied_knowledge","regeneration",0.4);
         ability("tool_handling",Skill.building,5,"placed",100,"","breaking",0.02);
         ability("master_builder",Skill.building,20,"crafted",300,"tool_handling","breaking",0.03);
+        for(int i=0;i<abilities.size();i++){var a=abilities.get(i);abilities.set(i,new Ability(a.id(),a.skill(),a.level(),a.counter(),a.amount(),a.parent(),a.effect(),a.effect().equals("second_wind")?1:a.effect().startsWith("shield_")?Math.min(0.95,a.value()*10):a.value()*10));}
     }
     private void action(String id, Skill skill, double xp, String counter) { actions.put(id,new Rule(skill,xp,counter)); }
     private void ability(String id, Skill skill,int level,String counter,double amount,String parent,String effect,double value) {
@@ -77,9 +99,11 @@ public final class Balance {
             }
         } catch(IllegalAccessException e) { throw new IllegalStateException(e); }
         if(progression.get("levelBase")<=0 || progression.get("capStep")<=0 || progression.get("costDivisor")<=0 || progression.get("maximumCap")<progression.get("initialCap") || progression.get("maximumCap")>20 || progression.get("maximumGrowth")<=0 || progression.get("maximumGrowth")>2 || stamina.get("base")<=0 || fatigue.get("minimum")<=0 || fatigue.get("minimum")>stamina.get("base") || fatigue.get("maximum")>stamina.get("base")-fatigue.get("minimum")) throw new IllegalArgumentException("Invalid progression/stamina bounds");
-        if(skills.get("reachEveryLevels")<=0||skills.get("luckMaximum")>0.2||skills.get("iconTier1")>skills.get("iconTier2")||skills.get("iconTier2")>skills.get("iconTier3"))throw new IllegalArgumentException("Invalid skill stat/ icon bounds");
+        if(skills.get("iconTier1")>skills.get("iconTier2")||skills.get("iconTier2")>skills.get("iconTier3"))throw new IllegalArgumentException("Invalid skill stat/ icon bounds");
         if(fatigue.get("campfireRadius")>16||client.get("hudWidth")>2000)throw new IllegalArgumentException("Invalid radius/HUD/key bound");
         for(var r:actions.values()) if(r==null||r.skill()==null||r.counter()==null||!Double.isFinite(r.xp())||r.xp()<0) throw new IllegalArgumentException("Invalid action");
+        Set<String> statIds=new HashSet<>();
+        for(var rule:statBonuses)if(rule==null||rule.id==null||!rule.id.matches("[a-z0-9_./-]+")||!statIds.add(rule.id)||rule.skill==null||rule.attribute==null||!rule.attribute.matches("[a-z0-9_.-]+:[a-z0-9_./-]+")||!Set.of("add","multiply_base","multiply_total").contains(rule.operation)||rule.everyLevels<1||!Double.isFinite(rule.perLevel)||rule.perLevel<0||!Double.isFinite(rule.maximum)||rule.maximum<0)throw new IllegalArgumentException("Invalid stat bonus rule");
         Set<String> ids=new HashSet<>();
         for(var a:abilities) {
             if(a==null||a.id()==null||!a.id().matches("[a-z0-9_.-]+:[a-z0-9_./-]+")||!ids.add(a.id())||a.skill()==null||a.level()<0||a.level()>20||a.counter()==null||a.parent()==null||!(BonusEffects.known(a.effect())||(a.effect()!=null&&a.effect().matches("[a-z0-9_.-]+:[a-z0-9_./-]+")))||!Double.isFinite(a.amount())||a.amount()<0||!Double.isFinite(a.value())||a.value()<0) throw new IllegalArgumentException("Invalid ability");
@@ -141,17 +165,41 @@ public final class Balance {
     }
     private static void migrateStats(Path directory) throws IOException {
         Path file=directory.resolve("skills.json");if(!Files.exists(file))return;
-        var data=JSON.fromJson(Files.readString(file),com.google.gson.JsonObject.class);if(data==null||data.has("healthPerLevel"))return;
+        var data=JSON.fromJson(Files.readString(file),com.google.gson.JsonObject.class);if(data==null||data.has("healthPerLevel")||Files.exists(directory.resolve("statBonuses.json")))return;
         Path backup=directory.resolve("migration-v1.1-resource");Files.createDirectories(backup);
         if(!Files.exists(backup.resolve("skills.json")))Files.copy(file,backup.resolve("skills.json"));
         Balance defaults=new Balance();
-        for(String key:List.of("healthPerLevel","luckPerLevel","luckMaximum","reachEveryLevels","reachPerStep","iconTier1","iconTier2","iconTier3"))data.addProperty(key,defaults.skills.get(key));
+        for(String key:List.of("healthPerLevel","luckPerLevel","luckMaximum","reachEveryLevels","reachPerStep","iconTier1","iconTier2","iconTier3"))if(defaults.skills.containsKey(key))data.addProperty(key,defaults.skills.get(key));
         if(data.has("breakingPerLevel")&&Math.abs(data.get("breakingPerLevel").getAsDouble()-0.003)<1e-9)data.addProperty("breakingPerLevel",0.01);
         if(data.has("breakingMaximum")&&Math.abs(data.get("breakingMaximum").getAsDouble()-0.15)<1e-9)data.addProperty("breakingMaximum",1000000000);
         Files.writeString(file,JSON.toJson(data)+"\n");
     }
+    private static void migrateV12(Path directory) throws IOException {
+        Path attackFile=directory.resolve("stamina.json");if(Files.exists(attackFile)){var attack=JSON.fromJson(Files.readString(attackFile),com.google.gson.JsonObject.class);if(!attack.has("attackCost")){attack.addProperty("attackCost",1);Files.writeString(attackFile,JSON.toJson(attack)+"\n");}}
+        Path marker=directory.resolve("statBonuses.json");if(Files.exists(directory.resolve(".balance-format"))||Files.exists(marker)||!Files.exists(directory.resolve("abilities.json")))return;
+        Path backup=directory.resolve("migration-v1.2");Files.createDirectories(backup);
+        for(String name:List.of("skills","stamina","abilities","progression")){Path file=directory.resolve(name+".json");if(Files.exists(file)&&!Files.exists(backup.resolve(name+".json")))Files.copy(file,backup.resolve(name+".json"));}
+        Path progression=directory.resolve("progression.json");if(Files.exists(progression)){var data=JSON.fromJson(Files.readString(progression),com.google.gson.JsonObject.class);data.addProperty("trainingMultiplier",2);Files.writeString(progression,JSON.toJson(data)+"\n");}
+        Path stamina=directory.resolve("stamina.json");if(Files.exists(stamina)){var data=JSON.fromJson(Files.readString(stamina),com.google.gson.JsonObject.class);if(data.has("constitutionPerLevel")&&Math.abs(data.get("constitutionPerLevel").getAsDouble()-0.2)<1e-9)data.addProperty("constitutionPerLevel",1);Files.writeString(stamina,JSON.toJson(data)+"\n");}
+        Path abilities=directory.resolve("abilities.json");if(Files.exists(abilities)){var data=JSON.fromJson(Files.readString(abilities),com.google.gson.JsonArray.class);for(var item:data){var a=item.getAsJsonObject();double value=a.get("value").getAsDouble()*10;if(a.get("effect").getAsString().startsWith("shield_"))value=Math.min(0.95,value);a.addProperty("value",value);}Files.writeString(abilities,JSON.toJson(data)+"\n");}
+        Files.writeString(marker,JSON.toJson(new Balance().statBonuses)+"\n");
+    }
+    private static void migrateEnvironment(Path directory) throws IOException {
+        Path stamina=directory.resolve("stamina.json");if(!Files.exists(stamina))return;
+        var st=JSON.fromJson(Files.readString(stamina),com.google.gson.JsonObject.class);if(st.has("runCost"))return;
+        Path backup=directory.resolve("migration-v1.2-environment");Files.createDirectories(backup);
+        for(String name:List.of("stamina","fatigue","progression","statBonuses")){Path file=directory.resolve(name+".json");if(Files.exists(file)&&!Files.exists(backup.resolve(name+".json")))Files.copy(file,backup.resolve(name+".json"));}
+        Path hud=directory.resolve("client.json");if(Files.exists(hud)){var data=JSON.fromJson(Files.readString(hud),com.google.gson.JsonObject.class);if(data.has("hudX")&&data.get("hudX").getAsDouble()==8)data.addProperty("hudX",0);if(data.has("hudY")&&data.get("hudY").getAsDouble()==8)data.addProperty("hudY",0);if(data.has("hudWidth")&&data.get("hudWidth").getAsDouble()==140)data.addProperty("hudWidth",81);Files.writeString(hud,JSON.toJson(data)+"\n");}
+        Path perks=directory.resolve("abilities.json");if(Files.exists(perks)){var list=JSON.fromJson(Files.readString(perks),com.google.gson.JsonArray.class);for(var item:list){var a=item.getAsJsonObject();if(a.get("id").getAsString().equals("faustcore:second_wind")){a.addProperty("effect","second_wind");a.addProperty("value",1);}}Files.writeString(perks,JSON.toJson(list)+"\n");}
+        st.addProperty("runCost",0.2);Files.writeString(stamina,JSON.toJson(st)+"\n");
+        Path file=directory.resolve("fatigue.json");if(Files.exists(file)){var data=JSON.fromJson(Files.readString(file),com.google.gson.JsonObject.class);data.addProperty("soulCampfirePerSecond",0.04);data.addProperty("soulFirePerSecond",0.1);Files.writeString(file,JSON.toJson(data)+"\n");}
+        file=directory.resolve("progression.json");if(Files.exists(file)){var data=JSON.fromJson(Files.readString(file),com.google.gson.JsonObject.class);if(data.has("slowdown"))data.addProperty("slowdown",data.get("slowdown").getAsDouble()*2);Files.writeString(file,JSON.toJson(data)+"\n");}
+        file=directory.resolve("statBonuses.json");if(Files.exists(file)){var list=new java.util.ArrayList<StatBonus>(java.util.Arrays.asList(JSON.fromJson(Files.readString(file),StatBonus[].class)));for(var r:list)if(r.skill==Skill.building&&(r.attribute.equals("minecraft:player.block_interaction_range")||r.attribute.equals("minecraft:player.entity_interaction_range")))r.maximum=Math.min(3,r.maximum);if(list.stream().noneMatch(r->r.id.equals("defense_armor")))list.add(new Balance().statBonuses.stream().filter(r->r.id.equals("defense_armor")).findFirst().orElseThrow());Files.writeString(file,JSON.toJson(list)+"\n");}
+    }
     public static Balance load(Path directory) throws IOException {
-        Files.createDirectories(directory); migrate(directory); migrateExhaustion(directory); migrateGrowth(directory); migrateStats(directory); Balance result=new Balance();
+        Files.createDirectories(directory); migrate(directory); migrateExhaustion(directory); migrateGrowth(directory); migrateStats(directory); migrateV12(directory); migrateEnvironment(directory);
+        Path skillsFile=directory.resolve("skills.json");if(Files.exists(skillsFile)){var data=JSON.fromJson(Files.readString(skillsFile),com.google.gson.JsonObject.class);if(!data.has("buildingReachMaximum")){data.addProperty("buildingReachMaximum",3);Files.writeString(skillsFile,JSON.toJson(data)+"\n");}}
+        Balance result=new Balance();
         try {
             for(var f:Balance.class.getFields()) {
                 if(java.lang.reflect.Modifier.isStatic(f.getModifiers())) continue;
@@ -161,6 +209,7 @@ public final class Balance {
             }
         } catch(ReflectiveOperationException|RuntimeException e) { throw new IOException("Invalid core configuration",e); }
         try {result.validate();} catch(RuntimeException e) {throw new IOException("Invalid core balance",e);}
+        Files.writeString(directory.resolve(".balance-format"),"1.2\n");
         return result;
     }
     public static List<String> groups() {

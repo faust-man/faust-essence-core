@@ -72,12 +72,12 @@
   "core.brief.defense": "Armor and shield",
   "core.brief.intelligence": "Knowledge perks",
   "core.brief.building": "Tool speed",
-  "core.description.strength": "Charged melee hits train Strength, improving melee damage.",
-  "core.description.constitution": "Damage trains Constitution: +1 max HP and +0.2 stamina per level.",
-  "core.description.dexterity": "Running trains Dexterity, improving sprint speed.",
-  "core.description.defense": "Running in armor and blocking train Defense: armor capacity and shield perks.",
-  "core.description.intelligence": "Knowledge actions train Intelligence, adding Luck up to +0.2.",
-  "core.description.building": "+1% breaking speed per level; +1 block interaction range every 10 levels.",
+  "core.description.strength": "Melee damage +1% per level.",
+  "core.description.constitution": "Maximum health and stamina +1 per level.",
+  "core.description.dexterity": "Sprint speed and attack speed +1% per level. Walking is unchanged.",
+  "core.description.defense": "+1 armor every 2 levels; improves armor capacity and shield skills.",
+  "core.description.intelligence": "Each level adds 0.01 Luck, up to +0.2.",
+  "core.description.building": "+1% breaking speed per level; +1 reach per 10 levels, maximum +3.",
   "core.effect.damage": "Melee damage: +%s%%",
   "core.effect.speed": "Sprint speed: +%s%%",
   "core.effect.breaking": "Tool speed: +%s%%",
@@ -103,5 +103,7 @@
   "core.config.client": "HUD",
   "core.config.integrations": "Integrations",
   "core.config.actions": "Actions",
-  "core.config.abilities": "Ability trees"
+  "core.config.abilities": "Ability trees",
+  "core.config.statBonuses": "Stat bonuses",
+  "core.effect.second_wind": "Constant recovery equals basic sprint cost."
 }

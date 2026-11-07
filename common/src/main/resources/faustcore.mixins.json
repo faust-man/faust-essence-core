@@ -7,7 +7,8 @@
   "mixins": [
     "ServerPlayerMixin",
     "LivingEntityMixin",
-    "PlayerMixin"
+    "PlayerMixin",
+    "SwingMixin"
   ],
   "client": [
     "ClientMixin",

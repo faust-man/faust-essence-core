@@ -72,12 +72,12 @@
   "core.brief.defense": "Броня и щит",
   "core.brief.intelligence": "Способности",
   "core.brief.building": "Работа орудий",
-  "core.description.strength": "Заряженные удары развивают силу и увеличивают ближний урон.",
-  "core.description.constitution": "Урон развивает телосложение: +1 макс. HP и +0.2 выносливости за уровень.",
-  "core.description.dexterity": "Бег развивает ловкость и повышает скорость спринта.",
-  "core.description.defense": "Бег в броне и блоки развивают защиту: допустимую нагрузку и владение щитом.",
-  "core.description.intelligence": "Действия со знаниями развивают интеллект и дают до +0.2 к удаче.",
-  "core.description.building": "+1% скорости ломания за уровень; +1 блок дальности взаимодействия каждые 10 уровней.",
+  "core.description.strength": "Ближний урон +1% за уровень.",
+  "core.description.constitution": "Максимум здоровья и выносливости +1 за уровень.",
+  "core.description.dexterity": "Скорость бега и атаки +1% за уровень. Ходьба не ускоряется.",
+  "core.description.defense": "+1 брони за 2 уровня; повышает переносимость брони и владение щитом.",
+  "core.description.intelligence": "Каждое очко даёт +0.01 удачи, максимум +0.2.",
+  "core.description.building": "+1% скорости ломания за уровень; +1 дальности каждые 10 уровней, до +3.",
   "core.effect.damage": "Ближний урон: +%s%%",
   "core.effect.speed": "Скорость бега: +%s%%",
   "core.effect.breaking": "Скорость инструмента: +%s%%",
@@ -103,5 +103,7 @@
   "core.config.client": "Интерфейс",
   "core.config.integrations": "Интеграции",
   "core.config.actions": "Действия",
-  "core.config.abilities": "Деревья"
+  "core.config.abilities": "Деревья",
+  "core.config.statBonuses": "Бонусы статов",
+  "core.effect.second_wind": "Постоянно восстанавливает стоимость базового бега."
 }

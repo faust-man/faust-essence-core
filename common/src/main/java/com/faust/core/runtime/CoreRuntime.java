@@ -20,7 +20,7 @@ public final class CoreRuntime {
     private static Path configDirectory;
     private static final Set<UUID> GRANTING=new HashSet<>();
     private static final Map<UUID,Session> SESSIONS=new HashMap<>();
-    private static final class Session {int lastSpent=-100000, lastRead=-100000, shieldTick=-100000, inputTick=-100000,ranTick=-100000,movedTick=-100000,budgetWindow;double run,shield,blocks;boolean campfire,forward;Balance sentBalance;Vec3 lastPosition;}
+    private static final class Session {int lastSpent=-100000,attackTick=-100000, lastRead=-100000, shieldTick=-100000, inputTick=-100000,ranTick=-100000,movedTick=-100000,budgetWindow;double run,shield,blocks;boolean campfire,soulCampfire,forward,paidSwing,wasSprinting;Balance sentBalance;Vec3 lastPosition;Map<ResourceLocation,net.minecraft.core.Holder<Attribute>> statModifiers=new HashMap<>();}
     public static void input(ServerPlayer p,boolean forward) {Session s=session(p);s.forward=forward;s.inputTick=p.tickCount;}
     public static void initialize(Path directory) {configDirectory=directory;reload();}
     public static ConfigResult editConfig(ServerPlayer player,ConfigEdit edit) {
@@ -90,6 +90,13 @@ public final class CoreRuntime {
             grant(player,"place",units,units);
         }
     }
+    public static boolean attack(ServerPlayer player,boolean air) {
+        if(player.isCreative()||player.isSpectator()||balance.stamina.get("enabled")==0)return true;
+        Session s=session(player);if(air&&s.paidSwing&&player.tickCount-s.attackTick<=5){s.paidSwing=false;return true;}
+        var data=data(player);double cost=balance.stamina.get("attackCost");
+        if(data.exhausted||data.stamina<cost)return false;
+        data.spend(cost,balance);s.lastSpent=player.tickCount;s.attackTick=player.tickCount;s.paidSwing=!air;return true;
+    }
     public static void read(ServerPlayer p,ItemStack stack) {
         if(!(stack.is(Items.WRITTEN_BOOK)||stack.is(Items.WRITABLE_BOOK)))return;
         Session s=session(p);
@@ -127,24 +134,28 @@ public final class CoreRuntime {
         // Server movement input plus facing direction; passive water movement alone does not qualify.
         boolean upstream=player.isSwimming()&&!player.isPassenger()&&s.forward&&player.tickCount-s.inputTick<=20&&look.dot(flow)<-b.stamina.get("flowThreshold");
         double waterRate=upstream?b.stamina.get("waterCost")*Math.max(0,-look.dot(flow)):0;
-        double rate=armorRate+waterRate;
+        double runRate=player.isSprinting()&&player.tickCount-s.ranTick<=1?b.stamina.get("runCost"):0;
+        double rate=runRate+armorRate+waterRate;
         if(!p.exhausted&&rate>0&&b.stamina.get("enabled")>0) {p.spend(rate/20,b);s.lastSpent=player.tickCount;}
         if(player.tickCount%20==0) {
-            s.campfire=false;
-            if(player.tickCount-s.movedTick>5) {
+            s.campfire=false;s.soulCampfire=false;
+            {
                 int r=(int)Math.ceil(b.fatigue.get("campfireRadius"));
                 BlockPos origin=player.blockPosition();
                 for(BlockPos pos:BlockPos.betweenClosed(origin.offset(-r,-r,-r),origin.offset(r,r,r))) {
                     if(!player.level().hasChunkAt(pos)||pos.distSqr(origin)>r*r)continue;
                     var state=player.level().getBlockState(pos);
-                    if(state.getBlock() instanceof CampfireBlock&&state.getValue(CampfireBlock.LIT)){s.campfire=true;break;}
+                    if(state.getBlock() instanceof CampfireBlock&&state.getValue(CampfireBlock.LIT)){if(state.is(Blocks.SOUL_CAMPFIRE))s.soulCampfire=true;else s.campfire=true;}
                 }
             }
         }
+        if(!player.isOnFire())p.soulFireBurn=false;else if(player.level().getBlockState(player.blockPosition()).is(Blocks.SOUL_FIRE)||player.level().getBlockState(player.blockPosition().below()).is(Blocks.SOUL_FIRE))p.soulFireBurn=true;
+        p.environmentalFatigue(0.05,s.soulCampfire,p.soulFireBurn&&player.isOnFire(),b);
+        p.secondWind(0.05,b);
         p.rest(0.05,player.isSleeping(),s.campfire&&player.tickCount-s.movedTick>5,player.tickCount-s.lastSpent>=b.stamina.get("delaySeconds")*20,b);
         if(b.stamina.get("enabled")>0&&p.exhausted)player.setSprinting(false);
         if(b.stamina.get("enabled")>0&&p.exhausted&&upstream)player.setSprinting(false);
-        if(player.tickCount%20==0) attributes(player);
+        if(player.tickCount%20==0||s.wasSprinting!=player.isSprinting()){s.wasSprinting=player.isSprinting();attributes(player);}
         int interval=Math.max(1,b.skills.get("structureIntervalTicks").intValue());
         if(player.tickCount%interval==0) {
             var structures=player.serverLevel().structureManager();
@@ -162,13 +173,25 @@ public final class CoreRuntime {
     public static void rebuildAttributes(ServerPlayer player){attributes(player);}
     private static void attributes(ServerPlayer player) {
         Progress p=data(player);Balance b=balance;
-        setAttribute(player,Attributes.ATTACK_DAMAGE,"strength",Math.min(b.skills.get("damageMaximum"),p.track(Skill.strength).level*b.skills.get("damagePerLevel"))+p.effect("damage",b));
-        double speed=player.isSprinting()?Math.min(b.skills.get("speedMaximum"),p.track(Skill.dexterity).level*b.skills.get("speedPerLevel"))+p.effect("speed",b):0;
-        setAttribute(player,Attributes.MOVEMENT_SPEED,"dexterity",speed);
-        setFlatAttribute(player,Attributes.MAX_HEALTH,"constitution_health",SkillEffects.health(p,b));
-        setFlatAttribute(player,Attributes.LUCK,"intelligence_luck",SkillEffects.luck(p,b));
-        setFlatAttribute(player,Attributes.BLOCK_INTERACTION_RANGE,"building_block_reach",SkillEffects.reach(p,b));
-        setFlatAttribute(player,Attributes.ENTITY_INTERACTION_RANGE,"building_entity_reach",SkillEffects.reach(p,b));
+        // Remove pre-1.2 hard-coded modifiers once; configurable rules own the base bonuses.
+        for(var attr:List.of(Attributes.ATTACK_DAMAGE,Attributes.MOVEMENT_SPEED,Attributes.MAX_HEALTH,Attributes.LUCK,Attributes.BLOCK_INTERACTION_RANGE,Attributes.ENTITY_INTERACTION_RANGE)) {
+            var instance=player.getAttribute(attr);if(instance!=null)for(String id:List.of("strength","dexterity","constitution_health","intelligence_luck","building_block_reach","building_entity_reach"))instance.removeModifier(ResourceLocation.fromNamespaceAndPath("faustcore",id));
+        }
+        Session session=session(player);
+        for(var old:session.statModifiers.entrySet()){var instance=player.getAttribute(old.getValue());if(instance!=null)instance.removeModifier(old.getKey());}session.statModifiers.clear();
+        Map<String,Double> buildingReachUsed=new HashMap<>();
+        for(var rule:b.statBonuses){
+            var key=ResourceLocation.tryParse(rule.attribute);if(key==null)continue;
+            var attribute=BuiltInRegistries.ATTRIBUTE.getHolder(key);if(attribute.isEmpty())continue;
+            var instance=player.getAttribute(attribute.get());if(instance==null)continue;
+            double amount=rule.sprintOnly&&!player.isSprinting()?0:rule.amount(p.track(rule.skill).level);if(amount==0)continue;
+            if(rule.skill==Skill.building&&(rule.attribute.equals("minecraft:player.block_interaction_range")||rule.attribute.equals("minecraft:player.entity_interaction_range"))){amount=Math.min(amount,Math.max(0,b.skills.get("buildingReachMaximum")-buildingReachUsed.getOrDefault(rule.attribute,0.0)));buildingReachUsed.merge(rule.attribute,amount,Double::sum);}
+            var id=ResourceLocation.fromNamespaceAndPath("faustcore","stat/"+rule.id);
+            var operation=switch(rule.operation){case "multiply_base"->AttributeModifier.Operation.ADD_MULTIPLIED_BASE;case "multiply_total"->AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL;default->AttributeModifier.Operation.ADD_VALUE;};
+            instance.addTransientModifier(new AttributeModifier(id,amount,operation));session.statModifiers.put(id,attribute.get());
+        }
+        setAttribute(player,Attributes.ATTACK_DAMAGE,"tree_damage",p.effect("damage",b));
+        setAttribute(player,Attributes.MOVEMENT_SPEED,"tree_sprint",player.isSprinting()?p.effect("speed",b):0);
         if(player.getHealth()>player.getMaxHealth())player.setHealth(player.getMaxHealth());
         CoreApi.applyBonuses(player);
     }

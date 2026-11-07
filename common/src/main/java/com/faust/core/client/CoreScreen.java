@@ -32,6 +32,7 @@ public final class CoreScreen extends Screen {
         com.mojang.blaze3d.systems.RenderSystem.enableBlend();
         g.blit(PANEL,x,y,w,h,0,0,176,166,256,256);
         g.fill(x+3,y+3,x+w-3,y+h-3,0xFFC6C6C6);
+        List<Component> hoveredTooltip=null;
         Progress p=CoreClient.progress;Balance b=CoreClient.balance;
         if(p==null||b==null){center(g,Component.translatable("core.syncing"),x+w/2,y+70,0x555555);PanelTabs.draw(g,x,y,true,mx,my);g.pose().popPose();return;}
         if(selected==null) {
@@ -49,7 +50,7 @@ public final class CoreScreen extends Screen {
                 g.drawString(font,Component.translatable("core.short."+skill),cx+25,cy+4,0xFFFFFF,false);
                 g.drawString(font,p.track(skill).level+" / "+(int)p.cap(skill,b),cx+25,cy+15,0xC6C6C6,false);
                 g.drawWordWrap(font,Component.translatable("core.brief."+skill),cx+4,cy+28,94,0xD8D8D8);
-                if(PanelTabs.inside(mx,my,cx,cy,100,42))PanelTabs.tooltip(g,List.of(skillName(skill)),mx,my);
+                if(PanelTabs.inside(mx,my,cx,cy,100,42))hoveredTooltip=List.of(skillName(skill));
             }
             center(g,Component.translatable("core.select_skill"),x+w/2,y+187,0x505050);
         } else {
@@ -67,14 +68,14 @@ public final class CoreScreen extends Screen {
                 if(PanelTabs.inside(mx,my,x+10,ay,w-20,33)) {
                     var lines=new ArrayList<Component>();lines.add(Component.translatable("core.effect."+a.effect(),number(a.value()*(Set.of("damage","speed","breaking","shield_durability","shield_recovery").contains(a.effect())?100:1))));
                     if(!a.parent().isEmpty())lines.add(Component.translatable("core.parent",a.parent()));
-                    PanelTabs.tooltip(g,lines,mx,my);
+                    hoveredTooltip=lines;
                 }
             }
             box(g,x+10,y+177,70,16,Component.translatable("core.back"),true);
             box(g,x+w-62,y+177,22,16,Component.literal("<"),page>0);
             box(g,x+w-36,y+177,22,16,Component.literal(">"),(page+1)*2<abilities().size());
         }
-        PanelTabs.draw(g,x,y,true,mx,my);g.pose().popPose();
+        PanelTabs.draw(g,x,y,true,mx,my);if(hoveredTooltip!=null)PanelTabs.tooltip(g,hoveredTooltip,mx,my);g.pose().popPose();
     }
     private void center(GuiGraphics g,Component text,int x,int y,int color){g.drawString(font,text,x-font.width(text)/2,y,color,false);}
     private void box(GuiGraphics g,int x,int y,int w,int h,Component text,boolean active) {

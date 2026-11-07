@@ -12,12 +12,13 @@ import org.spongepowered.asm.mixin.injection.callback.*;
 
 @Mixin(Player.class)
 public abstract class PlayerMixin {
-    @Inject(method="attack",at=@At("HEAD"))
+    @Inject(method="attack",at=@At("HEAD"),cancellable=true)
     private void core$attackStart(net.minecraft.world.entity.Entity target,CallbackInfo ci) {
+        if((Object)this instanceof ServerPlayer player&&!CoreRuntime.attack(player,false)){ci.cancel();return;}
         CombatContext.ATTACK.get().push(new CombatContext.Attack(target,((Player)(Object)this).getAttackStrengthScale(0.5F)));
     }
     @Inject(method="attack",at=@At("RETURN"))
-    private void core$attackEnd(net.minecraft.world.entity.Entity target,CallbackInfo ci) {CombatContext.ATTACK.get().pop();}
+    private void core$attackEnd(net.minecraft.world.entity.Entity target,CallbackInfo ci) {if(!CombatContext.ATTACK.get().isEmpty())CombatContext.ATTACK.get().pop();}
     @ModifyVariable(method="hurtCurrentlyUsedShield",at=@At("HEAD"),argsOnly=true)
     private float core$shield(float damage) {
         if((Object)this instanceof ServerPlayer p) {

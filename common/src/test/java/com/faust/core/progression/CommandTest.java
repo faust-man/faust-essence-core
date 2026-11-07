@@ -18,6 +18,7 @@ public final class CommandTest {
     }
     public static void run() throws Exception {
         net.minecraft.SharedConstants.tryDetectVersion();net.minecraft.server.Bootstrap.bootStrap();
+        for(var rule:new Balance().statBonuses)if(!net.minecraft.core.registries.BuiltInRegistries.ATTRIBUTE.containsKey(net.minecraft.resources.ResourceLocation.parse(rule.attribute)))throw new AssertionError("Unknown 1.21.1 attribute "+rule.attribute);
         var dispatcher=new CommandDispatcher<CommandSourceStack>();CoreCommands.register(dispatcher);
         var admin=new Source(2);var player=new Source(0);int checks=0;
         for(String command:new String[]{"core help","core status","core status @a","core cap strength","core cap buy defense","core cap set @a strength 20","core skill set @s strength 8","core skill add @a constitution -2","core skill xp @s building 1.5","core ability grant @s faustcore:shield_care","core ability revoke @s faustcore:shield_care","core stamina fill @s","core stamina set @a 10","core fatigue clear @a","core fatigue set @s 4","core reset @s","core unlock faustcore:controlled_strike","core path example:path","core reload"}) {
