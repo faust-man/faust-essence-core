@@ -44,3 +44,6 @@ Desktop.ini
 
 # Keep Gradle Wrapper and generated mod resources versioned.
 # Do not ignore *.jar or src/generated/resources globally.
+
+# Local design draft
+/des-doc.md
