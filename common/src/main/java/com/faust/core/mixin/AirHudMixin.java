@@ -15,4 +15,3 @@ public abstract class AirHudMixin {
     @Inject(method="blitSprite(Lnet/minecraft/resources/ResourceLocation;IIIII)V",at=@At("HEAD"))
     private void core$airWithDepth(ResourceLocation sprite,int x,int y,int depth,int width,int height,CallbackInfo ci){CoreClient.airSprite(sprite,y);}
 }
-
