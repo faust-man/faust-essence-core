@@ -1,0 +1,11 @@
+core includes unmodified GUI textures from JustLeveling-Fork.
+Source: https://github.com/Senior-S/JustLeveling-Fork
+Commit: ba1dc93997f5f6436f802fbc1a94d41b55fec9fc (Architecture-1.21.1).
+Original JustLeveling by DPlayend; fork maintained by Senior-S and contributors.
+These textures are distributed under the repository Apache License 2.0,
+reproduced in META-INF/licenses/JustLeveling-Fork-Apache-2.0.txt.
+No upstream NOTICE file was present in the inspected snapshot.
+Copied without image modifications: textures/gui/container/skill_page_1.png,
+textures/gui/container/tabs.png, textures/skill/{strength,constitution,dexterity,
+defense,intelligence,building}/locked_{0,8,16,24}.png. Namespace changed to faustcore.
+The remaining original core code and MultiLoader template retain their LICENSE.

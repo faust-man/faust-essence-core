@@ -2,7 +2,15 @@ plugins {
     id 'multiloader-loader'
     id 'fabric-loom'
 }
+repositories {
+    exclusiveContent {
+        forRepository { maven { url = providers.gradleProperty('coreModMenuRepository').getOrElse('https://maven.terraformersmc.com/releases/') } }
+        filter { includeGroup 'com.terraformersmc' }
+    }
+}
 dependencies {
+    modCompileOnly 'com.terraformersmc:modmenu:11.0.3'
+    modLocalRuntime 'com.terraformersmc:modmenu:11.0.3'
     minecraft "com.mojang:minecraft:${minecraft_version}"
     mappings loom.layered {
         officialMojangMappings()

@@ -11,7 +11,8 @@
   ],
   "client": [
     "ClientMixin",
-    "GuiMixin"
+    "GuiMixin",
+    "InventoryScreenMixin"
   ],
   "server": [],
   "injectors": {

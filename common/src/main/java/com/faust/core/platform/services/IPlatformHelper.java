@@ -2,6 +2,7 @@ package com.faust.core.platform.services;
 
 public interface IPlatformHelper {
     void send(net.minecraft.server.level.ServerPlayer player, com.faust.core.runtime.Snapshot snapshot);
+    void configResult(net.minecraft.server.level.ServerPlayer player, com.faust.core.runtime.ConfigResult result);
 
     /**
      * Gets the name of the current platform

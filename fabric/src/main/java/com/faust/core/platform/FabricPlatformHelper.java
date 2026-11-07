@@ -4,6 +4,7 @@ import com.faust.core.platform.services.IPlatformHelper;
 import net.fabricmc.loader.api.FabricLoader;
 
 public class FabricPlatformHelper implements IPlatformHelper {
+    @Override public void configResult(net.minecraft.server.level.ServerPlayer player,com.faust.core.runtime.ConfigResult result){net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.send(player,result);}
     @Override public void send(net.minecraft.server.level.ServerPlayer player,com.faust.core.runtime.Snapshot snapshot) { if (net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.canSend(player,com.faust.core.runtime.Snapshot.TYPE)) net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.send(player,snapshot); }
 
 

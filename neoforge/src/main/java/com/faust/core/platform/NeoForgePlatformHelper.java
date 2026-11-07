@@ -5,6 +5,7 @@ import net.neoforged.fml.ModList;
 import net.neoforged.fml.loading.FMLLoader;
 
 public class NeoForgePlatformHelper implements IPlatformHelper {
+    @Override public void configResult(net.minecraft.server.level.ServerPlayer player,com.faust.core.runtime.ConfigResult result){net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(player,result);}
     @Override public void send(net.minecraft.server.level.ServerPlayer player,com.faust.core.runtime.Snapshot snapshot) { net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(player,snapshot); }
 
 

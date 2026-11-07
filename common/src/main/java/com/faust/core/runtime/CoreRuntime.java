@@ -23,6 +23,19 @@ public final class CoreRuntime {
     private static final class Session {int lastSpent=-100000, lastRead=-100000, shieldTick=-100000, inputTick=-100000,ranTick=-100000,movedTick=-100000,budgetWindow;double run,shield,blocks;boolean campfire,forward;Balance sentBalance;Vec3 lastPosition;}
     public static void input(ServerPlayer p,boolean forward) {Session s=session(p);s.forward=forward;s.inputTick=p.tickCount;}
     public static void initialize(Path directory) {configDirectory=directory;reload();}
+    public static ConfigResult editConfig(ServerPlayer player,ConfigEdit edit) {
+        CoreApi.requireServerThread(player);
+        boolean allowed=player.hasPermissions(2)||player.getServer().isSingleplayerOwner(player.getGameProfile());
+        if(!allowed)return new ConfigResult(false,false,"core.config.denied");
+        if(edit.section().isEmpty()){session(player).sentBalance=null;sync(player);return new ConfigResult(true,true,"core.config.ready");}
+        try {
+            // Validate against the live full configuration before touching any file.
+            balance.edited(edit.section(),edit.json());
+            Balance.saveGroup(configDirectory,edit.section(),edit.json());reload(player.getServer());
+            return new ConfigResult(true,true,"core.config.saved");
+        } catch(Exception e){return new ConfigResult(true,false,"core.config.invalid");}
+    }
+    public static void refresh(ServerPlayer player){data(player).reconcile(balance);attributes(player);sync(player);}
     public static void reload() {
         try {Balance candidate=Balance.load(configDirectory);balance=candidate;}
         catch(java.io.IOException ex) {throw new IllegalStateException("Cannot load core config: "+configDirectory,ex);}
@@ -105,6 +118,7 @@ public final class CoreRuntime {
     public static void tick(ServerPlayer player) {
         if(!active(player)) {if(player.tickCount%20==0)sync(player);return;}
         Progress p=data(player); Session s=session(player); Balance b=balance;p.reconcile(b);
+        if(b.stamina.get("enabled")>0&&p.exhausted)player.setSprinting(false);
         if(s.lastPosition!=null&&s.lastPosition.distanceToSqr(player.position())>0.0001)s.movedTick=player.tickCount;
         s.lastPosition=player.position();
         double armorRate=player.isSprinting()&&player.tickCount-s.ranTick<=1?b.stamina.get("armorCost")*Math.max(0,weight(player)-p.capacity(b)):0;
@@ -114,7 +128,7 @@ public final class CoreRuntime {
         boolean upstream=player.isSwimming()&&!player.isPassenger()&&s.forward&&player.tickCount-s.inputTick<=20&&look.dot(flow)<-b.stamina.get("flowThreshold");
         double waterRate=upstream?b.stamina.get("waterCost")*Math.max(0,-look.dot(flow)):0;
         double rate=armorRate+waterRate;
-        if(rate>0&&b.stamina.get("enabled")>0) {p.spend(rate/20,b);s.lastSpent=player.tickCount;}
+        if(!p.exhausted&&rate>0&&b.stamina.get("enabled")>0) {p.spend(rate/20,b);s.lastSpent=player.tickCount;}
         if(player.tickCount%20==0) {
             s.campfire=false;
             if(player.tickCount-s.movedTick>5) {
@@ -128,8 +142,8 @@ public final class CoreRuntime {
             }
         }
         p.rest(0.05,player.isSleeping(),s.campfire&&player.tickCount-s.movedTick>5,player.tickCount-s.lastSpent>=b.stamina.get("delaySeconds")*20,b);
-        if(b.stamina.get("enabled")>0&&p.stamina<=0&&armorRate>0)player.setSprinting(false);
-        if(b.stamina.get("enabled")>0&&p.stamina<=0&&upstream)player.setSprinting(false);
+        if(b.stamina.get("enabled")>0&&p.exhausted)player.setSprinting(false);
+        if(b.stamina.get("enabled")>0&&p.exhausted&&upstream)player.setSprinting(false);
         if(player.tickCount%20==0) attributes(player);
         int interval=Math.max(1,b.skills.get("structureIntervalTicks").intValue());
         if(player.tickCount%interval==0) {
@@ -145,11 +159,17 @@ public final class CoreRuntime {
         }
         if(player.tickCount%5==0)sync(player);
     }
+    public static void rebuildAttributes(ServerPlayer player){attributes(player);}
     private static void attributes(ServerPlayer player) {
         Progress p=data(player);Balance b=balance;
         setAttribute(player,Attributes.ATTACK_DAMAGE,"strength",Math.min(b.skills.get("damageMaximum"),p.track(Skill.strength).level*b.skills.get("damagePerLevel"))+p.effect("damage",b));
         double speed=player.isSprinting()?Math.min(b.skills.get("speedMaximum"),p.track(Skill.dexterity).level*b.skills.get("speedPerLevel"))+p.effect("speed",b):0;
         setAttribute(player,Attributes.MOVEMENT_SPEED,"dexterity",speed);
+        setFlatAttribute(player,Attributes.MAX_HEALTH,"constitution_health",SkillEffects.health(p,b));
+        setFlatAttribute(player,Attributes.LUCK,"intelligence_luck",SkillEffects.luck(p,b));
+        setFlatAttribute(player,Attributes.BLOCK_INTERACTION_RANGE,"building_block_reach",SkillEffects.reach(p,b));
+        setFlatAttribute(player,Attributes.ENTITY_INTERACTION_RANGE,"building_entity_reach",SkillEffects.reach(p,b));
+        if(player.getHealth()>player.getMaxHealth())player.setHealth(player.getMaxHealth());
         CoreApi.applyBonuses(player);
     }
     private static void setAttribute(ServerPlayer p,net.minecraft.core.Holder<Attribute> attribute,String name,double value) {
@@ -157,11 +177,16 @@ public final class CoreRuntime {
         ResourceLocation id=ResourceLocation.fromNamespaceAndPath("faustcore",name);instance.removeModifier(id);
         if(value!=0)instance.addTransientModifier(new AttributeModifier(id,value,AttributeModifier.Operation.ADD_MULTIPLIED_BASE));
     }
-    public static double breaking(ServerPlayer player) {return Math.min(balance.skills.get("breakingMaximum"),data(player).track(Skill.building).level*balance.skills.get("breakingPerLevel"))+data(player).effect("breaking",balance);}
+    private static void setFlatAttribute(ServerPlayer p,net.minecraft.core.Holder<Attribute> attribute,String name,double value) {
+        var instance=p.getAttribute(attribute);if(instance==null)return;
+        var id=ResourceLocation.fromNamespaceAndPath("faustcore",name);instance.removeModifier(id);
+        if(value!=0)instance.addTransientModifier(new AttributeModifier(id,value,AttributeModifier.Operation.ADD_VALUE));
+    }
+    public static double breaking(ServerPlayer player) {return SkillEffects.breaking(data(player),balance);}
     public static void sync(ServerPlayer player) {
         Session session=session(player);
         var publicData=Balance.JSON.toJsonTree(data(player)).getAsJsonObject();publicData.remove("discoveries");
-        var snapshot=new Snapshot(publicData.toString(),session.sentBalance==balance?"":Balance.JSON.toJson(balance),xp(player),weight(player));
+        var snapshot=new Snapshot(publicData.toString(),session.sentBalance==balance?"":Balance.JSON.toJson(balance),player.experienceLevel,weight(player));
         Services.PLATFORM.send(player,snapshot);
         session.sentBalance=balance;
     }
@@ -171,8 +196,8 @@ public final class CoreRuntime {
     }
     public static boolean buy(ServerPlayer player,Skill skill) {
         if(!active(player))return false;
-        long price=data(player).price(balance);
-        if(!data(player).buy(skill,xp(player),balance))return false;
-        player.giveExperiencePoints(-(int)price);sync(player);return true;
+        long price=data(player).price(skill,balance);
+        if(!data(player).buy(skill,player.experienceLevel,balance))return false;
+        player.giveExperienceLevels(-(int)price);sync(player);return true;
     }
 }
