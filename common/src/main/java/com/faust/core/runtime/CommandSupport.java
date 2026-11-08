@@ -18,7 +18,7 @@ public final class CommandSupport {
     public static boolean knownAbility(String id){return CoreRuntime.balance.abilities.stream().anyMatch(a->a.id().equals(id));}
     public static void ability(ServerPlayer player,String id,boolean grant) {
         Progress p=CoreRuntime.data(player);
-        if(grant){var a=CoreRuntime.balance.abilities.stream().filter(node->node.id().equals(id)).findFirst().orElseThrow();if(p.excluded(a,CoreRuntime.balance))throw new IllegalArgumentException("Exclusive skill already learned");p.unlocked.add(id);}
+        if(grant){var a=CoreRuntime.balance.abilities.stream().filter(node->node.id().equals(id)).findFirst().orElseThrow();if(p.excluded(a,CoreRuntime.balance))throw new IllegalArgumentException("Exclusive skill already learned");p.unlocked.add(id);p.disabled.remove(id);}
         else p.revoke(id,CoreRuntime.balance);
         p.revision++;
     }

@@ -29,6 +29,10 @@ public final class CoreCommands {
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
         var root=literal("core").executes(CoreCommands::help);
         root.then(literal("help").executes(CoreCommands::help));
+        root.then(literal("max").requires(source->source.hasPermission(2)).then(argument("player",EntityArgument.player()).executes(ctx->{
+            var player=EntityArgument.getPlayer(ctx,"player");CoreRuntime.data(player).max(CoreRuntime.balance);CoreRuntime.refresh(player);
+            ctx.getSource().sendSuccess(()->Component.translatable("core.command.updated",1),true);return 1;
+        })));
         root.then(literal("status").executes(ctx->{ctx.getSource().sendSuccess(()->CommandSupport.status(ctx.getSource().getPlayer()),false);return 1;})
             .then(argument("targets",EntityArgument.players()).requires(s->s.hasPermission(2)).executes(ctx->{var targets=EntityArgument.getPlayers(ctx,"targets");for(var p:targets)ctx.getSource().sendSuccess(()->CommandSupport.status(p),false);return targets.size();})));
         var cap=literal("cap");
@@ -37,6 +41,11 @@ public final class CoreCommands {
         cap.then(literal("set").requires(s->s.hasPermission(2)).then(argument("targets",EntityArgument.players()).then(skill().then(argument("value",IntegerArgumentType.integer(0,20)).executes(ctx->modify(ctx,p->{var t=CoreRuntime.data(p).track(selected(ctx));t.limitOverride=IntegerArgumentType.getInteger(ctx,"value");CoreRuntime.data(p).revision++;}))))));
         root.then(cap);
         root.then(literal("unlock").then(ability().executes(ctx->{var p=ctx.getSource().getPlayerOrException();boolean result=CoreRuntime.active(p)&&CoreRuntime.data(p).unlock(abilityId(ctx),CoreRuntime.balance);CoreRuntime.sync(p);return reply(ctx,result?"core.action.ok":"core.action.denied",result);})));
+        root.then(literal("toggle").then(ability().executes(ctx->{
+            var player=ctx.getSource().getPlayerOrException();boolean result=CoreRuntime.data(player).toggle(abilityId(ctx),CoreRuntime.balance);
+            if(result)CoreRuntime.refresh(player);
+            return reply(ctx,result?"core.action.ok":"core.action.denied",result);
+        })));
         var skills=literal("skill").requires(s->s.hasPermission(2));
         for(String mode:List.of("set","add"))skills.then(literal(mode).then(argument("targets",EntityArgument.players()).then(skill().then(argument("value",mode.equals("set")?IntegerArgumentType.integer(0):IntegerArgumentType.integer()).executes(ctx->modify(ctx,p->CommandSupport.level(p,selected(ctx),IntegerArgumentType.getInteger(ctx,"value"),mode.equals("add"))))))));
         skills.then(literal("xp").then(argument("targets",EntityArgument.players()).then(skill().then(argument("amount",DoubleArgumentType.doubleArg(0,1000000)).executes(ctx->modify(ctx,p->CoreRuntime.data(p).grant(selected(ctx),DoubleArgumentType.getDouble(ctx,"amount"),CoreRuntime.balance)))))));

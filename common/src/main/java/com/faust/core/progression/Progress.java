@@ -8,6 +8,7 @@ public final class Progress {
     public Map<Skill,Track> tracks=new LinkedHashMap<>();
     public Map<String,Double> counters=new HashMap<>();
     public Set<String> unlocked=new HashSet<>(), discoveries=new HashSet<>();
+    public Set<String> disabled=new HashSet<>();
     public long purchases, revision;
     public double stamina=20, fatigue;
     public boolean exhausted,soulFireBurn;
@@ -16,6 +17,12 @@ public final class Progress {
     public static final class Track { public int level; public double xp, threshold; public Integer limitOverride; public long purchases; }
     public Progress() {for(Skill s:Skill.values()) tracks.put(s,new Track());}
     public Track track(Skill skill) {return tracks.computeIfAbsent(skill,k->new Track());}
+    /** Administrative full unlock; existing higher levels and XP are retained. */
+    public void max(Balance b){
+        for(var skill:Skill.values()){var t=track(skill);t.level=Math.max(20,t.level);t.limitOverride=20;reconcile(skill,b);}
+        for(var a:b.abilities)unlocked.add(a.id());
+        disabled.clear();revision++;
+    }
     public double needed(Skill skill,Balance b) {return b.progression.get("levelBase")+b.progression.get("levelSlope")*track(skill).level;}
     public double cap(Skill skill,Balance b) {return Math.min(b.progression.get("maximumCap"),track(skill).limitOverride!=null?track(skill).limitOverride:b.progression.get("initialCap")+b.progression.get("capStep")*track(skill).purchases);}
     public double multiplier(Skill skill,Balance b) {
@@ -63,14 +70,21 @@ public final class Progress {
     public Set<String> revoke(String id,Balance b){
         Set<String> removed=new LinkedHashSet<>();if(unlocked.remove(id))removed.add(id);boolean changed;
         do{changed=false;for(var a:b.abilities)if(unlocked.contains(a.id())&&a.dependencies().stream().anyMatch(removed::contains)&&!prerequisites(a)){unlocked.remove(a.id());removed.add(a.id());changed=true;}}while(changed);
-        revision++;return removed;
+        disabled.removeAll(removed);revision++;return removed;
     }
     public boolean unlock(String id,Balance b) {
         var a=b.abilities.stream().filter(x->x.id().equals(id)).findFirst().orElse(null);
         if(a==null||!canUnlock(a,b)) return false;
-        unlocked.add(id);revision++;return true;
+        unlocked.add(id);disabled.remove(id);revision++;return true;
     }
-    public double effect(String effect,Balance b) {return b.abilities.stream().filter(a->unlocked.contains(a.id())&&a.effect().equals(effect)).mapToDouble(Balance.Ability::value).sum();}
+    /** Learned status controls requirements; enabled status controls only effects. */
+    public boolean enabled(String id){return unlocked.contains(id)&&!disabled.contains(id);}
+    public boolean toggle(String id,Balance b){
+        if(!unlocked.contains(id)||b.abilities.stream().noneMatch(a->a.id().equals(id)))return false;
+        if(!disabled.remove(id))disabled.add(id);
+        revision++;return true;
+    }
+    public double effect(String effect,Balance b) {return b.abilities.stream().filter(a->enabled(a.id())&&a.effect().equals(effect)).mapToDouble(Balance.Ability::value).sum();}
     public double baseStamina(Balance b) {return b.stamina.get("base")+SkillEffects.attribute(this,b,"faustcore:stamina",false)+effect("stamina",b);}
     public double maxFatigue(Balance b) {double total=baseStamina(b),bonus=Math.max(0,total-b.stamina.get("base"));return Math.max(0,Math.min(total-b.fatigue.get("minimum"),b.fatigue.get("maximum")+bonus));}
     public double maxStamina(Balance b) {return Math.max(b.fatigue.get("minimum"),baseStamina(b)-(b.fatigue.get("enabled")>0?Math.max(0,Math.min(fatigue,maxFatigue(b))):0));}
@@ -128,7 +142,7 @@ public final class Progress {
     public static Progress parse(String json) {return parse(json,new Balance());}
     public static Progress parse(String json,Balance config) {
         Progress p=Balance.JSON.fromJson(json,Progress.class);
-        if(p==null||(p.schema!=1&&p.schema!=2)||p.tracks==null||p.counters==null||p.unlocked==null||p.discoveries==null||p.path==null||p.purchases<0||!Double.isFinite(p.stamina)||p.stamina<0||!Double.isFinite(p.fatigue)||p.fatigue< -1e9) throw new IllegalArgumentException("Invalid saved core data");
+        if(p==null||(p.schema!=1&&p.schema!=2)||p.tracks==null||p.counters==null||p.unlocked==null||p.disabled==null||p.disabled.contains(null)||p.discoveries==null||p.path==null||p.purchases<0||!Double.isFinite(p.stamina)||p.stamina<0||!Double.isFinite(p.fatigue)||p.fatigue< -1e9) throw new IllegalArgumentException("Invalid saved core data");
         for(Skill s:Skill.values()) {Track t=p.track(s);if(t.level<0||!Double.isFinite(t.xp)||t.xp<0||t.purchases<0) throw new IllegalArgumentException("Invalid skill data");}
         if(p.schema==1) {
             double newBase=p.baseStamina(config);
@@ -138,6 +152,7 @@ public final class Progress {
             for(var t:p.tracks.values())t.purchases=Math.min(10,t.purchases>2?10:t.purchases*5);
             p.schema=2;
         }
+        p.disabled.retainAll(p.unlocked);
         return p;
     }
 }

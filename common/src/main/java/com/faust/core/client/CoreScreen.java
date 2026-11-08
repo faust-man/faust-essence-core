@@ -61,7 +61,7 @@ public final class CoreScreen extends Screen {
             if(PanelTabs.inside(mx,my,x+4,y+4,panelWidth()-8,36)&&!PanelTabs.inside(mx,my,x+panelWidth()-19,y+5,14,14))tooltip=List.of(Component.translatable("core.description."+selected,number(b.skills.get("damageMinimumHP"))),Component.translatable("core.skill_progress",p.track(selected).level,number(100*fraction)),Component.translatable("core.tree.controls"));
             drawTree(g,p,b);
             var hovered=hovered(mx,my);if(hovered!=null){var a=ability(b,hovered.ability());boolean unlocked=p.unlocked.contains(a.id());var lines=new ArrayList<Component>();lines.add(abilityName(a));lines.addAll(abilityDescription(a,p,b));
-                if(unlocked)lines.add(Component.translatable("core.unlocked"));
+                if(unlocked){lines.add(Component.translatable(p.enabled(a.id())?"core.ability.enabled":"core.ability.disabled"));lines.add(Component.translatable(p.enabled(a.id())?"core.ability.click_disable":"core.ability.click_enable"));}
                 else{
                     if(a.skillRequirements().size()>1)lines.add(Component.translatable("core.tree.multiple"));
                     for(var r:a.skillRequirements())lines.add(Component.translatable("core.tree.level",skillName(r.skill()),r.level()));
@@ -95,7 +95,7 @@ public final class CoreScreen extends Screen {
             int x1=vx+(int)Math.round(view.x(previous)+11*view.zoom),y1=vy+(int)Math.round(view.y(previous)+11*view.zoom),x2=vx+(int)Math.round(view.x(node)+11*view.zoom),y2=vy+(int)Math.round(view.y(node)+11*view.zoom);
             line(g,x1,y1,x2,y2,SkillTrees.lineColor(p,parent));
         }
-        for(var node:nodes){var a=ability(b,node.ability());boolean learned=p.unlocked.contains(a.id()),excluded=p.excluded(a,b);int border=learned?0xFF83C24A:excluded?0xFFA64747:p.canUnlock(a,b)?0xFFFFD36A:0xFF858585;
+        for(var node:nodes){var a=ability(b,node.ability());boolean learned=p.unlocked.contains(a.id()),excluded=p.excluded(a,b);int border=SkillTrees.nodeColor(p,a,b);
             g.pose().pushPose();g.pose().translate(vx+view.x(node),vy+view.y(node),0);g.pose().scale((float)view.zoom,(float)view.zoom,1);
             g.fill(0,0,22,22,0xFF161616);g.fill(1,1,21,21,border);g.fill(2,2,20,20,0xFF252A31);g.renderItem(icon(node.icon()),3,3);
             if(!learned){g.fill(3,20,19,21,0xFF171717);g.fill(3,20,3+(int)(16*p.requirementProgress(a)),21,0xFF83C24A);}
@@ -133,7 +133,7 @@ public final class CoreScreen extends Screen {
             if(PanelTabs.inside(mx,my,x()+panelWidth()-19,y()+5,14,14)){expanded=!expanded;view=null;dragging=false;return true;}
             if(PanelTabs.inside(mx,my,x()+8,y()+panelHeight()-19,43,14)){selected=null;expanded=false;view=null;return true;}
             if(PanelTabs.inside(mx,my,x()+55,y()+panelHeight()-19,113,14)){command("core cap "+selected);return true;}
-            var node=hovered(mx,my);if(node!=null){var a=ability(CoreClient.balance,node.ability());if(CoreClient.progress.canUnlock(a,CoreClient.balance))command("core unlock "+a.id());return true;}
+            var node=hovered(mx,my);if(node!=null){var a=ability(CoreClient.balance,node.ability());if(CoreClient.progress.unlocked.contains(a.id()))command("core toggle "+a.id());else if(CoreClient.progress.canUnlock(a,CoreClient.balance))command("core unlock "+a.id());return true;}
             if(insideView(mx,my)){dragging=true;return true;}
         }
         return super.mouseClicked(mx,my,button);

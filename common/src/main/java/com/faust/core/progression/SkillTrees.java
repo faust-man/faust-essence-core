@@ -66,6 +66,10 @@ public final class SkillTrees {
         for(var a:b.abilities)if(a.skill()==skill&&nodes.stream().noneMatch(n->n.ability().equals(a.id()))){nodes.add(new Node(a.id(),0,y,icon(a)));y+=40;}
         return nodes;
     }
+    public static int nodeColor(Progress p,Balance.Ability a,Balance b){
+        if(p.unlocked.contains(a.id()))return p.enabled(a.id())?0xFF83C24A:0xFFFF4040;
+        return p.excluded(a,b)?0xFFA64747:p.canUnlock(a,b)?0xFFFFD36A:0xFF858585;
+    }
     public static int lineColor(Progress progress,String previous){return progress.unlocked.contains(previous)?0xFFFFFFFF:0xFF000000;}
     public static boolean exclusive(Balance.Ability a,Balance.Ability b){return a.excludes().contains(b.id())||b.excludes().contains(a.id());}
     public static void validate(Balance b){

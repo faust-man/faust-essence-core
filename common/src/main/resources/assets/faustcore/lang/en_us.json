@@ -1,5 +1,5 @@
 {
-  "core.command.help": "/core status — progress; /core cap <skill> — buy +1 limit; /core unlock <ability> — unlock; /core path <id> — choose a path. Open Skills from the inventory tab or your configured key.",
+  "core.command.help": "/core status — progress; /core cap <skill> — buy +1 limit; /core unlock <ability> — unlock; /core path <id> — choose a path. Open Skills from the inventory tab or your configured key., /core toggle <ability>",
   "core.action.ok": "Done.",
   "core.action.denied": "Requirements not met or insufficient experience.",
   "core.reload.ok": "Core configuration reloaded.",
@@ -58,7 +58,7 @@
   "core.insufficient_levels": "Not enough vanilla experience levels.",
   "core.unknown_skill": "Unknown skill. Use Tab for suggestions.",
   "core.unknown_ability": "Unknown ability. Use Tab for suggestions.",
-  "core.command.admin_help": "Admin: /core status <players>; /core skill set|add|xp <players> <skill> <value>; /core cap set <players> <skill> <0..20>; /core ability grant|revoke <players> <ability>; /core stamina fill|set <players> [amount]; /core fatigue clear|set <players> [amount]; /core reset <players>; /core reload.",
+  "core.command.admin_help": "Admin: /core status <players>; /core skill set|add|xp <players> <skill> <value>; /core cap set <players> <skill> <0..20>; /core ability grant|revoke <players> <ability>; /core stamina fill|set <players> [amount]; /core fatigue clear|set <players> [amount]; /core reset <players>; /core reload., /core max <player>",
   "core.command.updated": "Updated %s player(s).",
   "core.short.strength": "STR",
   "core.short.constitution": "CON",
@@ -158,5 +158,9 @@
   "core.ability.enchanting_power": "Enchanting power",
   "core.ability.potion_duration": "Lasting potions",
   "core.effect.enchanting_power": "Adds the power of 1/3/5/7 bookshelves at intelligence 5/10/15/20. Replaces missing shelves; real shelves and this bonus count up to 15 total, the normal enchanting table limit.",
-  "core.effect.potion_duration": "Brewed potion duration: +1%% per intelligence level."
+  "core.effect.potion_duration": "Brewed potion duration: +1%% per intelligence level.",
+  "core.ability.enabled": "Skill enabled",
+  "core.ability.disabled": "Skill disabled",
+  "core.ability.click_disable": "Click to disable",
+  "core.ability.click_enable": "Click to enable"
 }
