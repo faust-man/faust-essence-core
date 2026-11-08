@@ -67,7 +67,7 @@ public final class SkillTrees {
         return nodes;
     }
     public static int nodeColor(Progress p,Balance.Ability a,Balance b){
-        if(p.unlocked.contains(a.id()))return p.enabled(a.id())?0xFF83C24A:0xFFFF4040;
+        if(p.unlocked.contains(a.id()))return p.enabled(a.id(),b)?0xFF83C24A:0xFFFF4040;
         return p.excluded(a,b)?0xFFA64747:p.canUnlock(a,b)?0xFFFFD36A:0xFF858585;
     }
     public static int lineColor(Progress progress,String previous){return progress.unlocked.contains(previous)?0xFFFFFFFF:0xFF000000;}

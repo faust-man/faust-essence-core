@@ -54,7 +54,7 @@ public final class Progress {
         t.threshold=next;
     }
     private void normalizeFatigue(){if(Math.abs(fatigue)<1e-9)fatigue=0;}
-    public void reconcile(Balance b) {normalizeFatigue();fatigue=Math.max(-b.fatigue.get("sleepReserve"),Math.min(fatigue,maxFatigue(b)));for(Skill skill:List.copyOf(tracks.keySet()))reconcile(skill,b);stamina=Math.min(stamina,maxStamina(b));updateExhaustion(b);}
+    public void reconcile(Balance b) {reconcileAbilities(b);normalizeFatigue();fatigue=Math.max(-b.fatigue.get("sleepReserve"),Math.min(fatigue,maxFatigue(b)));for(Skill skill:List.copyOf(tracks.keySet()))reconcile(skill,b);stamina=Math.min(stamina,maxStamina(b));updateExhaustion(b);}
     public boolean event(String event,double units,double count,Balance b) {
         var rule=b.actions.get(event);
         if(rule==null||!Double.isFinite(units)||units<=0||!Double.isFinite(count)||count<0) return false;
@@ -79,12 +79,16 @@ public final class Progress {
     }
     /** Learned status controls requirements; enabled status controls only effects. */
     public boolean enabled(String id){return unlocked.contains(id)&&!disabled.contains(id);}
+    public boolean enabled(String id,Balance b){return unlocked.contains(id)&&(enabled(id)||b.abilities.stream().anyMatch(a->a.id().equals(id)&&!a.toggleable()));}
+    public void reconcileAbilities(Balance b){
+        if(disabled.removeIf(id->b.abilities.stream().anyMatch(a->a.id().equals(id)&&!a.toggleable())))revision++;
+    }
     public boolean toggle(String id,Balance b){
-        if(!unlocked.contains(id)||b.abilities.stream().noneMatch(a->a.id().equals(id)))return false;
+        if(!unlocked.contains(id)||b.abilities.stream().noneMatch(a->a.id().equals(id)&&a.toggleable()))return false;
         if(!disabled.remove(id))disabled.add(id);
         revision++;return true;
     }
-    public double effect(String effect,Balance b) {return b.abilities.stream().filter(a->enabled(a.id())&&a.effect().equals(effect)).mapToDouble(Balance.Ability::value).sum();}
+    public double effect(String effect,Balance b) {return b.abilities.stream().filter(a->enabled(a.id(),b)&&a.effect().equals(effect)).mapToDouble(Balance.Ability::value).sum();}
     public double baseStamina(Balance b) {return b.stamina.get("base")+SkillEffects.attribute(this,b,"faustcore:stamina",false)+effect("stamina",b);}
     public double maxFatigue(Balance b) {double total=baseStamina(b),bonus=Math.max(0,total-b.stamina.get("base"));return Math.max(0,Math.min(total-b.fatigue.get("minimum"),b.fatigue.get("maximum")+bonus));}
     public double maxStamina(Balance b) {return Math.max(b.fatigue.get("minimum"),baseStamina(b)-(b.fatigue.get("enabled")>0?Math.max(0,Math.min(fatigue,maxFatigue(b))):0));}
@@ -152,7 +156,7 @@ public final class Progress {
             for(var t:p.tracks.values())t.purchases=Math.min(10,t.purchases>2?10:t.purchases*5);
             p.schema=2;
         }
-        p.disabled.retainAll(p.unlocked);
+        p.disabled.retainAll(p.unlocked);p.reconcileAbilities(config);
         return p;
     }
 }

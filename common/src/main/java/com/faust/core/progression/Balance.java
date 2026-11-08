@@ -40,8 +40,9 @@ public final class Balance {
     public record SkillRequirement(Skill skill,int level) {}
     public record Condition(String counter,double amount) {}
     public record Ability(String id, Skill skill, int level, String counter, double amount,
-                          String parent, String effect, double value,List<String> requiresAll,List<String> requiresAny,List<String> excludes, List<SkillRequirement> characteristics, List<Condition> conditions, String conditionMode, int conditionsRequired, int requiresCount) {
+                          String parent, String effect, double value,List<String> requiresAll,List<String> requiresAny,List<String> excludes, List<SkillRequirement> characteristics, List<Condition> conditions, String conditionMode, int conditionsRequired, int requiresCount, Boolean toggleable) {
         public Ability {
+            toggleable=toggleable==null?Boolean.TRUE:toggleable;
             if(counter==null&&conditions!=null&&!conditions.isEmpty())counter="";
             if(parent==null)parent="";
             characteristics=characteristics==null?List.of():List.copyOf(characteristics);
@@ -49,6 +50,8 @@ public final class Balance {
             conditions=conditions==null?List.of():List.copyOf(conditions);
             conditionMode=conditionMode==null?"all":conditionMode;
             requiresAll=requiresAll==null?List.of():List.copyOf(requiresAll);requiresAny=requiresAny==null?List.of():List.copyOf(requiresAny);excludes=excludes==null?List.of():List.copyOf(excludes);}
+        // Retain the previous full constructor for integrations compiled against the API.
+        public Ability(String id,Skill skill,int level,String counter,double amount,String parent,String effect,double value,List<String> all,List<String> any,List<String> excludes,List<SkillRequirement> characteristics,List<Condition> conditions,String conditionMode,int conditionsRequired,int requiresCount){this(id,skill,level,counter,amount,parent,effect,value,all,any,excludes,characteristics,conditions,conditionMode,conditionsRequired,requiresCount,true);}
         public Ability(String id,Skill skill,int level,String counter,double amount,String parent,String effect,double value,List<String> all,List<String> any,List<String> excludes){this(id,skill,level,counter,amount,parent,effect,value,all,any,excludes,List.of(),List.of(),"all",0,0);}
         public Skill skill(){return characteristics.isEmpty()?skill:characteristics.getFirst().skill();}
         public List<SkillRequirement> skillRequirements(){return characteristics.isEmpty()?List.of(new SkillRequirement(skill,level)):characteristics;}
@@ -136,7 +139,7 @@ public final class Balance {
             case "faustcore:shield_care" -> value=0.10;
             case "faustcore:shield_recovery" -> value=0.15;
         }
-        return new Ability(a.id(),a.skill(),level,counter,amount,parent,a.effect(),value,a.requiresAll(),a.requiresAny(),a.excludes(),a.characteristics(),a.conditions(),a.conditionMode(),a.conditionsRequired(),a.requiresCount());
+        return new Ability(a.id(),a.skill(),level,counter,amount,parent,a.effect(),value,a.requiresAll(),a.requiresAny(),a.excludes(),a.characteristics(),a.conditions(),a.conditionMode(),a.conditionsRequired(),a.requiresCount(),a.toggleable());
     }
     private void action(String id, Skill skill, double xp, String counter) { actions.put(id,new Rule(skill,xp,counter)); }
     private void ability(String id, Skill skill,int level,String counter,double amount,String parent,String effect,double value) {

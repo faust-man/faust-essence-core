@@ -43,7 +43,7 @@ public final class CoreRuntime {
     public static void reload(net.minecraft.server.MinecraftServer server) {
         Balance previous=balance;reload();
         for(var player:server.getPlayerList().getPlayers()) {
-            Progress p=data(player);
+            Progress p=data(player);p.reconcileAbilities(balance);
             for(var entry:p.tracks.entrySet()) {
                 double fraction=Math.min(1,entry.getValue().xp/p.needed(entry.getKey(),previous));
                 entry.getValue().xp=fraction*p.needed(entry.getKey(),balance);entry.getValue().threshold=p.needed(entry.getKey(),balance);
@@ -193,7 +193,7 @@ public final class CoreRuntime {
         for(var old:session.statModifiers.entrySet()){var instance=player.getAttribute(old.getValue());if(instance!=null)instance.removeModifier(old.getKey());}session.statModifiers.clear();
         Map<String,Double> buildingReachUsed=new HashMap<>();
         for(var rule:b.statBonuses){
-            if(!rule.requiresAbility.isEmpty()&&!p.enabled(rule.requiresAbility))continue;
+            if(!rule.requiresAbility.isEmpty()&&!p.enabled(rule.requiresAbility,b))continue;
             var key=ResourceLocation.tryParse(rule.attribute);if(key==null)continue;
             var attribute=BuiltInRegistries.ATTRIBUTE.getHolder(key);if(attribute.isEmpty())continue;
             var instance=player.getAttribute(attribute.get());if(instance==null)continue;
