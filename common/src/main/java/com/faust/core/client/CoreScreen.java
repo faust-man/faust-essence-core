@@ -88,7 +88,7 @@ public final class CoreScreen extends Screen {
         var nodes=nodes();int vx=x()+VIEW_X,vy=y()+VIEW_Y;
         g.fill(vx-1,vy-1,vx+viewWidth()+1,vy+viewHeight()+1,0xFF606060);g.fill(vx,vy,vx+viewWidth(),vy+viewHeight(),0xFF383B40);
         g.enableScissor(vx,vy,vx+viewWidth(),vy+viewHeight());
-        for(int xx=8;xx<viewWidth();xx+=16)for(int yy=8;yy<viewHeight();yy+=16)g.fill(vx+xx,vy+yy,vx+xx+1,vy+yy+1,0xFF45484D);
+        for(int xx=(int)Math.floor(view.offsetX%16)-16;xx<viewWidth();xx+=16)for(int yy=(int)Math.floor(view.offsetY%16)-16;yy<viewHeight();yy+=16)g.fill(vx+xx,vy+yy,vx+xx+1,vy+yy+1,0xFF45484D);
         var byId=new HashMap<String,SkillTrees.Node>();for(var n:nodes)byId.put(n.ability(),n);
         for(var node:nodes)for(String parent:ability(b,node.ability()).dependencies()){
             var previous=byId.get(parent);if(previous==null)continue;

@@ -16,6 +16,21 @@ public final class BrewingRewards {
         if(contents!=null)copy.set(DataComponents.POTION_CONTENTS,new PotionContents(contents.potion(),contents.customColor(),contents.customEffects().stream().filter(e->{String id=net.minecraft.core.registries.BuiltInRegistries.MOB_EFFECT.getKey(e.getEffect().value()).toString();for(int i=0;i<ids.size();i++)if(ids.getString(i).equals(id))return false;return true;}).toList()));
         data.remove("faustcore:duration_effects");copy.set(DataComponents.CUSTOM_DATA,net.minecraft.world.item.component.CustomData.of(data));return copy;
     }
+    public static boolean recipeChanged(ItemStack before,ItemStack after){
+        if(after.isEmpty())return false;
+        if(before.getItem()!=after.getItem())return true;
+        return !before.getOrDefault(DataComponents.POTION_CONTENTS,PotionContents.EMPTY).potion().equals(after.getOrDefault(DataComponents.POTION_CONTENTS,PotionContents.EMPTY).potion());
+    }
+    /** Tooltip uses the effective override instead of showing both durations. */
+    public static PotionContents displayed(ItemStack stack){
+        var contents=stack.getOrDefault(DataComponents.POTION_CONTENTS,PotionContents.EMPTY);
+        var tag=stack.getOrDefault(DataComponents.CUSTOM_DATA,net.minecraft.world.item.component.CustomData.EMPTY).copyTag();
+        if(!tag.contains("faustcore:duration_effects"))return contents;
+        var effects=new ArrayList<MobEffectInstance>();
+        contents.potion().ifPresent(potion->{for(var base:potion.value().getEffects())if(contents.customEffects().stream().noneMatch(e->e.getEffect().equals(base.getEffect())))effects.add(base);});
+        effects.addAll(contents.customEffects());
+        return new PotionContents(Optional.empty(),contents.customColor(),effects);
+    }
     public static void complete(ServerPlayer player,ItemStack result){
         double multiplier=PracticeBonuses.duration(CoreRuntime.data(player),CoreRuntime.balance);
         extend(result,multiplier);

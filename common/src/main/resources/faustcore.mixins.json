@@ -14,7 +14,8 @@
     "SleepMixin",
     "ThrownItemMixin",
     "EnchantmentMenuMixin",
-    "BrewingStandMixin"
+    "BrewingStandMixin",
+    "PotionTooltipMixin"
   ],
   "client": [
     "ClientMixin",

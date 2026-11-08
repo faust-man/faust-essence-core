@@ -19,12 +19,27 @@ public abstract class BrewingStandMixin {
     private void core$save(CompoundTag tag,HolderLookup.Provider registries,CallbackInfo ci){if(core$brewer!=null)tag.putUUID("faustcore:brewer",core$brewer);}
     @Inject(method="loadAdditional",at=@At("TAIL"))
     private void core$load(CompoundTag tag,HolderLookup.Provider registries,CallbackInfo ci){core$brewer=tag.hasUUID("faustcore:brewer")?tag.getUUID("faustcore:brewer"):null;}
-    @com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation(method="doBrew",at=@At(value="INVOKE",target="Lnet/minecraft/world/item/alchemy/PotionBrewing;mix(Lnet/minecraft/world/item/ItemStack;Lnet/minecraft/world/item/ItemStack;)Lnet/minecraft/world/item/ItemStack;"))
-    private static ItemStack core$brew(net.minecraft.world.item.alchemy.PotionBrewing recipes,ItemStack ingredient,ItemStack input,com.llamalad7.mixinextras.injector.wrapoperation.Operation<ItemStack> original,Level level,BlockPos pos,NonNullList<ItemStack> items){
-        ItemStack clean=BrewingRewards.unboosted(input);
-        ItemStack result=original.call(recipes,ingredient,clean);
-        if(result==clean)return input;
-        if(result!=input&&level.getBlockEntity(pos) instanceof BrewingStandBlockEntity stand){var mixin=(BrewingStandMixin)(Object)stand;if(mixin.core$brewer!=null&&level.getServer()!=null){var player=level.getServer().getPlayerList().getPlayer(mixin.core$brewer);if(player!=null&&CoreRuntime.active(player))BrewingRewards.complete(player,result);}}
-        return result;
+    @Unique private java.util.List<ItemStack> core$before;
+    @Inject(method="doBrew",at=@At("HEAD"))
+    private static void core$beforeBrew(Level level,BlockPos pos,NonNullList<ItemStack> items,CallbackInfo ci){
+        if(level.getBlockEntity(pos) instanceof BrewingStandBlockEntity stand){
+            var self=(BrewingStandMixin)(Object)stand;
+            self.core$before=new java.util.ArrayList<>();
+            for(int i=0;i<3;i++){
+                self.core$before.add(items.get(i).copy());
+                items.set(i,BrewingRewards.unboosted(items.get(i)));
+            }
+        }
+    }
+    @Inject(method="doBrew",at=@At("TAIL"))
+    private static void core$afterBrew(Level level,BlockPos pos,NonNullList<ItemStack> items,CallbackInfo ci){
+        if(!(level.getBlockEntity(pos) instanceof BrewingStandBlockEntity stand))return;
+        var self=(BrewingStandMixin)(Object)stand;var before=self.core$before;self.core$before=null;
+        if(before==null)return;
+        var player=self.core$brewer==null||level.getServer()==null?null:level.getServer().getPlayerList().getPlayer(self.core$brewer);
+        for(int i=0;i<3;i++){
+            if(!BrewingRewards.recipeChanged(before.get(i),items.get(i))){items.set(i,before.get(i));continue;}
+            if(player!=null&&!player.isSpectator()&&!player.isDeadOrDying())BrewingRewards.complete(player,items.get(i));
+        }
     }
 }

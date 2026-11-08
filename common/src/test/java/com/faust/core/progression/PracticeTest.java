@@ -40,9 +40,36 @@ public final class PracticeTest {
         var instant=net.minecraft.world.item.alchemy.PotionContents.createItemStack(net.minecraft.world.item.Items.POTION,net.minecraft.world.item.alchemy.Potions.HEALING);
         com.faust.core.runtime.BrewingRewards.extend(instant,1.2);
         check(instant.get(net.minecraft.core.component.DataComponents.POTION_CONTENTS).customEffects().isEmpty(),"instant effect unchanged");
+        check(com.faust.core.runtime.BrewingRewards.displayed(potion).customEffects().size()==1,"boosted tooltip has one duration");
+        check(com.faust.core.runtime.BrewingRewards.displayed(potion).customEffects().getFirst().getDuration()==(int)(base*1.2),"tooltip shows boosted duration");
+        var recipes=net.minecraft.world.item.alchemy.PotionBrewing.bootstrap(net.minecraft.world.flag.FeatureFlags.VANILLA_SET);
+        var longPotion=recipes.mix(new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.REDSTONE),com.faust.core.runtime.BrewingRewards.unboosted(potion));
+        check(com.faust.core.runtime.BrewingRewards.recipeChanged(potion,longPotion),"actual redstone recipe detected");
+        check(!com.faust.core.runtime.BrewingRewards.recipeChanged(potion,com.faust.core.runtime.BrewingRewards.unboosted(potion)),"normalizing is not a new brew");
+        check(!com.faust.core.runtime.BrewingRewards.recipeChanged(potion,net.minecraft.world.item.ItemStack.EMPTY),"empty slot not rewarded");
+        var view=new com.faust.core.client.TreeView(java.util.List.of(new SkillTrees.Node("test:node",0,0,"minecraft:book")),160,96);
+        double x=view.offsetX,y=view.offsetY;view.pan(12,-8);check(view.offsetX==x+12&&view.offsetY==y-8,"small tree drags instead of snapping back");
+        view.pan(-12,8);check(view.offsetX==x&&view.offsetY==y,"reverse drag restores position");
+        for(var tree:b.trees)if(tree.skill()==Skill.intelligence||tree.skill()==Skill.dexterity){
+            var nodes=tree.nodes();String root=tree.skill()==Skill.intelligence?"faustcore:training_intelligence_luck":"faustcore:training_dexterity_sprint";
+            var anchor=nodes.stream().filter(n->n.ability().equals(root)).findFirst().orElseThrow();
+            for(var n:nodes)if(java.util.Set.of("faustcore:soft_landing","faustcore:enchanting_power","faustcore:potion_duration").contains(n.ability()))check(n.x()<anchor.x()&&n.y()==anchor.y(),"new skills left of root on same row");
+        }
         Path dir=Files.createTempDirectory("core-practice-test");
         try {
-            Balance.load(dir);Files.delete(dir.resolve(".practice-format"));
+            Balance.load(dir);Balance.load(dir);
+            var layouts=java.util.Arrays.asList(Balance.JSON.fromJson(Files.readString(dir.resolve("trees.json")),SkillTrees.Tree[].class));
+            var oldLayouts=new java.util.ArrayList<SkillTrees.Tree>();
+            for(var tree:layouts)oldLayouts.add(new SkillTrees.Tree(tree.skill(),tree.nodes().stream().filter(n->!java.util.Set.of("faustcore:enchanting_power","faustcore:potion_duration","faustcore:soft_landing").contains(n.ability())).toList()));
+            Files.writeString(dir.resolve("trees.json"),Balance.JSON.toJson(oldLayouts));Files.delete(dir.resolve(".practice-layout-2"));
+            var relocated=Balance.load(dir);
+            for(var skill:java.util.List.of(Skill.intelligence,Skill.dexterity)){
+                var nodes=SkillTrees.nodes(relocated,skill);var root=nodes.stream().filter(n->n.ability().equals(skill==Skill.intelligence?"faustcore:training_intelligence_luck":"faustcore:training_dexterity_sprint")).findFirst().orElseThrow();
+                for(var node:nodes)if(java.util.Set.of("faustcore:enchanting_power","faustcore:potion_duration","faustcore:soft_landing").contains(node.ability()))check(node.x()<root.x()&&node.y()==root.y(),"old config gets horizontal placement");
+            }
+            check(Files.exists(dir.resolve("migration-practice-layout/trees.json")),"layout migration backup");
+            check(Balance.JSON.toJson(Balance.load(dir).trees).equals(Balance.JSON.toJson(relocated.trees)),"layout migration idempotent");
+            Files.delete(dir.resolve(".practice-format"));
             var actions=new java.util.LinkedHashMap<>(b.actions);actions.put("structure",new Balance.Rule(Skill.intelligence,20,"structures"));actions.put("craft",new Balance.Rule(Skill.building,3,"crafted"));actions.remove("brew");
             Files.writeString(dir.resolve("actions.json"),Balance.JSON.toJson(actions));
             var abilities=b.abilities.stream().filter(a->!java.util.Set.of("faustcore:soft_landing","faustcore:enchanting_power","faustcore:potion_duration").contains(a.id())).toList();

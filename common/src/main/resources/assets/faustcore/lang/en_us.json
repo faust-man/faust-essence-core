@@ -139,7 +139,7 @@
   "core.counter.bow_shots": "bow shots",
   "core.counter.crossbow_shots": "crossbow shots",
   "core.counter.mace_hits": "charged mace hits",
-  "core.second_wind.rate": "Recovers %s%% of base sprint cost (%s stamina/s). Half speed with air bubbles.",
+  "core.second_wind.rate": "Recovers %s%% of base sprint cost (%s stamina/s).",
   "core.config.trees": "Tree layouts",
   "core.tree.controls": "Scroll to zoom. Drag the background to pan.",
   "core.tree.all": "Requires all: %s",
@@ -157,6 +157,6 @@
   "core.ability.soft_landing": "Soft landing",
   "core.ability.enchanting_power": "Enchanting power",
   "core.ability.potion_duration": "Lasting potions",
-  "core.effect.enchanting_power": "Table power: +1/+3/+5/+7 shelves at intelligence 5/10/15/20 (15 total maximum).",
+  "core.effect.enchanting_power": "Adds the power of 1/3/5/7 bookshelves at intelligence 5/10/15/20. Replaces missing shelves; real shelves and this bonus count up to 15 total, the normal enchanting table limit.",
   "core.effect.potion_duration": "Brewed potion duration: +1%% per intelligence level."
 }

@@ -340,8 +340,27 @@ public final class Balance {
         }
         Files.writeString(directory.resolve(".practice-format"),"1\n");
     }
+    private static void migratePracticeLayout(Path directory) throws IOException {
+        Path marker=directory.resolve(".practice-layout-2"),file=directory.resolve("trees.json");
+        if(Files.exists(marker)||!Files.exists(file))return;
+        var trees=new ArrayList<SkillTrees.Tree>(Arrays.asList(JSON.fromJson(Files.readString(file),SkillTrees.Tree[].class)));
+        for(int i=0;i<trees.size();i++){
+            var tree=trees.get(i);var nodes=new ArrayList<>(tree.nodes());
+            String root=tree.skill()==Skill.intelligence?"faustcore:training_intelligence_luck":tree.skill()==Skill.dexterity?"faustcore:training_dexterity_sprint":"";
+            if(root.isEmpty())continue;
+            var anchor=nodes.stream().filter(n->n.ability().equals(root)).findFirst().orElse(new SkillTrees.Node(root,0,0,"minecraft:book"));
+            var ids=tree.skill()==Skill.intelligence?List.of("faustcore:potion_duration","faustcore:enchanting_power"):List.of("faustcore:soft_landing");
+            for(int j=0;j<ids.size();j++){
+                String id=ids.get(j);String icon=nodes.stream().filter(n->n.ability().equals(id)).map(SkillTrees.Node::icon).findFirst().orElse(id.endsWith("soft_landing")?"minecraft:feather":id.endsWith("potion_duration")?"minecraft:brewing_stand":"minecraft:enchanting_table");
+                nodes.removeIf(n->n.ability().equals(id));nodes.add(new SkillTrees.Node(id,anchor.x()-52*(j+1),anchor.y(),icon));
+            }
+            trees.set(i,new SkillTrees.Tree(tree.skill(),nodes));
+        }
+        Path backup=directory.resolve("migration-practice-layout");Files.createDirectories(backup);if(!Files.exists(backup.resolve("trees.json")))Files.copy(file,backup.resolve("trees.json"));
+        Files.writeString(file,JSON.toJson(trees)+"\n");Files.writeString(marker,"1\n");
+    }
     public static Balance load(Path directory) throws IOException {
-        Files.createDirectories(directory); migrate(directory); migrateExhaustion(directory); migrateGrowth(directory); migrateStats(directory); migrateV12(directory); migrateEnvironment(directory); migrateV13(directory); migrateV14(directory); migrateV141(directory); migrateFatigueGrace(directory); migrateCakeFood(directory); migratePractice(directory);
+        Files.createDirectories(directory); migrate(directory); migrateExhaustion(directory); migrateGrowth(directory); migrateStats(directory); migrateV12(directory); migrateEnvironment(directory); migrateV13(directory); migrateV14(directory); migrateV141(directory); migrateFatigueGrace(directory); migrateCakeFood(directory); migratePractice(directory); migratePracticeLayout(directory);
         Path windFile=directory.resolve("stamina.json");if(Files.exists(windFile)){var data=JSON.fromJson(Files.readString(windFile),com.google.gson.JsonObject.class);if(!data.has("secondWindMultiplier")){data.addProperty("secondWindMultiplier",1.5);Files.writeString(windFile,JSON.toJson(data)+"\n");}}
         Path skillsFile=directory.resolve("skills.json");if(Files.exists(skillsFile)){var data=JSON.fromJson(Files.readString(skillsFile),com.google.gson.JsonObject.class);if(!data.has("buildingReachMaximum")){data.addProperty("buildingReachMaximum",3);Files.writeString(skillsFile,JSON.toJson(data)+"\n");}}
         Balance result=new Balance();
