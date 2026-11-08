@@ -36,7 +36,7 @@
   "core.counter.damage_taken": "HP урона",
   "core.counter.run_metres": "метров бега",
   "core.counter.armor_metres": "метров в броне",
-  "core.counter.blocks": "блоков щитом",
+  "core.counter.blocks": "блокирований ударов",
   "core.counter.books": "открытых книг",
   "core.counter.enchants": "зачарований",
   "core.counter.structures": "посещённых структур",

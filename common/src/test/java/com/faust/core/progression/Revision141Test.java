@@ -11,7 +11,7 @@ public final class Revision141Test {
     private static void near(double actual,double expected,String message){check(Math.abs(actual-expected)<1e-8,message+": "+actual+" != "+expected);}
     public static void run() throws Exception {
         Balance b=new Balance();Progress p=new Progress();b.validate();
-        p.stamina=1;p.spend(0.005,b);check(p.exhausted&&p.actionsBlocked(b),"displayed zero enters persistent exhaustion");
+        p.stamina=0.5;check(!p.actionsBlocked(b),"fractional reserve permits final action");near(p.spend(1,b),0.5,"final action consumes remaining reserve");check(p.exhausted&&p.actionsBlocked(b),"empty reserve enters persistent exhaustion");
         p.unlocked.add("faustcore:second_wind");p.recover(1,false,false,false,false,b);check(p.exhausted,"Second Wind cannot immediately cancel exhaustion");
         p.stamina=9.99;p.reconcile(b);check(p.actionsBlocked(b),"positive stamina still blocks sprint below recovery threshold");
         check(Progress.parse(p.json()).exhausted,"exhaustion flag survives client snapshot serialization");p.stamina=10;p.reconcile(b);check(!p.actionsBlocked(b),"recovery threshold releases sprint");

@@ -106,11 +106,11 @@ public final class CoreRuntime {
         if(player.isCreative()||player.isSpectator()||balance.stamina.get("enabled")==0)return true;
         Session s=session(player);if(air&&s.paidSwing&&player.tickCount-s.attackTick<=5){s.paidSwing=false;return true;}
         var data=data(player);double cost=data.actionCost(player.getMainHandItem().is(Items.MACE)?"mace":"attack",balance);
-        if(data.actionsBlocked(balance)||data.stamina<cost)return false;
+        if(data.actionsBlocked(balance))return false;
         data.spend(cost,balance,worldAge(player));s.lastSpent=player.tickCount;s.attackTick=player.tickCount;s.paidSwing=!air;return true;
     }
-    public static boolean pay(ServerPlayer player,double cost){if(player.isCreative()||player.isSpectator()||balance.stamina.get("enabled")==0)return true;var p=data(player);if(p.actionsBlocked(balance)||p.stamina<cost)return false;p.spend(cost,balance,worldAge(player));if(cost>0)session(player).lastSpent=player.tickCount;return true;}
-    public static boolean shieldPayment(ServerPlayer player){return pay(player,Math.max(0,balance.stamina.get("shieldCost")-data(player).effect("shield_cost_reduction",balance)));}
+    public static boolean pay(ServerPlayer player,double cost){if(player.isCreative()||player.isSpectator()||balance.stamina.get("enabled")==0)return true;var p=data(player);if(p.actionsBlocked(balance))return false;p.spend(cost,balance,worldAge(player));if(cost>0)session(player).lastSpent=player.tickCount;return true;}
+    public static boolean shieldPayment(ServerPlayer player){return pay(player,Math.max(0,1-Math.min(0.5,data(player).effect("shield_cost_reduction",balance))));}
     public static boolean jump(ServerPlayer player){if(!active(player)||balance.stamina.get("enabled")==0)return true;if(data(player).actionsBlocked(balance)){player.setSprinting(false);return true;}return !player.isSprinting()||pay(player,balance.stamina.get("sprintJumpCost")+weight(player)*balance.stamina.get("jumpArmorCost"));}
     public static boolean canAct(ServerPlayer player){return !active(player)||!data(player).actionsBlocked(balance);}
     public static boolean ranged(ServerPlayer player,String weapon){return pay(player,data(player).actionCost(weapon,balance));}

@@ -127,7 +127,7 @@ public final class Progress {
         rest(dt,sleep,campfire,delayReady&&!shielding&&!flying&&!fastSwimming,scale,b);
     }
     public double exhaustionThreshold(Balance b){return Math.min(maxStamina(b),b.stamina.get("exhaustionRecovery")*Math.max(0,1-effect("exhaustion_threshold_reduction",b)));}
-    public boolean empty(Balance b){return stamina<=1e-9||stamina<b.stamina.get("exhaustionTrigger");}
+    public boolean empty(Balance b){return stamina<=1e-9;}
     public boolean actionsBlocked(Balance b){return b.stamina.get("enabled")>0&&(exhausted||empty(b));}
     public double actionCost(String action,Balance b){
         double cost=b.stamina.get(action+"Cost");
