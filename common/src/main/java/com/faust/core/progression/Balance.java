@@ -37,9 +37,24 @@ public final class Balance {
     }
 
     public record Rule(Skill skill, double xp, String counter) {}
+    public record SkillRequirement(Skill skill,int level) {}
+    public record Condition(String counter,double amount) {}
     public record Ability(String id, Skill skill, int level, String counter, double amount,
-                          String parent, String effect, double value,List<String> requiresAll,List<String> requiresAny,List<String> excludes) {
-        public Ability {requiresAll=requiresAll==null?List.of():List.copyOf(requiresAll);requiresAny=requiresAny==null?List.of():List.copyOf(requiresAny);excludes=excludes==null?List.of():List.copyOf(excludes);}
+                          String parent, String effect, double value,List<String> requiresAll,List<String> requiresAny,List<String> excludes, List<SkillRequirement> characteristics, List<Condition> conditions, String conditionMode, int conditionsRequired, int requiresCount) {
+        public Ability {
+            if(counter==null&&conditions!=null&&!conditions.isEmpty())counter="";
+            if(parent==null)parent="";
+            characteristics=characteristics==null?List.of():List.copyOf(characteristics);
+            if(!characteristics.isEmpty())skill=characteristics.getFirst().skill();
+            conditions=conditions==null?List.of():List.copyOf(conditions);
+            conditionMode=conditionMode==null?"all":conditionMode;
+            requiresAll=requiresAll==null?List.of():List.copyOf(requiresAll);requiresAny=requiresAny==null?List.of():List.copyOf(requiresAny);excludes=excludes==null?List.of():List.copyOf(excludes);}
+        public Ability(String id,Skill skill,int level,String counter,double amount,String parent,String effect,double value,List<String> all,List<String> any,List<String> excludes){this(id,skill,level,counter,amount,parent,effect,value,all,any,excludes,List.of(),List.of(),"all",0,0);}
+        public Skill skill(){return characteristics.isEmpty()?skill:characteristics.getFirst().skill();}
+        public List<SkillRequirement> skillRequirements(){return characteristics.isEmpty()?List.of(new SkillRequirement(skill,level)):characteristics;}
+        public List<Condition> actionConditions(){return conditions.isEmpty()?List.of(new Condition(counter,amount)):conditions;}
+        public int requiredConditions(){return conditionMode.equals("at_least")?conditionsRequired:actionConditions().size();}
+        public int requiredParents(){return requiresAny.isEmpty()?0:requiresCount==0?1:requiresCount;}
         public Ability(String id,Skill skill,int level,String counter,double amount,String parent,String effect,double value){this(id,skill,level,counter,amount,parent,effect,value,List.of(),List.of(),List.of());}
         public List<String> all(){var ids=new LinkedHashSet<>(requiresAll);if(parent!=null&&!parent.isEmpty())ids.add(parent);return List.copyOf(ids);}
         public List<String> dependencies(){var ids=new LinkedHashSet<>(all());ids.addAll(requiresAny);return List.copyOf(ids);}
@@ -116,7 +131,7 @@ public final class Balance {
             case "faustcore:shield_care" -> value=0.10;
             case "faustcore:shield_recovery" -> value=0.15;
         }
-        return new Ability(a.id(),a.skill(),level,counter,amount,parent,a.effect(),value,a.requiresAll(),a.requiresAny(),a.excludes());
+        return new Ability(a.id(),a.skill(),level,counter,amount,parent,a.effect(),value,a.requiresAll(),a.requiresAny(),a.excludes(),a.characteristics(),a.conditions(),a.conditionMode(),a.conditionsRequired(),a.requiresCount());
     }
     private void action(String id, Skill skill, double xp, String counter) { actions.put(id,new Rule(skill,xp,counter)); }
     private void ability(String id, Skill skill,int level,String counter,double amount,String parent,String effect,double value) {
@@ -155,6 +170,13 @@ public final class Balance {
         for(var a:abilities) {
             if(a==null||a.id()==null||!a.id().matches("[a-z0-9_.-]+:[a-z0-9_./-]+")||!ids.add(a.id())||a.skill()==null||a.level()<0||a.level()>20||a.counter()==null||a.parent()==null||!(BonusEffects.known(a.effect())||(a.effect()!=null&&a.effect().matches("[a-z0-9_.-]+:[a-z0-9_./-]+")))||!Double.isFinite(a.amount())||a.amount()<0||!Double.isFinite(a.value())||a.value()<0) throw new IllegalArgumentException("Invalid ability");
             if((Set.of("shield_durability","shield_recovery").contains(a.effect()))&&a.value()>0.95) throw new IllegalArgumentException("Shield discount exceeds 95%");
+        }
+        for(var a:abilities){
+            var seen=new HashSet<Skill>();
+            for(var r:a.skillRequirements())if(r.skill()==null||r.level()<0||r.level()>20||!seen.add(r.skill()))throw new IllegalArgumentException("Invalid characteristics: "+a.id());
+            if(!Set.of("all","at_least").contains(a.conditionMode())||a.conditionsRequired()<0||a.requiredConditions()<1||a.requiredConditions()>a.actionConditions().size()||a.requiresCount()<0||a.requiresCount()>a.requiresAny().size())throw new IllegalArgumentException("Invalid condition count: "+a.id());
+            var counters=new HashSet<String>();
+            for(var c:a.actionConditions())if(c.counter()==null||!Double.isFinite(c.amount())||c.amount()<0||!counters.add(c.counter()))throw new IllegalArgumentException("Invalid condition: "+a.id());
         }
         SkillTrees.validate(this);
     }

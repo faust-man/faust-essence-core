@@ -56,7 +56,7 @@ public final class SkillTrees {
     };}
     /** Missing layout entries remain accessible, below the explicitly placed nodes. */
     public static List<Node> nodes(Balance b,Skill skill){
-        var nodes=new ArrayList<Node>();b.trees.stream().filter(t->t.skill()==skill).findFirst().ifPresent(t->nodes.addAll(t.nodes()));
+        var nodes=new ArrayList<Node>();b.trees.stream().filter(t->t.skill()==skill).findFirst().ifPresent(t->nodes.addAll(t.nodes().stream().filter(n->b.abilities.stream().anyMatch(a->a.id().equals(n.ability())&&a.skill()==skill)).toList()));
         double y=nodes.stream().mapToDouble(Node::y).max().orElse(-40)+40;
         for(var a:b.abilities)if(a.skill()==skill&&nodes.stream().noneMatch(n->n.ability().equals(a.id()))){nodes.add(new Node(a.id(),0,y,icon(a)));y+=40;}
         return nodes;
@@ -68,19 +68,19 @@ public final class SkillTrees {
         for(var a:b.abilities){
             for(var ids:List.of(a.requiresAll(),a.requiresAny(),a.excludes()))if(new HashSet<>(ids).size()!=ids.size())throw new IllegalArgumentException("Duplicate dependency in "+a.id());
             var refs=new ArrayList<>(a.dependencies());refs.addAll(a.excludes());
-            for(String id:refs){var other=byId.get(id);if(other==null||other.skill()!=a.skill()||id.equals(a.id()))throw new IllegalArgumentException("Invalid reference "+id+" in "+a.id());}
+            for(String id:refs){var other=byId.get(id);if(other==null||id.equals(a.id()))throw new IllegalArgumentException("Invalid reference "+id+" in "+a.id());}
         }
         for(var a:b.abilities)visit(a,byId,new HashSet<>(),new HashSet<>());
         for(var a:b.abilities){
             var mandatory=new LinkedHashSet<String>();mandatory(a,byId,mandatory);mandatory.add(a.id());
             for(String left:mandatory)for(String right:mandatory)if(exclusive(byId.get(left),byId.get(right)))throw new IllegalArgumentException("Exclusive mandatory prerequisites in "+a.id());
-            if(!a.requiresAny().isEmpty()&&a.requiresAny().stream().allMatch(id->mandatory.stream().anyMatch(m->exclusive(byId.get(id),byId.get(m)))))throw new IllegalArgumentException("All alternatives excluded in "+a.id());
+            if(a.requiresAny().stream().filter(id->mandatory.stream().noneMatch(m->exclusive(byId.get(id),byId.get(m)))).count()<a.requiredParents())throw new IllegalArgumentException("All alternatives excluded in "+a.id());
         }
         var skills=new HashSet<Skill>();
         for(var tree:b.trees){
             if(tree==null||tree.skill()==null||tree.nodes()==null||!skills.add(tree.skill()))throw new IllegalArgumentException("Invalid/duplicate tree");
             var ids=new HashSet<String>();
-            for(var node:tree.nodes())if(node==null||node.ability()==null||!ids.add(node.ability())||!byId.containsKey(node.ability())||byId.get(node.ability()).skill()!=tree.skill()||!Double.isFinite(node.x())||!Double.isFinite(node.y())||Math.abs(node.x())>4096||Math.abs(node.y())>4096||node.icon()==null||!node.icon().matches("[a-z0-9_.-]+:[a-z0-9_./-]+"))throw new IllegalArgumentException("Invalid tree node");
+            for(var node:tree.nodes())if(node==null||node.ability()==null||!ids.add(node.ability())||!byId.containsKey(node.ability())||!Double.isFinite(node.x())||!Double.isFinite(node.y())||Math.abs(node.x())>4096||Math.abs(node.y())>4096||node.icon()==null||!node.icon().matches("[a-z0-9_.-]+:[a-z0-9_./-]+"))throw new IllegalArgumentException("Invalid tree node");
         }
         for(String name:List.of("strength","constitution","dexterity","defense","intelligence","building"))if(!skills.contains(Skill.valueOf(name)))throw new IllegalArgumentException("Missing tree "+name);
     }

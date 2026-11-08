@@ -12,14 +12,19 @@ import java.util.*;
 /** Six item-icon skill trees clipped to the vanilla inventory panel. */
 public final class CoreScreen extends Screen {
     private static final ResourceLocation PANEL=ResourceLocation.fromNamespaceAndPath("faustcore","textures/gui/container/skill_page_1.png");
-    private static final int WIDTH=176,HEIGHT=166,VIEW_X=8,VIEW_Y=45,VIEW_WIDTH=160,VIEW_HEIGHT=96;
+    private static final int WIDTH=176,HEIGHT=166,VIEW_X=8,VIEW_Y=45;
     private Skill selected;
     private TreeView view;
     private Balance viewed;
     private boolean dragging;
+    private boolean expanded;
+    private int panelWidth(){return expanded?width:WIDTH;}
+    private int panelHeight(){return expanded?height:HEIGHT;}
+    private int viewWidth(){return panelWidth()-16;}
+    private int viewHeight(){return panelHeight()-70;}
     public CoreScreen(){super(Component.translatable("core.panel"));}
-    private int x(){return (width-WIDTH)/2;}
-    private int y(){return (height-HEIGHT)/2;}
+    private int x(){return (width-panelWidth())/2;}
+    private int y(){return (height-panelHeight())/2;}
     @Override protected void init(){view=null;dragging=false;}
     private static String number(double value){return java.math.BigDecimal.valueOf(value).setScale(4,java.math.RoundingMode.HALF_UP).stripTrailingZeros().toPlainString();}
     private static Component skillName(Skill skill){return Component.translatableWithFallback("core.skill."+skill,skill.name());}
@@ -27,18 +32,18 @@ public final class CoreScreen extends Screen {
     private static Balance.Ability ability(Balance b,String id){return b.abilities.stream().filter(a->a.id().equals(id)).findFirst().orElseThrow();}
     private static ItemStack icon(String id){var item=BuiltInRegistries.ITEM.get(ResourceLocation.parse(id));return new ItemStack(item==Items.AIR?Items.BARRIER:item);}
     private void command(String text){if(minecraft!=null&&minecraft.getConnection()!=null)minecraft.getConnection().sendCommand(text);}
-    private boolean insideView(double mx,double my){return PanelTabs.inside(mx,my,x()+VIEW_X,y()+VIEW_Y,VIEW_WIDTH,VIEW_HEIGHT);}
-    private List<SkillTrees.Node> nodes(){var b=CoreClient.balance;var nodes=SkillTrees.nodes(b,selected);if(view==null||viewed!=b){view=new TreeView(nodes,VIEW_WIDTH,VIEW_HEIGHT);viewed=b;}return nodes;}
+    private boolean insideView(double mx,double my){return PanelTabs.inside(mx,my,x()+VIEW_X,y()+VIEW_Y,viewWidth(),viewHeight());}
+    private List<SkillTrees.Node> nodes(){var b=CoreClient.balance;var nodes=SkillTrees.nodes(b,selected);if(view==null||viewed!=b){view=new TreeView(nodes,viewWidth(),viewHeight());viewed=b;}return nodes;}
     private SkillTrees.Node hovered(double mx,double my){if(!insideView(mx,my))return null;var nodes=nodes();for(int i=nodes.size()-1;i>=0;i--)if(view.hit(nodes.get(i),mx-x()-VIEW_X,my-y()-VIEW_Y))return nodes.get(i);return null;}
     @Override public void renderBackground(GuiGraphics g,int mx,int my,float delta){}
     @Override public void render(GuiGraphics g,int mx,int my,float delta){
         renderTransparentBackground(g);int x=x(),y=y();
-        com.mojang.blaze3d.systems.RenderSystem.enableBlend();g.blit(PANEL,x,y,0,0,WIDTH,HEIGHT,256,256);g.fill(x+3,y+3,x+WIDTH-3,y+HEIGHT-3,0xFFC6C6C6);
+        com.mojang.blaze3d.systems.RenderSystem.enableBlend();if(!expanded)g.blit(PANEL,x,y,0,0,WIDTH,HEIGHT,256,256);else g.fill(x,y,x+panelWidth(),y+panelHeight(),0xFF555555);g.fill(x+3,y+3,x+panelWidth()-3,y+panelHeight()-3,0xFFC6C6C6);
         List<Component> tooltip=null;var p=CoreClient.progress;var b=CoreClient.balance;
-        if(p==null||b==null)center(g,Component.translatable("core.syncing"),x+WIDTH/2,y+70,0x505050);
+        if(p==null||b==null)center(g,Component.translatable("core.syncing"),x+panelWidth()/2,y+70,0x505050);
         else if(selected==null){
-            center(g,minecraft.player==null?title:minecraft.player.getName(),x+WIDTH/2,y+7,0x505050);
-            center(g,Component.translatable("core.levels",CoreClient.experience),x+WIDTH/2,y+19,0x505050);
+            center(g,minecraft.player==null?title:minecraft.player.getName(),x+panelWidth()/2,y+7,0x505050);
+            center(g,Component.translatable("core.levels",CoreClient.experience),x+panelWidth()/2,y+19,0x505050);
             int i=0;for(Skill skill:Skill.values()){
                 if(i>=6)break;int cx=x+8+(i%2)*82,cy=y+37+(i/2)*33;i++;
                 g.fill(cx,cy,cx+78,cy+29,0xFF222222);g.fill(cx+1,cy+1,cx+77,cy+28,0xFF3C3C3C);
@@ -47,39 +52,43 @@ public final class CoreScreen extends Screen {
                 g.drawString(font,Component.translatable("core.short."+skill),cx+28,cy+5,0xFFFFFF,false);g.drawString(font,p.track(skill).level+" / "+(int)p.cap(skill,b),cx+28,cy+16,0xC6C6C6,false);
                 if(PanelTabs.inside(mx,my,cx,cy,78,29))tooltip=List.of(skillName(skill));
             }
-            center(g,Component.translatable("core.select_skill"),x+WIDTH/2,y+148,0x505050);
+            center(g,Component.translatable("core.select_skill"),x+panelWidth()/2,y+148,0x505050);
         }else{
-            center(g,skillName(selected),x+WIDTH/2,y+7,0x505050);
+            center(g,skillName(selected),x+panelWidth()/2,y+7,0x505050);
             g.drawString(font,p.track(selected).level+" / "+(int)p.cap(selected,b),x+8,y+22,0x404040,false);
-            var growth=Component.literal((int)Math.round(p.multiplier(selected,b)*100)+"%");g.drawString(font,growth,x+WIDTH-8-font.width(growth),y+22,0x404040,false);
-            double fraction=Math.max(0,Math.min(1,p.track(selected).xp/p.needed(selected,b)));g.fill(x+8,y+35,x+168,y+38,0xFF303030);g.fill(x+8,y+35,x+8+(int)(160*fraction),y+38,0xFF80B938);
-            if(PanelTabs.inside(mx,my,x+4,y+4,168,36))tooltip=List.of(Component.translatable("core.description."+selected,number(b.skills.get("damageMinimumHP"))),Component.translatable("core.skill_progress",p.track(selected).level,number(100*fraction)),Component.translatable("core.tree.controls"));
+            var growth=Component.literal((int)Math.round(p.multiplier(selected,b)*100)+"%");g.drawString(font,growth,x+panelWidth()-8-font.width(growth),y+22,0x404040,false);
+            double fraction=Math.max(0,Math.min(1,p.track(selected).xp/p.needed(selected,b)));g.fill(x+8,y+35,x+panelWidth()-8,y+38,0xFF303030);g.fill(x+8,y+35,x+8+(int)(viewWidth()*fraction),y+38,0xFF80B938);
+            if(PanelTabs.inside(mx,my,x+4,y+4,panelWidth()-8,36)&&!PanelTabs.inside(mx,my,x+panelWidth()-19,y+5,14,14))tooltip=List.of(Component.translatable("core.description."+selected,number(b.skills.get("damageMinimumHP"))),Component.translatable("core.skill_progress",p.track(selected).level,number(100*fraction)),Component.translatable("core.tree.controls"));
             drawTree(g,p,b);
             var hovered=hovered(mx,my);if(hovered!=null){var a=ability(b,hovered.ability());boolean unlocked=p.unlocked.contains(a.id());var lines=new ArrayList<Component>();lines.add(abilityName(a));lines.addAll(abilityDescription(a,p,b));
                 if(unlocked)lines.add(Component.translatable("core.unlocked"));
                 else{
-                    lines.add(Component.translatable("core.node_condition",a.level(),number(p.requirementCount(a)),number(a.amount()),Component.translatable("core.counter."+a.counter())));
+                    if(a.skillRequirements().size()>1)lines.add(Component.translatable("core.tree.multiple"));
+                    for(var r:a.skillRequirements())lines.add(Component.translatable("core.tree.level",skillName(r.skill()),r.level()));
+                    if(a.actionConditions().size()>1)lines.add(Component.translatable(a.conditionMode().equals("all")?"core.tree.conditions_all":"core.tree.conditions_count",a.requiredConditions(),a.actionConditions().size()));
+                    for(var c:a.actionConditions())lines.add(Component.translatable("core.tree.condition",number(p.conditionCount(c)),number(c.amount()),Component.translatable("core.counter."+c.counter())));
                     if(!a.all().isEmpty())lines.add(dependencyText("core.tree.all",a.all(),b));
-                    if(!a.requiresAny().isEmpty())lines.add(dependencyText("core.tree.any",a.requiresAny(),b));
+                    if(!a.requiresAny().isEmpty())lines.add(Component.translatable("core.tree.parents_count",a.requiredParents(),dependencyText("core.tree.any",a.requiresAny(),b)));
                     var excluded=b.abilities.stream().filter(other->SkillTrees.exclusive(a,other)).map(Balance.Ability::id).toList();
                     if(!excluded.isEmpty())lines.add(dependencyText("core.tree.excludes",excluded,b));
                     if(p.excluded(a,b))lines.add(Component.translatable("core.tree.excluded"));
                 }
                 tooltip=lines;
             }
-            box(g,x+8,y+147,43,14,Component.translatable("core.back"),true);
+            box(g,x+8,y+panelHeight()-19,43,14,Component.translatable("core.back"),true);
             boolean full=p.cap(selected,b)>=b.progression.get("maximumCap");long cost=p.price(selected,b);
-            box(g,x+55,y+147,113,14,full?Component.translatable("core.cap.maximum"):Component.translatable("core.cap.price",cost),!full&&CoreClient.experience>=cost);
+            box(g,x+55,y+panelHeight()-19,113,14,full?Component.translatable("core.cap.maximum"):Component.translatable("core.cap.price",cost),!full&&CoreClient.experience>=cost);
         }
-        PanelTabs.draw(g,x,y,true,-1000,-1000);
-        if(tooltip!=null)PanelTabs.tooltipWithin(g,tooltip,mx,my,x,y,WIDTH,HEIGHT);
+        if(selected!=null)box(g,x+panelWidth()-19,y+5,14,14,Component.literal(expanded?"-":"+"),true);
+        if(!expanded)PanelTabs.draw(g,x,y,true,-1000,-1000);
+        if(tooltip!=null)PanelTabs.tooltipWithin(g,tooltip,mx,my,x,y,panelWidth(),panelHeight());
     }
     private Component dependencyText(String key,List<String> ids,Balance b){var names=Component.empty();for(String id:ids){if(!names.getString().isEmpty())names.append(", ");names.append(abilityName(ability(b,id)));}return Component.translatable(key,names);}
     private void drawTree(GuiGraphics g,Progress p,Balance b){
         var nodes=nodes();int vx=x()+VIEW_X,vy=y()+VIEW_Y;
-        g.fill(vx-1,vy-1,vx+VIEW_WIDTH+1,vy+VIEW_HEIGHT+1,0xFF606060);g.fill(vx,vy,vx+VIEW_WIDTH,vy+VIEW_HEIGHT,0xFF383B40);
-        g.enableScissor(vx,vy,vx+VIEW_WIDTH,vy+VIEW_HEIGHT);
-        for(int xx=8;xx<VIEW_WIDTH;xx+=16)for(int yy=8;yy<VIEW_HEIGHT;yy+=16)g.fill(vx+xx,vy+yy,vx+xx+1,vy+yy+1,0xFF45484D);
+        g.fill(vx-1,vy-1,vx+viewWidth()+1,vy+viewHeight()+1,0xFF606060);g.fill(vx,vy,vx+viewWidth(),vy+viewHeight(),0xFF383B40);
+        g.enableScissor(vx,vy,vx+viewWidth(),vy+viewHeight());
+        for(int xx=8;xx<viewWidth();xx+=16)for(int yy=8;yy<viewHeight();yy+=16)g.fill(vx+xx,vy+yy,vx+xx+1,vy+yy+1,0xFF45484D);
         var byId=new HashMap<String,SkillTrees.Node>();for(var n:nodes)byId.put(n.ability(),n);
         for(var node:nodes)for(String parent:ability(b,node.ability()).dependencies()){
             var previous=byId.get(parent);if(previous==null)continue;
@@ -117,12 +126,13 @@ public final class CoreScreen extends Screen {
     private void center(GuiGraphics g,Component text,int x,int y,int color){g.drawString(font,text,x-font.width(text)/2,y,color,false);}
     private void box(GuiGraphics g,int x,int y,int w,int h,Component text,boolean active){g.fill(x,y,x+w,y+h,0xFF707070);g.fill(x+1,y+1,x+w-1,y+h-1,active?0xFF373737:0xFF555555);String label=text.getString();if(font.width(label)>w-4)label=font.plainSubstrByWidth(label,w-13)+"...";center(g,Component.literal(label),x+w/2,y+3,active?0xFFFFFF:0xAAAAAA);}
     @Override public boolean mouseClicked(double mx,double my,int button){
-        if(PanelTabs.click(mx,my,button,x(),y(),true))return true;
+        if(!expanded&&PanelTabs.click(mx,my,button,x(),y(),true))return true;
         if(button!=0||CoreClient.progress==null||CoreClient.balance==null)return super.mouseClicked(mx,my,button);
         if(selected==null){int i=0;for(Skill skill:Skill.values()){if(i>=6)break;int cx=x()+8+(i%2)*82,cy=y()+37+(i/2)*33;i++;if(PanelTabs.inside(mx,my,cx,cy,78,29)){selected=skill;view=null;return true;}}}
         else{
-            if(PanelTabs.inside(mx,my,x()+8,y()+147,43,14)){selected=null;view=null;return true;}
-            if(PanelTabs.inside(mx,my,x()+55,y()+147,113,14)){command("core cap "+selected);return true;}
+            if(PanelTabs.inside(mx,my,x()+panelWidth()-19,y()+5,14,14)){expanded=!expanded;view=null;dragging=false;return true;}
+            if(PanelTabs.inside(mx,my,x()+8,y()+panelHeight()-19,43,14)){selected=null;expanded=false;view=null;return true;}
+            if(PanelTabs.inside(mx,my,x()+55,y()+panelHeight()-19,113,14)){command("core cap "+selected);return true;}
             var node=hovered(mx,my);if(node!=null){var a=ability(CoreClient.balance,node.ability());if(CoreClient.progress.canUnlock(a,CoreClient.balance))command("core unlock "+a.id());return true;}
             if(insideView(mx,my)){dragging=true;return true;}
         }

@@ -13,8 +13,32 @@ public final class TreeTest {
     private static Balance balance(Balance.Ability... nodes){var b=new Balance();b.abilities=new ArrayList<>(List.of(nodes));b.statBonuses.clear();b.trees=SkillTrees.defaults(b.abilities);return b;}
     private static Progress player(){var p=new Progress();p.track(Skill.strength).level=20;p.counters.put("hits",100.0);return p;}
     public static void run() throws Exception {
+        var multi=Balance.JSON.fromJson("""
+            {"id":"test:multi","skill":"defense","level":0,"effect":"damage","value":0.1,
+             "characteristics":[{"skill":"strength","level":4},{"skill":"dexterity","level":6}],
+             "conditions":[{"counter":"hits","amount":10},{"counter":"blocks","amount":5},{"counter":"books","amount":2}],
+             "conditionMode":"at_least","conditionsRequired":2}
+            """,Balance.Ability.class);
+        var mb=balance(multi);mb.validate();var mp=player();
+        check(multi.skill()==Skill.strength,"first configured characteristic owns tree");
+        check(SkillTrees.nodes(mb,Skill.strength).size()==1&&SkillTrees.nodes(mb,Skill.defense).isEmpty(),"multi attribute node appears in only first tree");
+        mp.track(Skill.dexterity).level=5;mp.counters.put("blocks",5.0);
+        check(!mp.canUnlock(multi,mb),"all characteristic thresholds required");
+        mp.track(Skill.dexterity).level=6;check(mp.canUnlock(multi,mb),"two of three action conditions unlock");
+        mp.counters.remove("blocks");check(!mp.canUnlock(multi,mb),"one of three insufficient");
+        mp.counters.put("books",2.0);check(mp.canUnlock(multi,mb),"any subset of two accepted");
+        var all=Balance.JSON.fromJson(Balance.JSON.toJson(multi).replace("at_least","all"),Balance.Ability.class);
+        check(!mp.canUnlock(all,mb),"all mode requires remaining condition");mp.counters.put("blocks",5.0);check(mp.canUnlock(all,mb),"all mode accepts all conditions");
+        check(Balance.JSON.fromJson(Balance.JSON.toJson(multi),Balance.Ability.class).equals(multi),"new config round trip");
+        rejects(()->balance(Balance.JSON.fromJson(Balance.JSON.toJson(multi).replace("\"conditionsRequired\": 2","\"conditionsRequired\": 4"),Balance.Ability.class)).validate(),"impossible condition count rejected");
+        rejects(()->balance(Balance.JSON.fromJson(Balance.JSON.toJson(multi).replace("at_least","unknown"),Balance.Ability.class)).validate(),"unknown condition mode rejected");
+        rejects(()->balance(Balance.JSON.fromJson(Balance.JSON.toJson(multi).replace("\"conditionsRequired\": 2","\"conditionsRequired\": 0"),Balance.Ability.class)).validate(),"zero threshold rejected");
+        rejects(()->balance(Balance.JSON.fromJson(Balance.JSON.toJson(multi).replace("dexterity","strength"),Balance.Ability.class)).validate(),"duplicate characteristics rejected");
+        rejects(()->balance(Balance.JSON.fromJson(Balance.JSON.toJson(multi).replace("blocks","hits"),Balance.Ability.class)).validate(),"duplicate action counters rejected");
         var a=node("a",List.of(),List.of(),List.of());var c=node("c",List.of(),List.of(),List.of());
         var both=node("both",List.of(a.id(),c.id()),List.of(),List.of());var either=node("either",List.of(),List.of(a.id(),c.id()),List.of());var combined=node("combined",List.of(a.id()),List.of(c.id(),either.id()),List.of());
+        var counted=new Balance.Ability("test:counted",Skill.strength,2,"hits",3,"","damage",0.01,List.of(),List.of(a.id(),c.id()),List.of(),List.of(),List.of(),"all",0,2);
+        var cb=balance(a,c,counted);cb.validate();var cp=player();cp.unlock(a.id(),cb);check(!cp.canUnlock(counted,cb),"two parents needs second");cp.unlock(c.id(),cb);check(cp.unlock(counted.id(),cb),"two parents accepted");check(cp.revoke(a.id(),cb).contains(counted.id()),"threshold revoke cascades");
         var b=balance(a,c,both,either,combined);b.validate();var p=player();check(!p.canUnlock(both,b),"AND needs both parents");check(!p.canUnlock(either,b),"OR needs at least one parent");p.unlock(a.id(),b);check(!p.canUnlock(both,b),"AND does not accept only one");check(p.canUnlock(either,b),"OR accepts first alternative");check(!p.canUnlock(combined,b),"AND and OR requirements combine");p.unlock(c.id(),b);check(p.unlock(both.id(),b),"AND unlocks with both");check(p.canUnlock(combined,b),"combined AND plus one OR works");
         p=player();p.unlock(c.id(),b);check(p.canUnlock(either,b),"OR accepts second alternative");
         check(SkillTrees.lineColor(p,a.id())==0xFF000000,"line from unlearned parent is black");check(SkillTrees.lineColor(p,c.id())==0xFFFFFFFF,"line from learned parent is white");
@@ -23,7 +47,7 @@ public final class TreeTest {
         var json=Balance.JSON.toJson(combined);var restored=Balance.JSON.fromJson(json,Balance.Ability.class);check(restored.equals(combined),"dependency lists round trip");var old=Balance.JSON.fromJson("{\"id\":\"test:old\",\"skill\":\"strength\",\"level\":2,\"counter\":\"hits\",\"amount\":3,\"parent\":\"test:a\",\"effect\":\"damage\",\"value\":0.01}",Balance.Ability.class);check(old.requiresAll().isEmpty()&&old.all().equals(List.of(a.id())),"old JSON gets empty lists and keeps parent");
         var cycleA=node("a",List.of("test:c"),List.of(),List.of());var cycleC=node("c",List.of(),List.of("test:a"),List.of());rejects(()->balance(cycleA,cycleC).validate(),"mixed AND OR cycle rejected");rejects(()->balance(node("a",List.of("test:missing"),List.of(),List.of())).validate(),"unknown dependency rejected");rejects(()->balance(node("a",List.of(),List.of(),List.of("test:a"))).validate(),"self exclusion rejected");rejects(()->balance(node("a",List.of(c.id(),c.id()),List.of(),List.of()),c).validate(),"duplicate requirement rejected");
         var mutuallyExclusive=node("a",List.of(),List.of(),List.of(c.id()));rejects(()->balance(mutuallyExclusive,c,both).validate(),"impossible exclusive AND parents rejected");rejects(()->balance(a,node("child",List.of(a.id()),List.of(),List.of(a.id()))).validate(),"excluding mandatory parent rejected");
-        var other=new Balance.Ability("test:other",Skill.defense,2,"hits",3,"","damage",0.01);rejects(()->balance(other,node("a",List.of(other.id()),List.of(),List.of())).validate(),"cross characteristic dependency rejected");
+        var other=new Balance.Ability("test:other",Skill.defense,2,"hits",3,"","damage",0.01);balance(other,node("a",List.of(other.id()),List.of(),List.of())).validate();
         b=balance(a,c,both,either,combined);b.validate();p=player();for(var n:b.abilities)p.unlocked.add(n.id());var removed=p.revoke(a.id(),b);check(removed.contains(both.id())&&removed.contains(combined.id()),"revoke cascades through mandatory branches");check(p.unlocked.contains(either.id()),"OR child survives alternate learned parent");p.revoke(c.id(),b);check(!p.unlocked.contains(either.id()),"OR child removed after last alternative");
         p=player();p.unlocked.add(legacy.id());p.revoke(c.id(),b);check(p.unlocked.contains(legacy.id()),"unrelated admin-granted node preserved");
         b=new Balance();b.validate();check(b.trees.size()==6,"six distinct built-in tree layouts");

@@ -145,5 +145,11 @@
   "core.tree.all": "Requires all: %s",
   "core.tree.any": "Requires any: %s",
   "core.tree.excludes": "Mutually exclusive: %s",
-  "core.tree.excluded": "Unavailable: a mutually exclusive skill was chosen."
+  "core.tree.excluded": "Unavailable: a mutually exclusive skill was chosen.",
+  "core.tree.multiple": "Requires multiple attributes",
+  "core.tree.level": "%s: level %s",
+  "core.tree.conditions_all": "Complete all conditions (%s)",
+  "core.tree.conditions_count": "Complete %s of %s conditions",
+  "core.tree.condition": "%s / %s: %s",
+  "core.tree.parents_count": "Required %s: %s"
 }

@@ -145,5 +145,11 @@
   "core.tree.all": "Нужны все: %s",
   "core.tree.any": "Нужен хотя бы один: %s",
   "core.tree.excludes": "Взаимоисключение: %s",
-  "core.tree.excluded": "Недоступно: выбран взаимоисключающий навык."
+  "core.tree.excluded": "Недоступно: выбран взаимоисключающий навык.",
+  "core.tree.multiple": "Требуется несколько характеристик",
+  "core.tree.level": "%s: уровень %s",
+  "core.tree.conditions_all": "Выполните все условия (%s)",
+  "core.tree.conditions_count": "Выполните %s из %s условий",
+  "core.tree.condition": "%s / %s: %s",
+  "core.tree.parents_count": "Нужно %s: %s"
 }

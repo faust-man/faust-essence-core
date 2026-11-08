@@ -54,10 +54,12 @@ public final class Progress {
         counters.merge(rule.counter(),count,Double::sum); grant(rule.skill(),units*rule.xp()*b.progression.get("trainingMultiplier"),b); revision++;return true;
     }
     public double requirementCount(Balance.Ability a){return Math.max(0,Math.min(a.amount(),counters.getOrDefault(a.counter(),0.0)));}
-    public double requirementProgress(Balance.Ability a){return a.amount()<=0?1:requirementCount(a)/a.amount();}
+    public double conditionCount(Balance.Condition c){return Math.max(0,Math.min(c.amount(),counters.getOrDefault(c.counter(),0.0)));}
+    public long completedConditions(Balance.Ability a){return a.actionConditions().stream().filter(c->conditionCount(c)>=c.amount()).count();}
+    public double requirementProgress(Balance.Ability a){return a.actionConditions().stream().mapToDouble(c->c.amount()<=0?1:conditionCount(c)/c.amount()).boxed().sorted(java.util.Comparator.reverseOrder()).limit(a.requiredConditions()).mapToDouble(Double::doubleValue).sum()/a.requiredConditions();}
     public boolean excluded(Balance.Ability a,Balance b){return a.excludes().stream().anyMatch(unlocked::contains)||b.abilities.stream().anyMatch(other->unlocked.contains(other.id())&&other.excludes().contains(a.id()));}
-    public boolean prerequisites(Balance.Ability a){return unlocked.containsAll(a.all())&&(a.requiresAny().isEmpty()||a.requiresAny().stream().anyMatch(unlocked::contains));}
-    public boolean canUnlock(Balance.Ability a,Balance b){return !unlocked.contains(a.id())&&!excluded(a,b)&&track(a.skill()).level>=a.level()&&counters.getOrDefault(a.counter(),0.0)>=a.amount()&&prerequisites(a);}
+    public boolean prerequisites(Balance.Ability a){return unlocked.containsAll(a.all())&&(a.requiresAny().stream().filter(unlocked::contains).count()>=a.requiredParents());}
+    public boolean canUnlock(Balance.Ability a,Balance b){return !unlocked.contains(a.id())&&!excluded(a,b)&&a.skillRequirements().stream().allMatch(r->track(r.skill()).level>=r.level())&&completedConditions(a)>=a.requiredConditions()&&prerequisites(a);}
     public Set<String> revoke(String id,Balance b){
         Set<String> removed=new LinkedHashSet<>();if(unlocked.remove(id))removed.add(id);boolean changed;
         do{changed=false;for(var a:b.abilities)if(unlocked.contains(a.id())&&a.dependencies().stream().anyMatch(removed::contains)&&!prerequisites(a)){unlocked.remove(a.id());removed.add(a.id());changed=true;}}while(changed);
