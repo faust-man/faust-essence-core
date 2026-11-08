@@ -32,7 +32,6 @@ public final class CoreClient {
   int x=mc.getWindow().getGuiScaledWidth()/2+10+balance.client.get("hudX").intValue(),y=mc.getWindow().getGuiScaledHeight()-50+balance.client.get("hudY").intValue();
   y=HudClearance.staminaY(y,airDrawn?airTop:Integer.MAX_VALUE,vehicleTop);
   int total=(int)Math.ceil(progress.baseStamina(balance)),available=(int)Math.floor(progress.maxStamina(balance)),filled=(int)Math.floor(progress.stamina);
-  var texture=net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("faustcore","textures/gui/stamina_lightning.png");
   com.mojang.blaze3d.systems.RenderSystem.enableBlend();
   boolean exhausted=progress.actionsBlocked(balance);
   try {
@@ -40,7 +39,8 @@ public final class CoreClient {
     int icon=unit/2,half=unit%2,dx=x+(icon%10)*8+half*4,dy=y-(icon/10)*9;
     int state=StaminaSprites.state(unit,available,filled),color=StaminaSprites.color(state,exhausted);
     g.setColor(((color>>16)&255)/255f,((color>>8)&255)/255f,(color&255)/255f,1f);
-    g.blit(texture,dx,dy,4,8,StaminaSprites.textureX(state,half),0,8,16,32,16);
+    var texture=net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("faustcore",StaminaSprites.texture(state));
+    g.blit(texture,dx,dy,4,8,StaminaSprites.textureX(state,half),0,8,16,16,16);
    }
   } finally {
    g.setColor(1f,1f,1f,1f);

@@ -26,13 +26,15 @@ public final class StaminaSpritesTest {
                 }
             }
         }
-        try (var input = StaminaSpritesTest.class.getResourceAsStream("/assets/faustcore/textures/gui/stamina_lightning.png")) {
-            check(input != null, "lightning is packaged in common resources");
+        try (var input = StaminaSpritesTest.class.getResourceAsStream("/assets/faustcore/" + StaminaSprites.texture(0)); var emptyInput = StaminaSpritesTest.class.getResourceAsStream("/assets/faustcore/" + StaminaSprites.texture(1))) {
+            check(input != null && emptyInput != null, "both lightning sprites are packaged");
             var image = ImageIO.read(input);
-            check(image.getWidth() == 32 && image.getHeight() == 16, "two 16x16 masks");
+            var empty = ImageIO.read(emptyInput);
+            check(image.getWidth() == 16 && image.getHeight() == 16, "filled sprite is exactly 16x16");
+            check(empty.getWidth() == 16 && empty.getHeight() == 16, "empty sprite is exactly 16x16");
             int fullCount = 0, outlineCount = 0, leftCount = 0, rightCount = 0;
             for (int y = 0; y < 16; y++) for (int x = 0; x < 16; x++) {
-                int full = image.getRGB(x, y), outline = image.getRGB(x + 16, y);
+                int full = image.getRGB(x, y), outline = empty.getRGB(x, y);
                 check(full == 0 || full == 0xFFFFFFFF, "binary white mask permits any tint");
                 check(outline == 0 || outline == 0xFFFFFFFF, "binary outline mask");
                 check(outline == 0 || full != 0, "outline stays inside filled silhouette");
@@ -45,8 +47,9 @@ public final class StaminaSpritesTest {
         }
         for (int state = 0; state < 3; state++) {
             int left = StaminaSprites.textureX(state, 0), right = StaminaSprites.textureX(state, 1);
-            check(right == left + 8 && right + 8 <= 32, "halves use adjacent atlas regions");
-            check(left == (state == 1 ? 16 : 0), "fatigue and filled stamina share identical shape");
+            check(right == left + 8 && right + 8 == 16, "halves cover exactly one 16px sprite");
+            check(left == 0, "all states start at the left edge of their own sprite");
+            check(StaminaSprites.texture(2).equals(StaminaSprites.texture(0)), "fatigue and stamina use the same silhouette");
         }
         System.out.println("Stamina lightning checks passed: " + checks);
     }

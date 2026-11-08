@@ -22,7 +22,11 @@ public final class StaminaSprites {
         return state == 0 ? STAMINA_COLOR : EMPTY_COLOR;
     }
 
+    public static String texture(int state) {
+        return "textures/gui/stamina_lightning_" + (state == 1 ? "empty" : "full") + ".png";
+    }
+
     public static int textureX(int state, int half) {
-        return (state == 1 ? SIZE : 0) + half * SIZE / 2;
+        return half * SIZE / 2;
     }
 }
