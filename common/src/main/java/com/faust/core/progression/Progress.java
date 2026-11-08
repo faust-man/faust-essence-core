@@ -72,10 +72,11 @@ public final class Progress {
     public double baseStamina(Balance b) {return b.stamina.get("base")+SkillEffects.attribute(this,b,"faustcore:stamina",false)+effect("stamina",b);}
     public double maxStamina(Balance b) {return Math.max(b.fatigue.get("minimum"),baseStamina(b)-(b.fatigue.get("enabled")>0?Math.max(0,Math.min(fatigue,b.fatigue.get("maximum"))):0));}
     public double capacity(Balance b) {return b.armor.get("baseCapacity")+track(Skill.defense).level*b.armor.get("capacityPerLevel")+effect("capacity",b);}
-    public double spend(double requested,Balance b) {
+    public double spend(double requested,Balance b) {return spend(requested,b,Long.MAX_VALUE);}
+    public double spend(double requested,Balance b,long worldAgeTicks) {
         if(b.stamina.get("enabled")==0||!Double.isFinite(requested)||requested<=0) return 0;
         double paid=Math.min(stamina,requested);stamina-=paid;
-        if(b.fatigue.get("enabled")>0) fatigue=Math.min(b.fatigue.get("maximum"),fatigue+b.fatigue.get("perSpentFraction")*paid*b.fatigue.get("accumulationMultiplier"));
+        if(b.fatigue.get("enabled")>0&&FatigueRules.accumulates(worldAgeTicks,b)) fatigue=Math.min(b.fatigue.get("maximum"),fatigue+b.fatigue.get("perSpentFraction")*paid*b.fatigue.get("accumulationMultiplier"));
         normalizeFatigue();stamina=Math.min(stamina,maxStamina(b));updateExhaustion(b); return paid;
     }
     public void rest(double dt,boolean sleeping,boolean campfire,boolean regenerate,Balance b) {rest(dt,sleeping,campfire,regenerate,1,b);}
@@ -89,8 +90,9 @@ public final class Progress {
         else stamina=Math.min(stamina,maxStamina(b));
         updateExhaustion(b);
     }
-    public void environmentalFatigue(double dt,boolean soulCampfire,boolean soulFire,Balance b){
-        if(b.stamina.get("enabled")==0||b.fatigue.get("enabled")==0)return;
+    public void environmentalFatigue(double dt,boolean soulCampfire,boolean soulFire,Balance b){environmentalFatigue(dt,soulCampfire,soulFire,b,Long.MAX_VALUE);}
+    public void environmentalFatigue(double dt,boolean soulCampfire,boolean soulFire,Balance b,long worldAgeTicks){
+        if(b.stamina.get("enabled")==0||b.fatigue.get("enabled")==0||!FatigueRules.accumulates(worldAgeTicks,b))return;
         fatigue=Math.min(b.fatigue.get("maximum"),fatigue+dt*b.fatigue.get("accumulationMultiplier")*((soulCampfire?b.fatigue.get("soulCampfirePerSecond"):0)+(soulFire?b.fatigue.get("soulFirePerSecond"):0)));normalizeFatigue();stamina=Math.min(stamina,maxStamina(b));updateExhaustion(b);
     }
     public void recover(double dt,boolean sleep,boolean campfire,boolean delayReady,boolean shielding,Balance b){recover(dt,sleep,campfire,delayReady,shielding,false,false,b);}

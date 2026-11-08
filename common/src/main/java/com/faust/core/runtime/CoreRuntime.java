@@ -96,14 +96,15 @@ public final class CoreRuntime {
             grant(player,"place",units,units);
         }
     }
+    private static long worldAge(ServerPlayer player){return player.serverLevel().getServer().overworld().getGameTime();}
     public static boolean attack(ServerPlayer player,boolean air) {
         if(player.isCreative()||player.isSpectator()||balance.stamina.get("enabled")==0)return true;
         Session s=session(player);if(air&&s.paidSwing&&player.tickCount-s.attackTick<=5){s.paidSwing=false;return true;}
         var data=data(player);double cost=data.actionCost(player.getMainHandItem().is(Items.MACE)?"mace":"attack",balance);
         if(data.actionsBlocked(balance)||data.stamina<cost)return false;
-        data.spend(cost,balance);s.lastSpent=player.tickCount;s.attackTick=player.tickCount;s.paidSwing=!air;return true;
+        data.spend(cost,balance,worldAge(player));s.lastSpent=player.tickCount;s.attackTick=player.tickCount;s.paidSwing=!air;return true;
     }
-    public static boolean pay(ServerPlayer player,double cost){if(player.isCreative()||player.isSpectator()||balance.stamina.get("enabled")==0)return true;var p=data(player);if(p.actionsBlocked(balance)||p.stamina<cost)return false;p.spend(cost,balance);if(cost>0)session(player).lastSpent=player.tickCount;return true;}
+    public static boolean pay(ServerPlayer player,double cost){if(player.isCreative()||player.isSpectator()||balance.stamina.get("enabled")==0)return true;var p=data(player);if(p.actionsBlocked(balance)||p.stamina<cost)return false;p.spend(cost,balance,worldAge(player));if(cost>0)session(player).lastSpent=player.tickCount;return true;}
     public static boolean shieldPayment(ServerPlayer player){return pay(player,Math.max(0,balance.stamina.get("shieldCost")-data(player).effect("shield_cost_reduction",balance)));}
     public static boolean jump(ServerPlayer player){if(!active(player)||balance.stamina.get("enabled")==0)return true;if(data(player).actionsBlocked(balance)){player.setSprinting(false);return true;}return !player.isSprinting()||pay(player,balance.stamina.get("sprintJumpCost")+weight(player)*balance.stamina.get("jumpArmorCost"));}
     public static boolean canAct(ServerPlayer player){return !active(player)||!data(player).actionsBlocked(balance);}
@@ -152,7 +153,7 @@ public final class CoreRuntime {
         if(player.isSwimming()&&player.isSprinting()&&moving)s.swimTicks++;else s.swimTicks=0;
         double swimRate=s.swimTicks>b.stamina.get("swimDelaySeconds")*20?b.stamina.get("swimCost"):0;
         double rate=runRate+armorRate+waterRate+swimRate;
-        if(p.stamina>0&&rate>0&&b.stamina.get("enabled")>0) {p.spend(rate/20,b);s.lastSpent=player.tickCount;}
+        if(p.stamina>0&&rate>0&&b.stamina.get("enabled")>0) {p.spend(rate/20,b,worldAge(player));s.lastSpent=player.tickCount;}
         if(player.tickCount%20==0) {
             s.campfire=false;s.soulCampfire=false;
             {
@@ -166,7 +167,7 @@ public final class CoreRuntime {
             }
         }
         if(!player.isOnFire())p.soulFireBurn=false;else if(player.level().getBlockState(player.blockPosition()).is(Blocks.SOUL_FIRE)||player.level().getBlockState(player.blockPosition().below()).is(Blocks.SOUL_FIRE))p.soulFireBurn=true;
-        p.environmentalFatigue(0.05,s.soulCampfire,p.soulFireBurn&&player.isOnFire(),b);
+        p.environmentalFatigue(0.05,s.soulCampfire,p.soulFireBurn&&player.isOnFire(),b,worldAge(player));
         boolean shielding=player.isUsingItem()&&player.getUseItem().is(Items.SHIELD);
         boolean airVisible=com.faust.core.progression.Breathing.visible(player.isEyeInFluid(net.minecraft.tags.FluidTags.WATER),player.getAirSupply(),player.getMaxAirSupply())||(s.airVisible&&player.tickCount-s.inputTick<=20);
         p.recover(0.05,player.isSleeping(),s.campfire&&player.tickCount-s.movedTick>5,player.tickCount-s.lastSpent>=b.stamina.get("delaySeconds")*20,shielding,player.isFallFlying(),airVisible,b);
