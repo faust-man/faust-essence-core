@@ -20,7 +20,7 @@ public final class CoreRuntime {
     private static Path configDirectory;
     private static final Set<UUID> GRANTING=new HashSet<>();
     private static final Map<UUID,Session> SESSIONS=new HashMap<>();
-    private static final class Session {int lastSpent=-100000,attackTick=-100000, lastRead=-100000, shieldTick=-100000, inputTick=-100000,ranTick=-100000,movedTick=-100000,budgetWindow,swimTicks;double run,swim,shield,blocks;boolean airVisible,campfire,soulCampfire,forward,paidSwing,wasSprinting;Balance sentBalance;Vec3 lastPosition;Map<ResourceLocation,net.minecraft.core.Holder<Attribute>> statModifiers=new HashMap<>();}
+    private static final class Session {long sentRevision=Long.MIN_VALUE;double sentStamina=Double.NaN,sentFatigue=Double.NaN,sentWeight=Double.NaN;int sentExperience=-1;boolean sentExhausted;int lastSpent=-100000,attackTick=-100000, lastRead=-100000, shieldTick=-100000, inputTick=-100000,ranTick=-100000,movedTick=-100000,budgetWindow,swimTicks;double run,swim,shield,blocks;boolean airVisible,campfire,soulCampfire,forward,paidSwing,wasSprinting;Balance sentBalance;Vec3 lastPosition;Map<ResourceLocation,net.minecraft.core.Holder<Attribute>> statModifiers=new HashMap<>();}
     public static void input(ServerPlayer p,boolean forward,boolean airVisible) {Session s=session(p);s.forward=forward;s.airVisible=airVisible;s.inputTick=p.tickCount;}
     public static void initialize(Path directory) {configDirectory=directory;reload();}
     public static ConfigResult editConfig(ServerPlayer player,ConfigEdit edit) {
@@ -64,10 +64,10 @@ public final class CoreRuntime {
         CoreApi.requireServerThread(player);
         if(player.isCreative()||player.isSpectator()||(!action.equals("damage")&&player.isDeadOrDying())||!GRANTING.add(player.getUUID())) return false;
         try {
-            Progress p=data(player);String before=p.json();double scale=CoreApi.before(new CoreApi.Grant(player,action,units,count));
+            Progress p=data(player);boolean listeners=CoreApi.hasAfterListeners();String before=listeners?p.json():null;double scale=CoreApi.before(new CoreApi.Grant(player,action,units,count));
             if(scale==0) return false;
             if(!p.event(action,units*scale,count,balance)) return false;
-            CoreApi.after(new CoreApi.Change(player.getUUID(),action,before,p.json()));return true;
+            if(listeners)CoreApi.after(new CoreApi.Change(player.getUUID(),action,before,p.json()));return true;
         } finally {GRANTING.remove(player.getUUID());}
     }
     public static void stat(ServerPlayer player,Stat<?> stat,int amount) {
@@ -142,7 +142,7 @@ public final class CoreRuntime {
         if(q<=0)return;s.shieldTick=p.tickCount;s.shield+=q;grant(p,"shield",q,1);
     }
     public static void tick(ServerPlayer player) {
-        if(!active(player)) {if(player.tickCount%20==0)sync(player);return;}
+        if(!active(player)) {if(player.tickCount%20==0)syncIfChanged(player);return;}
         Progress p=data(player); Session s=session(player); Balance b=balance;p.reconcile(b);
         if(b.stamina.get("enabled")>0&&p.actionsBlocked(b))player.setSprinting(false);
         boolean moving=s.lastPosition!=null&&s.lastPosition.distanceToSqr(player.position())>0.0001;
@@ -180,7 +180,7 @@ public final class CoreRuntime {
         if(b.stamina.get("enabled")>0&&p.actionsBlocked(b))player.setSprinting(false);
         if(b.stamina.get("enabled")>0&&p.actionsBlocked(b)&&upstream)player.setSprinting(false);
         if(player.tickCount%20==0||s.wasSprinting!=player.isSprinting()){s.wasSprinting=player.isSprinting();attributes(player);}
-        if(player.tickCount%5==0)sync(player);
+        if(player.tickCount%5==0)syncIfChanged(player);
     }
     public static void rebuildAttributes(ServerPlayer player){attributes(player);}
     private static void attributes(ServerPlayer player) {
@@ -219,12 +219,17 @@ public final class CoreRuntime {
         if(value!=0)instance.addTransientModifier(new AttributeModifier(id,value,AttributeModifier.Operation.ADD_VALUE));
     }
     public static double breaking(ServerPlayer player) {return SkillEffects.breaking(data(player),balance);}
+    /** Batch gameplay updates; explicit commands/joins can still force sync(). */
+    private static void syncIfChanged(ServerPlayer player){
+        var s=session(player);var p=data(player);double currentWeight=weight(player);
+        if(s.sentBalance!=balance||s.sentRevision!=p.revision||s.sentStamina!=p.stamina||s.sentFatigue!=p.fatigue||s.sentExhausted!=p.exhausted||s.sentExperience!=player.experienceLevel||s.sentWeight!=currentWeight)sync(player);
+    }
     public static void sync(ServerPlayer player) {
         Session session=session(player);
         var publicData=Balance.JSON.toJsonTree(data(player)).getAsJsonObject();publicData.remove("discoveries");
         var snapshot=new Snapshot(publicData.toString(),session.sentBalance==balance?"":Balance.JSON.toJson(balance),player.experienceLevel,weight(player));
         Services.PLATFORM.send(player,snapshot);
-        session.sentBalance=balance;
+        session.sentBalance=balance;var progress=data(player);session.sentRevision=progress.revision;session.sentStamina=progress.stamina;session.sentFatigue=progress.fatigue;session.sentExhausted=progress.exhausted;session.sentExperience=player.experienceLevel;session.sentWeight=snapshot.armorWeight();
     }
     public static int xp(ServerPlayer p) {
         int l=p.experienceLevel;long base=l<=16?(long)l*l+6L*l:l<=31?(5L*l*l-81L*l+720)/2:(9L*l*l-325L*l+4440)/2;

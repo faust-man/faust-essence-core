@@ -18,7 +18,7 @@ public final class SkillTrees {
                     case "soft_landing","potion_duration" -> new double[]{-52,0};
                     case "enchanting_power" -> new double[]{-104,0};
                     case "crossbow_efficiency","bow_efficiency","second_wind" -> new double[]{52,0};
-                    case "mace_efficiency","training_dexterity_attack","training_constitution_stamina","training_building_reach" -> new double[]{0,40};
+                    case "mace_efficiency","training_dexterity_attack","training_constitution_health","training_building_reach" -> new double[]{0,40};
                     case "bow_mastery","resilient_recovery","shield_efficiency" -> new double[]{52,40};
                     case "armor_mastery" -> new double[]{-26,40};
                     case "training_defense_armor" -> new double[]{26,40};
@@ -26,7 +26,7 @@ public final class SkillTrees {
                     case "shield_recovery" -> new double[]{104,40};
                     default -> new double[]{0,nodes.isEmpty()?0:80+nodes.size()*36};
                 };
-                if(Set.of("faustcore:training_strength_damage","faustcore:training_dexterity_sprint","faustcore:training_constitution_health","faustcore:training_intelligence_luck","faustcore:training_building_breaking","faustcore:armor_familiarity").contains(a.id()))pos=new double[]{0,0};
+                if(Set.of("faustcore:training_strength_damage","faustcore:training_dexterity_sprint","faustcore:training_constitution_stamina","faustcore:training_intelligence_luck","faustcore:training_building_breaking","faustcore:armor_familiarity").contains(a.id()))pos=new double[]{0,0};
                 boolean collision;do{collision=false;for(var n:nodes)if(Math.abs(n.x()-pos[0])<NODE_SIZE&&Math.abs(n.y()-pos[1])<NODE_SIZE){pos=new double[]{0,nodes.stream().mapToDouble(Node::y).max().orElse(0)+40};collision=true;break;}}while(collision);
                 nodes.add(new Node(a.id(),pos[0],pos[1],icon(a)));
             }

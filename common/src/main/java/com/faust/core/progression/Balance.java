@@ -8,6 +8,7 @@ import java.util.*;
 
 /** Server-owned, reloadable configuration. No loader or client dependencies. */
 public final class Balance {
+    transient long counterEpoch;
     public static final Gson JSON = new GsonBuilder().registerTypeAdapter(Skill.class,new com.google.gson.TypeAdapter<Skill>() {
         public void write(com.google.gson.stream.JsonWriter out,Skill skill) throws IOException {out.value(skill.name());}
         public Skill read(com.google.gson.stream.JsonReader in) throws IOException {return Skill.saved(in.nextString());}
@@ -132,8 +133,8 @@ public final class Balance {
             case "faustcore:training_strength_damage" -> {level=5;amount=100;}
             case "faustcore:training_dexterity_sprint" -> {level=5;amount=1500;}
             case "faustcore:training_dexterity_attack" -> {level=8;counter="hits";amount=150;parent="faustcore:training_dexterity_sprint";}
-            case "faustcore:training_constitution_health" -> {level=5;amount=100;}
-            case "faustcore:training_constitution_stamina" -> {level=8;counter="constitution_run_metres";amount=2500;parent="faustcore:training_constitution_health";}
+            case "faustcore:training_constitution_health" -> {level=5;amount=100;parent="faustcore:training_constitution_stamina";}
+            case "faustcore:training_constitution_stamina" -> {level=8;counter="constitution_run_metres";amount=2500;parent="";}
             case "faustcore:training_defense_armor" -> {level=8;counter="armor_metres";amount=1500;parent="faustcore:armor_familiarity";}
             case "faustcore:training_intelligence_luck" -> {level=5;amount=15;}
             case "faustcore:training_building_breaking" -> {level=5;amount=500;}
@@ -153,6 +154,7 @@ public final class Balance {
         return map;
     }
     public void validate() {
+        counterEpoch++;
         if(integratedTreeNamespaces==null||integratedTreeNamespaces.stream().anyMatch(n->n==null||!n.matches("[a-z0-9_.-]+"))||new HashSet<>(integratedTreeNamespaces).size()!=integratedTreeNamespaces.size())throw new IllegalArgumentException("Invalid integrated tree namespaces");
         Balance defaults=new Balance();
         try {
@@ -389,8 +391,33 @@ public final class Balance {
         }
         Files.writeString(marker,"1\n");
     }
+    private static void migrateConstitutionSwap(Path directory) throws IOException {
+        Path marker=directory.resolve(".constitution-swap-format");if(Files.exists(marker))return;
+        String health="faustcore:training_constitution_health",stamina="faustcore:training_constitution_stamina";
+        Path backup=directory.resolve("migration-constitution-swap");
+        boolean swapLayout=true;Path abilitiesFile=directory.resolve("abilities.json");
+        if(Files.exists(abilitiesFile)){
+            var nodes=JSON.fromJson(Files.readString(abilitiesFile),com.google.gson.JsonArray.class);
+            com.google.gson.JsonObject hp=null,sp=null;
+            for(var e:nodes){var a=e.getAsJsonObject();if(a.get("id").getAsString().equals(health))hp=a;if(a.get("id").getAsString().equals(stamina))sp=a;}
+            if(hp!=null&&sp!=null&&hp.has("parent")&&!hp.get("parent").isJsonNull()&&hp.get("parent").getAsString().equals(stamina))swapLayout=false;
+            if(hp!=null&&sp!=null&&swapLayout){
+                for(String key:List.of("parent","requiresAll","requiresAny","requiresCount")){var h=hp.get(key);var s=sp.get(key);if(s!=null)hp.add(key,s.deepCopy());else hp.remove(key);if(h!=null)sp.add(key,h.deepCopy());else sp.remove(key);}
+                for(var e:nodes){var a=e.getAsJsonObject();if(a.has("parent")&&!a.get("parent").isJsonNull())a.addProperty("parent",swappedConstitution(a.get("parent").getAsString()));for(String key:List.of("requiresAll","requiresAny"))if(a.has(key)&&a.get(key).isJsonArray()){var list=a.getAsJsonArray(key);for(int i=0;i<list.size();i++)list.set(i,new com.google.gson.JsonPrimitive(swappedConstitution(list.get(i).getAsString())));}}
+                Files.createDirectories(backup);if(!Files.exists(backup.resolve("abilities.json")))Files.copy(abilitiesFile,backup.resolve("abilities.json"));Files.writeString(abilitiesFile,JSON.toJson(nodes)+"\n");
+            }
+        }
+        Path treesFile=directory.resolve("trees.json");
+        if(swapLayout&&Files.exists(treesFile)){
+            var trees=JSON.fromJson(Files.readString(treesFile),com.google.gson.JsonArray.class);
+            for(var tree:trees){com.google.gson.JsonObject hp=null,sp=null;for(var e:tree.getAsJsonObject().getAsJsonArray("nodes")){var n=e.getAsJsonObject();if(n.get("ability").getAsString().equals(health))hp=n;if(n.get("ability").getAsString().equals(stamina))sp=n;}if(hp!=null&&sp!=null)for(String axis:List.of("x","y")){var h=hp.get(axis);hp.add(axis,sp.get(axis).deepCopy());sp.add(axis,h.deepCopy());}}
+            Files.createDirectories(backup);if(!Files.exists(backup.resolve("trees.json")))Files.copy(treesFile,backup.resolve("trees.json"));Files.writeString(treesFile,JSON.toJson(trees)+"\n");
+        }
+        Files.writeString(marker,"1\n");
+    }
+    private static String swappedConstitution(String id){return id.equals("faustcore:training_constitution_health")?"faustcore:training_constitution_stamina":id.equals("faustcore:training_constitution_stamina")?"faustcore:training_constitution_health":id;}
     public static Balance load(Path directory) throws IOException {
-        Files.createDirectories(directory); migrate(directory); migrateExhaustion(directory); migrateGrowth(directory); migrateStats(directory); migrateV12(directory); migrateEnvironment(directory); migrateV13(directory); migrateV14(directory); migrateV141(directory); migrateFatigueGrace(directory); migrateCakeFood(directory); migratePractice(directory); migratePracticeLayout(directory); migratePanelUpdate(directory);
+        Files.createDirectories(directory); migrate(directory); migrateExhaustion(directory); migrateGrowth(directory); migrateStats(directory); migrateV12(directory); migrateEnvironment(directory); migrateV13(directory); migrateV14(directory); migrateV141(directory); migrateFatigueGrace(directory); migrateCakeFood(directory); migratePractice(directory); migrateConstitutionSwap(directory); migratePracticeLayout(directory); migratePanelUpdate(directory);
         Path windFile=directory.resolve("stamina.json");if(Files.exists(windFile)){var data=JSON.fromJson(Files.readString(windFile),com.google.gson.JsonObject.class);if(!data.has("secondWindMultiplier")){data.addProperty("secondWindMultiplier",1.5);Files.writeString(windFile,JSON.toJson(data)+"\n");}}
         Path skillsFile=directory.resolve("skills.json");if(Files.exists(skillsFile)){var data=JSON.fromJson(Files.readString(skillsFile),com.google.gson.JsonObject.class);if(!data.has("buildingReachMaximum")){data.addProperty("buildingReachMaximum",3);Files.writeString(skillsFile,JSON.toJson(data)+"\n");}}
         Balance result=new Balance();

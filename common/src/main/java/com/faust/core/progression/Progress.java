@@ -7,7 +7,9 @@ public final class Progress {
     public int schema=2;
     public Map<Skill,Track> tracks=new LinkedHashMap<>();
     public Map<String,Double> counters=new HashMap<>();
-    public Set<String> unlocked=new HashSet<>(), discoveries=new HashSet<>();
+    public Map<String,Map<String,Double>> practice=new HashMap<>();
+    private transient CounterPlan counterPlan;
+    public Set<String> unlocked=CounterPlan.learnedSet(Set.of()), discoveries=new HashSet<>();
     public Set<String> disabled=new HashSet<>();
     public long purchases, revision;
     public double stamina=20, fatigue;
@@ -30,7 +32,7 @@ public final class Progress {
         return level<cap?Math.min(b.progression.get("maximumGrowth"),cap/Math.max(1,level)):b.progression.get("overCapGrowth");
     }
     public long price(Skill skill,Balance b) {
-        double sum=Arrays.stream(Skill.values()).mapToDouble(s->cap(s,b)).sum();
+        double sum=Arrays.stream(Skill.values()).mapToDouble(s->Math.max(0,cap(s,b)-b.progression.get("initialCap"))).sum();
         double value=Math.ceil(cap(skill,b)+sum/b.progression.get("costDivisor"));
         return value>=Long.MAX_VALUE?Long.MAX_VALUE:(long)value;
     }
@@ -58,12 +60,19 @@ public final class Progress {
     public boolean event(String event,double units,double count,Balance b) {
         var rule=b.actions.get(event);
         if(rule==null||!Double.isFinite(units)||units<=0||!Double.isFinite(count)||count<0) return false;
-        counters.merge(rule.counter(),count,Double::sum); grant(rule.skill(),units*rule.xp()*b.progression.get("trainingMultiplier"),b); revision++;return true;
+        recordCounter(rule.counter(),count,b); grant(rule.skill(),units*rule.xp()*b.progression.get("trainingMultiplier"),b); return true;
     }
-    public double requirementCount(Balance.Ability a){return Math.max(0,Math.min(a.amount(),counters.getOrDefault(a.counter(),0.0)));}
+    private CounterPlan counterPlan(Balance b){if(counterPlan==null||!counterPlan.valid(this,b))counterPlan=new CounterPlan(this,b);return counterPlan;}
+    public boolean wantsCounter(String key,Balance b){return counterPlan(b).wants(this,key);}
+    public boolean recordCounter(String key,double amount,Balance b){return Double.isFinite(amount)&&amount>0&&counterPlan(b).record(this,key,amount,false);}
+    public boolean recordMaximum(String key,double value,Balance b){return Double.isFinite(value)&&value>0&&counterPlan(b).record(this,key,value,true);}
+    /** Explicit administrative/fixture override; gameplay should use recordCounter. */
+    public void setCounter(String key,double value,Balance b){if(!Double.isFinite(value)||value<0)throw new IllegalArgumentException("Invalid counter");counterPlan(b);counters.put(key,value);for(var a:b.abilities)if(prerequisites(a))for(var c:a.actionConditions())if(c.counter().equals(key))practice.get(a.id()).put(key,Math.min(value,c.amount()));counterPlan=null;revision++;}
+    public double requirementCount(Balance.Ability a){return conditionCount(a,new Balance.Condition(a.counter(),a.amount()));}
     public double conditionCount(Balance.Condition c){return Math.max(0,Math.min(c.amount(),counters.getOrDefault(c.counter(),0.0)));}
-    public long completedConditions(Balance.Ability a){return a.actionConditions().stream().filter(c->conditionCount(c)>=c.amount()).count();}
-    public double requirementProgress(Balance.Ability a){return a.actionConditions().stream().mapToDouble(c->c.amount()<=0?1:conditionCount(c)/c.amount()).boxed().sorted(java.util.Comparator.reverseOrder()).limit(a.requiredConditions()).mapToDouble(Double::doubleValue).sum()/a.requiredConditions();}
+    public double conditionCount(Balance.Ability a,Balance.Condition c){if(!prerequisites(a))return 0;var values=practice.get(a.id());return Math.max(0,Math.min(c.amount(),(values==null?counters:values).getOrDefault(c.counter(),0.0)));}
+    public long completedConditions(Balance.Ability a){return a.actionConditions().stream().filter(c->conditionCount(a,c)>=c.amount()).count();}
+    public double requirementProgress(Balance.Ability a){return a.actionConditions().stream().mapToDouble(c->c.amount()<=0?1:conditionCount(a,c)/c.amount()).boxed().sorted(java.util.Comparator.reverseOrder()).limit(a.requiredConditions()).mapToDouble(Double::doubleValue).sum()/a.requiredConditions();}
     public boolean excluded(Balance.Ability a,Balance b){return a.excludes().stream().anyMatch(unlocked::contains)||b.abilities.stream().anyMatch(other->unlocked.contains(other.id())&&other.excludes().contains(a.id()));}
     public boolean prerequisites(Balance.Ability a){return unlocked.containsAll(a.all())&&(a.requiresAny().stream().filter(unlocked::contains).count()>=a.requiredParents());}
     public boolean canUnlock(Balance.Ability a,Balance b){return !unlocked.contains(a.id())&&!excluded(a,b)&&a.skillRequirements().stream().allMatch(r->track(r.skill()).level>=r.level())&&completedConditions(a)>=a.requiredConditions()&&prerequisites(a);}
@@ -75,7 +84,7 @@ public final class Progress {
     public boolean unlock(String id,Balance b) {
         var a=b.abilities.stream().filter(x->x.id().equals(id)).findFirst().orElse(null);
         if(a==null||!canUnlock(a,b)) return false;
-        unlocked.add(id);disabled.remove(id);revision++;return true;
+        counterPlan(b);unlocked.add(id);disabled.remove(id);revision++;return true;
     }
     /** Learned status controls requirements; enabled status controls only effects. */
     public boolean enabled(String id){return unlocked.contains(id)&&!disabled.contains(id);}
@@ -159,7 +168,12 @@ public final class Progress {
             for(var t:p.tracks.values())t.purchases=Math.min(10,t.purchases>2?10:t.purchases*5);
             p.schema=2;
         }
-        p.disabled.retainAll(p.unlocked);p.reconcileAbilities(config);
+        if(p.practice==null)throw new IllegalArgumentException("Invalid practice data");
+        for(var values:p.practice.values()){if(values==null||values.values().stream().anyMatch(v->v==null||!Double.isFinite(v)||v<0))throw new IllegalArgumentException("Invalid practice counter");}
+        if(!com.google.gson.JsonParser.parseString(json).getAsJsonObject().has("practice")){
+            for(var a:config.abilities){var values=new HashMap<String,Double>();if(p.prerequisites(a))for(var c:a.actionConditions())values.put(c.counter(),Math.min(c.amount(),p.counters.getOrDefault(c.counter(),0.0)));p.practice.put(a.id(),values);}
+        }
+        p.unlocked=CounterPlan.learnedSet(p.unlocked);p.disabled.retainAll(p.unlocked);p.reconcileAbilities(config);
         return p;
     }
 }

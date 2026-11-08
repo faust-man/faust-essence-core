@@ -10,7 +10,7 @@ public final class ProgressTest {
     private static void near(double actual,double expected,String message){check(Math.abs(actual-expected)<1e-7,message+": "+actual+" != "+expected);}
     private static void rejects(Runnable task,String message){try{task.run();}catch(IllegalArgumentException e){checks++;return;}throw new AssertionError(message);}
     public static void main(String[] args) throws Exception {
-        PanelUpdateTest.run();CommandTest.run();AbilityToggleTest.run();NonToggleableTest.run();PracticeTest.run();Revision14Test.run();Revision141Test.run();StaminaSpritesTest.run();TreeTest.run();FatigueGraceTest.run();FatigueCapacityTest.run();com.faust.core.runtime.CakeFoodTest.run();
+        CounterPlanTest.run();PanelUpdateTest.run();CommandTest.run();AbilityToggleTest.run();NonToggleableTest.run();PracticeTest.run();Revision14Test.run();Revision141Test.run();StaminaSpritesTest.run();TreeTest.run();FatigueGraceTest.run();FatigueCapacityTest.run();com.faust.core.runtime.CakeFoodTest.run();
         Balance b=new Balance();b.validate();
         Progress lockedStats=new Progress();lockedStats.track(Skill.constitution).level=20;near(SkillEffects.health(lockedStats,b),0,"health locked before learned stat");near(lockedStats.baseStamina(b),20,"stamina capacity locked before learned stat");lockedStats.unlocked.add("faustcore:training_constitution_health");near(SkillEffects.health(lockedStats,b),20,"health node unlocks only health");near(lockedStats.baseStamina(b),20,"health node does not unlock stamina");lockedStats.unlocked.add("faustcore:training_constitution_stamina");near(lockedStats.baseStamina(b),40,"separate stamina node");
         check(!SkillEffects.damageCounts(1.99,b),"less than a heart ignored");check(SkillEffects.damageCounts(2,b),"one actual heart counts");
@@ -46,12 +46,12 @@ public final class ProgressTest {
         for(int i=0;i<1000;i++)small.grant(Skill.strength,0.5,b);large.grant(Skill.strength,500,b);
         check(small.track(Skill.strength).level==large.track(Skill.strength).level,"grouping invariant below and above cap");near(small.track(Skill.strength).xp,large.track(Skill.strength).xp,"fractional precision");
         small.track(Skill.strength).level=1000;small.track(Skill.strength).xp=0;small.track(Skill.strength).threshold=small.needed(Skill.strength,b);small.grant(Skill.strength,0.001,b);check(small.track(Skill.strength).xp>0,"growth above cap remains positive");
-        p=new Progress();long[] prices={11,13,14,15,16};
+        p=new Progress();long[] prices={5,7,8,9,10};
         for(int i=0;i<prices.length;i++){check(p.price(Skill.strength,b)==prices[i],"n + total caps / 5 rounded up "+i);check(p.buy(Skill.strength,10000,b),"purchase +1");}
-        near(p.cap(Skill.strength,b),10,"five purchases add five");near(p.cap(Skill.building,b),5,"other cap unchanged");near(p.price(Skill.building,b),12,"shared sum affects different branch");
+        near(p.cap(Skill.strength,b),10,"five purchases add five");near(p.cap(Skill.building,b),5,"other cap unchanged");near(p.price(Skill.building,b),6,"shared sum affects different branch");
         for(int i=0;i<30;i++)p.buy(Skill.strength,10000,b);near(p.cap(Skill.strength,b),20,"cap hard maximum 20");
         long before=p.purchases;check(!p.buy(Skill.strength,10000,b),"cannot buy beyond 20");check(p.purchases==before,"capped purchase atomicity");check(!p.buy(Skill.defense,0,b),"insufficient vanilla levels");
-        Progress mixed=new Progress();near(mixed.price(Skill.strength,b),11,"first selected cap price");mixed.buy(Skill.strength,11,b);near(mixed.price(Skill.building,b),12,"global increase across branches");mixed.buy(Skill.building,12,b);near(mixed.price(Skill.strength,b),13,"return to purchased branch");
+        Progress mixed=new Progress();near(mixed.price(Skill.strength,b),5,"first selected cap price");mixed.buy(Skill.strength,5,b);near(mixed.price(Skill.building,b),6,"global increase across branches");mixed.buy(Skill.building,6,b);near(mixed.price(Skill.strength,b),7,"return to purchased branch");
         Skill custom=Skill.register("test:path_skill");rejects(()->Skill.register("test:path_skill"),"duplicate skill rejected");
         Progress extension=new Progress();extension.grant(custom,5,b);check(Progress.parse(extension.json()).track(custom).xp==10,"extension skill persistence");
         p=new Progress();var a=b.abilities.stream().filter(n->n.id().equals("faustcore:armor_familiarity")).findFirst().orElseThrow();p.track(a.skill()).level=a.level();check(!p.unlock(a.id(),b),"level alone insufficient");

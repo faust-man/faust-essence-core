@@ -25,6 +25,10 @@ public final class CoreApi {
     }
     public static void beforeProgress(ToDoubleFunction<Grant> handler) {BEFORE.add(Objects.requireNonNull(handler));}
     public static void afterProgress(Consumer<Change> handler) {AFTER.add(Objects.requireNonNull(handler));}
+    public static boolean hasAfterListeners(){return !AFTER.isEmpty();}
+    public static boolean needsCounter(ServerPlayer player,String key){requireServerThread(player);return CoreRuntime.data(player).wantsCounter(key,CoreRuntime.balance);}
+    public static boolean recordCounter(ServerPlayer player,String key,double amount){requireServerThread(player);return CoreRuntime.active(player)&&CoreRuntime.data(player).recordCounter(key,amount,CoreRuntime.balance);}
+    public static boolean recordMaximum(ServerPlayer player,String key,double value){requireServerThread(player);return CoreRuntime.active(player)&&CoreRuntime.data(player).recordMaximum(key,value,CoreRuntime.balance);}
     public static void registerPath(String id,Predicate<ServerPlayer> requirement) {
         if(!id.matches("[a-z0-9_.-]+:[a-z0-9_./-]+")||PATHS.putIfAbsent(id,Objects.requireNonNull(requirement))!=null) throw new IllegalArgumentException("Invalid/duplicate path "+id);
     }
