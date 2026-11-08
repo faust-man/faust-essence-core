@@ -37,10 +37,11 @@ public final class CoreScreen extends Screen {
     private static ItemStack icon(String id){var item=BuiltInRegistries.ITEM.get(ResourceLocation.parse(id));return new ItemStack(item==Items.AIR?Items.BARRIER:item);}
     private void command(String text){if(minecraft!=null&&minecraft.getConnection()!=null)minecraft.getConnection().sendCommand(text.replaceFirst("core ","core panel "));}
     private boolean insideView(double mx,double my){return PanelTabs.inside(mx,my,x()+VIEW_X,y()+VIEW_Y,viewWidth(),viewHeight());}
-    private List<SkillTrees.Node> nodes(){var b=CoreClient.balance;var nodes=SkillTrees.nodes(b,selected).stream().filter(n->n.ability().startsWith(treeGroup+":")).toList();if(view==null||viewed!=b){view=new TreeView(nodes,viewWidth(),viewHeight());viewed=b;}return nodes;}
+    private List<SkillTrees.Node> nodes(){var b=CoreClient.balance;var nodes=SkillTrees.nodes(b,selected).stream().filter(n->TreeGroups.contains(b,treeGroup,n.ability())).toList();if(view==null||viewed!=b){view=new TreeView(nodes,viewWidth(),viewHeight());viewed=b;}return nodes;}
     private SkillTrees.Node hovered(double mx,double my){if(!insideView(mx,my))return null;var nodes=nodes();for(int i=nodes.size()-1;i>=0;i--)if(view.hit(nodes.get(i),mx-x()-VIEW_X,my-y()-VIEW_Y))return nodes.get(i);return null;}
     @Override public void renderBackground(GuiGraphics g,int mx,int my,float delta){}
     @Override public void render(GuiGraphics g,int mx,int my,float delta){
+        if(CoreClient.balance!=null&&!groups().contains(treeGroup)){treeGroup="faustcore";skillPage=0;selected=null;view=null;}
         renderTransparentBackground(g);int x=x(),y=y();
         com.mojang.blaze3d.systems.RenderSystem.enableBlend();if(!expanded)g.blit(PANEL,x,y,0,0,WIDTH,HEIGHT,256,256);else g.fill(x,y,x+panelWidth(),y+panelHeight(),0xFF555555);g.fill(x+3,y+3,x+panelWidth()-3,y+panelHeight()-3,0xFFC6C6C6);
         List<Component> tooltip=null;var p=CoreClient.progress;var b=CoreClient.balance;

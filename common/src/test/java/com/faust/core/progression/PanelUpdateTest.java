@@ -18,10 +18,27 @@ public final class PanelUpdateTest {
         check(TreeGroups.groups(b).equals(java.util.List.of("faustcore")),"no redundant book");
         var a=b.abilities.getFirst();b.abilities.add(new Balance.Ability("panel_test:node",a.skill(),0,"",0,"","stamina",1));
         check(TreeGroups.groups(b).equals(java.util.List.of("faustcore","panel_test")),"addon book");check(TreeGroups.skills(b,"panel_test").equals(java.util.List.of(a.skill())),"addon skills");
+        b.abilities.add(new Balance.Ability("faust_epic_compat:epicfight/guard",Skill.defense,0,"",0,"","stamina",1));
+        b.abilities.add(new Balance.Ability("faust_epic_compat:other_addon/roll",Skill.dexterity,0,"",0,"","stamina",1));
+        check(!TreeGroups.groups(b).contains("faust_epic_compat"),"compat and Epic addons merged by default");
+        check(TreeGroups.contains(b,"faustcore","faust_epic_compat:epicfight/guard"),"merged nodes pass renderer filter");
+        check(TreeGroups.contains(b,"faustcore","faust_epic_compat:other_addon/roll"),"other Epic namespace inside compat merges");
+        check(TreeGroups.groups(b).contains("panel_test"),"unrelated addons remain separate");
+        b=b.edited("integratedTreeNamespaces","[]");
+        check(TreeGroups.groups(b).contains("faust_epic_compat"),"config restores separate tab");
+        check(!TreeGroups.contains(b,"faustcore","faust_epic_compat:epicfight/guard"),"separate nodes excluded from core");
+        check(TreeGroups.skills(b,"faust_epic_compat").containsAll(java.util.List.of(Skill.defense,Skill.dexterity)),"separate branches retained");
+        try {b.edited("integratedTreeNamespaces","[\"bad:id\"]");throw new AssertionError("invalid namespace accepted");}catch(IllegalArgumentException expected){}
+        b=b.edited("integratedTreeNamespaces","[\"faust_epic_compat\",\"panel_test\"]");
+        check(TreeGroups.groups(b).equals(java.util.List.of("faustcore")),"additional namespace configurable");
+        check(TreeGroups.contains(Balance.JSON.fromJson(Balance.JSON.toJson(b),Balance.class),"faustcore","panel_test:node"),"snapshot preserves merge policy");
         Path dir=Files.createTempDirectory("core-panel-update");Balance.load(dir);Files.delete(dir.resolve(".panel-update-format"));
         Path foods=dir.resolve("sweetFoods.json");var json=com.google.gson.JsonParser.parseString(Files.readString(foods)).getAsJsonObject();json.addProperty("minecraft:golden_apple",7);json.remove("minecraft:golden_carrot");Files.writeString(foods,Balance.JSON.toJson(json));
         var loaded=Balance.load(dir);check(loaded.sweetFoods.get("minecraft:golden_apple")==7,"custom food preserved");check(loaded.sweetFoods.get("minecraft:golden_carrot")==3,"missing food migrated");
         check(Balance.load(dir).abilities.size()==loaded.abilities.size(),"migration idempotent");
+        check(Files.exists(dir.resolve("integratedTreeNamespaces.json")),"new config created for existing installations");
+        Balance.saveGroup(dir,"integratedTreeNamespaces","[]");
+        check(Balance.load(dir).integratedTreeNamespaces.isEmpty(),"reload preserves separate setting");
         System.out.println("Panel update checks passed");
     }
 }

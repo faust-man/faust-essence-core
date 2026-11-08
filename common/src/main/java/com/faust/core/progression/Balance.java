@@ -19,6 +19,7 @@ public final class Balance {
     public Map<String, Double> skills = numbers("damagePerLevel",0.002,"damageMaximum",0.10,"speedPerLevel",0.001,"speedMaximum",0.05,"breakingPerLevel",0.01,"breakingMaximum",1000000000,"constitutionSwimMultiplier",2,"swimMetresPerMinute",200,"damageMinimumHP",2,"hitCharge",0.9,"hitMaximum",10,"shieldMaximum",5,"shieldIntervalTicks",20,"shieldBudgetPerMinute",20,"runMetresPerMinute",200,"blockMaximumPerMinute",300,"readCooldownSeconds",30,"structureIntervalTicks",40,"healthPerLevel",1,"luckPerLevel",0.01,"luckMaximum",0.2,"reachEveryLevels",10,"reachPerStep",1,"buildingReachMaximum",3,"iconTier1",5,"iconTier2",10,"iconTier3",20);
     public Map<String, Double> client = numbers("hud",1,"hudX",0,"hudY",0,"hudWidth",81);
     public Map<String, Double> integrations = numbers("weaponDefenseEnabled",0);
+    public List<String> integratedTreeNamespaces = new ArrayList<>(List.of("faust_epic_compat"));
     public Map<String, Rule> actions = new LinkedHashMap<>();
     public Map<String,Double> sweetFoods=numbers("minecraft:golden_apple",5,"minecraft:golden_carrot",3,"minecraft:glistering_melon_slice",2,"minecraft:cake",1,"minecraft:cookie",1,"minecraft:pumpkin_pie",3,"minecraft:honey_bottle",2,"minecraft:apple",1,"minecraft:melon_slice",0.5,"minecraft:sweet_berries",0.5,"minecraft:glow_berries",0.5);
     public List<Ability> abilities = new ArrayList<>();
@@ -152,6 +153,7 @@ public final class Balance {
         return map;
     }
     public void validate() {
+        if(integratedTreeNamespaces==null||integratedTreeNamespaces.stream().anyMatch(n->n==null||!n.matches("[a-z0-9_.-]+"))||new HashSet<>(integratedTreeNamespaces).size()!=integratedTreeNamespaces.size())throw new IllegalArgumentException("Invalid integrated tree namespaces");
         Balance defaults=new Balance();
         try {
             for(var field:Balance.class.getFields()) {
