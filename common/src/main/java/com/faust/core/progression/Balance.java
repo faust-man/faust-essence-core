@@ -20,7 +20,7 @@ public final class Balance {
     public Map<String, Double> client = numbers("hud",1,"hudX",0,"hudY",0,"hudWidth",81);
     public Map<String, Double> integrations = numbers("weaponDefenseEnabled",0);
     public Map<String, Rule> actions = new LinkedHashMap<>();
-    public Map<String,Double> sweetFoods=numbers("minecraft:cake",1,"minecraft:cookie",1,"minecraft:pumpkin_pie",3,"minecraft:honey_bottle",2,"minecraft:apple",1,"minecraft:melon_slice",0.5,"minecraft:sweet_berries",0.5,"minecraft:glow_berries",0.5);
+    public Map<String,Double> sweetFoods=numbers("minecraft:golden_apple",5,"minecraft:golden_carrot",3,"minecraft:glistering_melon_slice",2,"minecraft:cake",1,"minecraft:cookie",1,"minecraft:pumpkin_pie",3,"minecraft:honey_bottle",2,"minecraft:apple",1,"minecraft:melon_slice",0.5,"minecraft:sweet_berries",0.5,"minecraft:glow_berries",0.5);
     public List<Ability> abilities = new ArrayList<>();
     public List<SkillTrees.Tree> trees = new ArrayList<>();
     public List<StatBonus> statBonuses = new ArrayList<>();
@@ -117,6 +117,7 @@ public final class Balance {
         for(int i=0;i<abilities.size();i++)abilities.set(i,tuneAbility(abilities.get(i)));
         stat("dexterity_safe_fall",Skill.dexterity,"safe_fall_distance","add",1,5,1e9,false);
         statBonuses.getLast().requiresAbility="faustcore:soft_landing";
+        ability("cushioned_landing",Skill.dexterity,5,"run_metres",1500,"soft_landing","fall_damage_reduction",0.5);
         ability("soft_landing",Skill.dexterity,5,"run_metres",1500,"","stat_unlock",0);
         ability("enchanting_power",Skill.intelligence,5,"enchants",1,"","enchanting_power",1);
         ability("potion_duration",Skill.intelligence,5,"brewed",1,"","potion_duration",0.01);
@@ -362,8 +363,32 @@ public final class Balance {
         Path backup=directory.resolve("migration-practice-layout");Files.createDirectories(backup);if(!Files.exists(backup.resolve("trees.json")))Files.copy(file,backup.resolve("trees.json"));
         Files.writeString(file,JSON.toJson(trees)+"\n");Files.writeString(marker,"1\n");
     }
+    private static void migratePanelUpdate(Path directory) throws IOException {
+        Path marker=directory.resolve(".panel-update-format");if(Files.exists(marker))return;
+        Balance defaults=new Balance();
+        for(String group:List.of("abilities","sweetFoods","trees")){
+            Path file=directory.resolve(group+".json");if(!Files.exists(file))continue;
+            Path backup=directory.resolve("migration-panel-update");Files.createDirectories(backup);
+            if(!Files.exists(backup.resolve(file.getFileName())))Files.copy(file,backup.resolve(file.getFileName()));
+            var json=com.google.gson.JsonParser.parseString(Files.readString(file));
+            if(group.equals("abilities")){
+                var list=json.getAsJsonArray();if(java.util.stream.StreamSupport.stream(list.spliterator(),false).noneMatch(e->e.getAsJsonObject().get("id").getAsString().equals("faustcore:cushioned_landing")))list.add(JSON.toJsonTree(defaults.abilities.stream().filter(a->a.id().equals("faustcore:cushioned_landing")).findFirst().orElseThrow()));
+            }else if(group.equals("sweetFoods")){
+                for(String id:List.of("minecraft:golden_apple","minecraft:golden_carrot","minecraft:glistering_melon_slice"))if(!json.getAsJsonObject().has(id))json.getAsJsonObject().addProperty(id,defaults.sweetFoods.get(id));
+            }else{
+                for(var element:json.getAsJsonArray()){
+                    var tree=element.getAsJsonObject();if(!tree.get("skill").getAsString().equals("dexterity"))continue;
+                    var nodes=tree.getAsJsonArray("nodes");boolean exists=false;double x=-52,y=0;
+                    for(var n:nodes){var node=n.getAsJsonObject();String id=node.get("ability").getAsString();if(id.equals("faustcore:cushioned_landing"))exists=true;if(id.equals("faustcore:soft_landing")){x=node.get("x").getAsDouble();y=node.get("y").getAsDouble();}}
+                    if(!exists)nodes.add(JSON.toJsonTree(new SkillTrees.Node("faustcore:cushioned_landing",x,y+40,"minecraft:feather")));
+                }
+            }
+            Files.writeString(file,JSON.toJson(json)+"\n");
+        }
+        Files.writeString(marker,"1\n");
+    }
     public static Balance load(Path directory) throws IOException {
-        Files.createDirectories(directory); migrate(directory); migrateExhaustion(directory); migrateGrowth(directory); migrateStats(directory); migrateV12(directory); migrateEnvironment(directory); migrateV13(directory); migrateV14(directory); migrateV141(directory); migrateFatigueGrace(directory); migrateCakeFood(directory); migratePractice(directory); migratePracticeLayout(directory);
+        Files.createDirectories(directory); migrate(directory); migrateExhaustion(directory); migrateGrowth(directory); migrateStats(directory); migrateV12(directory); migrateEnvironment(directory); migrateV13(directory); migrateV14(directory); migrateV141(directory); migrateFatigueGrace(directory); migrateCakeFood(directory); migratePractice(directory); migratePracticeLayout(directory); migratePanelUpdate(directory);
         Path windFile=directory.resolve("stamina.json");if(Files.exists(windFile)){var data=JSON.fromJson(Files.readString(windFile),com.google.gson.JsonObject.class);if(!data.has("secondWindMultiplier")){data.addProperty("secondWindMultiplier",1.5);Files.writeString(windFile,JSON.toJson(data)+"\n");}}
         Path skillsFile=directory.resolve("skills.json");if(Files.exists(skillsFile)){var data=JSON.fromJson(Files.readString(skillsFile),com.google.gson.JsonObject.class);if(!data.has("buildingReachMaximum")){data.addProperty("buildingReachMaximum",3);Files.writeString(skillsFile,JSON.toJson(data)+"\n");}}
         Balance result=new Balance();

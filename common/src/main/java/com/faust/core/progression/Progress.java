@@ -118,10 +118,13 @@ public final class Progress {
     }
     public void recover(double dt,boolean sleep,boolean campfire,boolean delayReady,boolean shielding,Balance b){recover(dt,sleep,campfire,delayReady,shielding,false,false,b);}
     public void recover(double dt,boolean sleep,boolean campfire,boolean delayReady,boolean shielding,boolean flying,boolean airVisible,Balance b){
+        recover(dt,sleep,campfire,delayReady,shielding,flying,airVisible,false,b);
+    }
+    public void recover(double dt,boolean sleep,boolean campfire,boolean delayReady,boolean shielding,boolean flying,boolean airVisible,boolean fastSwimming,Balance b){
         double scale=airVisible?b.stamina.get("airRecoveryMultiplier"):1;
-        if(!shielding&&!flying)secondWind(dt*scale,b);
+        if(!shielding&&!flying&&!fastSwimming)secondWind(dt*scale,b);
         // Fatigue relief still uses real elapsed time, only stamina regeneration is slowed.
-        rest(dt,sleep,campfire,delayReady&&!shielding&&!flying,scale,b);
+        rest(dt,sleep,campfire,delayReady&&!shielding&&!flying&&!fastSwimming,scale,b);
     }
     public double exhaustionThreshold(Balance b){return Math.min(maxStamina(b),b.stamina.get("exhaustionRecovery")*Math.max(0,1-effect("exhaustion_threshold_reduction",b)));}
     public boolean empty(Balance b){return stamina<=1e-9||stamina<b.stamina.get("exhaustionTrigger");}
@@ -136,7 +139,7 @@ public final class Progress {
 
     public void secondWind(double dt,Balance b){if(b.stamina.get("enabled")>0&&effect("second_wind",b)>0){stamina=Math.min(maxStamina(b),stamina+dt*b.stamina.get("runCost")*b.stamina.get("secondWindMultiplier"));updateExhaustion(b);}}
     public void sweetFood(String item,Balance b){sweetFood(item,1,b);}
-    public void sweetFood(String item,double count,Balance b){if(Double.isFinite(count)&&count>0&&b.stamina.get("enabled")>0&&b.fatigue.get("enabled")>0&&fatigue>0)fatigue=Math.max(0,fatigue-b.sweetFoods.getOrDefault(item,0.0)*count);}
+    public void sweetFood(String item,double count,Balance b){if(Double.isFinite(count)&&count>0&&b.stamina.get("enabled")>0&&b.fatigue.get("enabled")>0&&fatigue>0)fatigue=item.equals("minecraft:enchanted_golden_apple")?0:Math.max(0,fatigue-b.sweetFoods.getOrDefault(item,0.0)*count);}
     public void updateExhaustion(Balance b) {
         if(b.stamina.get("exhaustionLock")==0){exhausted=false;return;}
         if(empty(b))exhausted=true;

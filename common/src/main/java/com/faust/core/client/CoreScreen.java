@@ -13,6 +13,10 @@ import java.util.*;
 public final class CoreScreen extends Screen {
     private static final ResourceLocation PANEL=ResourceLocation.fromNamespaceAndPath("faustcore","textures/gui/container/skill_page_1.png");
     private static final int WIDTH=176,HEIGHT=166,VIEW_X=8,VIEW_Y=45;
+    private String treeGroup="faustcore";
+    private int skillPage;
+    private List<String> groups(){return com.faust.core.progression.TreeGroups.groups(CoreClient.balance);}
+    private List<Skill> skills(){return com.faust.core.progression.TreeGroups.skills(CoreClient.balance,treeGroup).stream().skip(skillPage*6L).limit(6).toList();}
     private Skill selected;
     private TreeView view;
     private Balance viewed;
@@ -31,9 +35,9 @@ public final class CoreScreen extends Screen {
     private static Component abilityName(Balance.Ability ability){return Component.translatableWithFallback("core.ability."+ability.id().split(":")[1],ability.id());}
     private static Balance.Ability ability(Balance b,String id){return b.abilities.stream().filter(a->a.id().equals(id)).findFirst().orElseThrow();}
     private static ItemStack icon(String id){var item=BuiltInRegistries.ITEM.get(ResourceLocation.parse(id));return new ItemStack(item==Items.AIR?Items.BARRIER:item);}
-    private void command(String text){if(minecraft!=null&&minecraft.getConnection()!=null)minecraft.getConnection().sendCommand(text);}
+    private void command(String text){if(minecraft!=null&&minecraft.getConnection()!=null)minecraft.getConnection().sendCommand(text.replaceFirst("core ","core panel "));}
     private boolean insideView(double mx,double my){return PanelTabs.inside(mx,my,x()+VIEW_X,y()+VIEW_Y,viewWidth(),viewHeight());}
-    private List<SkillTrees.Node> nodes(){var b=CoreClient.balance;var nodes=SkillTrees.nodes(b,selected);if(view==null||viewed!=b){view=new TreeView(nodes,viewWidth(),viewHeight());viewed=b;}return nodes;}
+    private List<SkillTrees.Node> nodes(){var b=CoreClient.balance;var nodes=SkillTrees.nodes(b,selected).stream().filter(n->n.ability().startsWith(treeGroup+":")).toList();if(view==null||viewed!=b){view=new TreeView(nodes,viewWidth(),viewHeight());viewed=b;}return nodes;}
     private SkillTrees.Node hovered(double mx,double my){if(!insideView(mx,my))return null;var nodes=nodes();for(int i=nodes.size()-1;i>=0;i--)if(view.hit(nodes.get(i),mx-x()-VIEW_X,my-y()-VIEW_Y))return nodes.get(i);return null;}
     @Override public void renderBackground(GuiGraphics g,int mx,int my,float delta){}
     @Override public void render(GuiGraphics g,int mx,int my,float delta){
@@ -44,7 +48,7 @@ public final class CoreScreen extends Screen {
         else if(selected==null){
             center(g,minecraft.player==null?title:minecraft.player.getName(),x+panelWidth()/2,y+7,0x505050);
             center(g,Component.translatable("core.levels",CoreClient.experience),x+panelWidth()/2,y+19,0x505050);
-            int i=0;for(Skill skill:Skill.values()){
+            int i=0;for(Skill skill:skills()){
                 if(i>=6)break;int cx=x+8+(i%2)*82,cy=y+37+(i/2)*33;i++;
                 g.fill(cx,cy,cx+78,cy+29,0xFF222222);g.fill(cx+1,cy+1,cx+77,cy+28,0xFF3C3C3C);
                 String item=switch(skill.name()){case "strength"->"iron_sword";case "constitution"->"golden_apple";case "dexterity"->"bow";case "defense"->"shield";case "intelligence"->"enchanted_book";default->"iron_pickaxe";};
@@ -79,6 +83,12 @@ public final class CoreScreen extends Screen {
             boolean full=p.cap(selected,b)>=b.progression.get("maximumCap");long cost=p.price(selected,b);
             box(g,x+55,y+panelHeight()-19,113,14,full?Component.translatable("core.cap.maximum"):Component.translatable("core.cap.price",cost),!full&&CoreClient.experience>=cost);
         }
+        if(!expanded&&b!=null&&groups().size()>1){int index=0;for(String group:groups()){
+            int bx=x+panelWidth()+2,by=y+index++*24;
+            g.fill(bx,by,bx+24,by+23,group.equals(treeGroup)?0xFF83C24A:0xFF707070);
+            g.renderItem(new ItemStack(Items.BOOK),bx+4,by+3);
+            if(PanelTabs.inside(mx,my,bx,by,24,23))tooltip=List.of(Component.translatableWithFallback("core.tree_group."+group,group));
+        }}
         if(selected!=null)box(g,x+panelWidth()-19,y+5,14,14,Component.literal(expanded?"-":"+"),true);
         if(!expanded)PanelTabs.draw(g,x,y,true,-1000,-1000);
         if(tooltip!=null)PanelTabs.tooltipWithin(g,tooltip,mx,my,x,y,panelWidth(),panelHeight());
@@ -117,7 +127,7 @@ public final class CoreScreen extends Screen {
             }
         }else {
             if(a.effect().equals("second_wind"))lines.add(Component.translatable("core.second_wind.rate",number(b.stamina.get("secondWindMultiplier")*100),number(b.stamina.get("runCost")*b.stamina.get("secondWindMultiplier"))));
-            else lines.add(Component.translatable("core.effect."+a.effect(),number(a.value()*(Set.of("damage","speed","breaking","shield_durability","shield_recovery","exhaustion_threshold_reduction").contains(a.effect())?100:1))));
+            else lines.add(Component.translatable("core.effect."+(a.id().equals("faustcore:bow_efficiency")?"bow_cost_reduction_first":a.effect()),number(a.value()*(Set.of("damage","speed","breaking","shield_durability","shield_recovery","fall_damage_reduction","exhaustion_threshold_reduction").contains(a.effect())?100:1))));
             if(a.effect().equals("exhaustion_threshold_reduction"))lines.add(Component.translatable("core.recovery_threshold",number(b.stamina.get("exhaustionRecovery")*(1-a.value()))));
         }
         return lines;
@@ -126,9 +136,12 @@ public final class CoreScreen extends Screen {
     private void center(GuiGraphics g,Component text,int x,int y,int color){g.drawString(font,text,x-font.width(text)/2,y,color,false);}
     private void box(GuiGraphics g,int x,int y,int w,int h,Component text,boolean active){g.fill(x,y,x+w,y+h,0xFF707070);g.fill(x+1,y+1,x+w-1,y+h-1,active?0xFF373737:0xFF555555);String label=text.getString();if(font.width(label)>w-4)label=font.plainSubstrByWidth(label,w-13)+"...";center(g,Component.literal(label),x+w/2,y+3,active?0xFFFFFF:0xAAAAAA);}
     @Override public boolean mouseClicked(double mx,double my,int button){
+        if(!expanded&&button==0&&CoreClient.balance!=null&&groups().size()>1){int index=0;for(String group:groups()){
+            if(PanelTabs.inside(mx,my,x()+panelWidth()+2,y()+index++*24,24,23)){treeGroup=group;skillPage=0;selected=null;view=null;return true;}
+        }}
         if(!expanded&&PanelTabs.click(mx,my,button,x(),y(),true))return true;
         if(button!=0||CoreClient.progress==null||CoreClient.balance==null)return super.mouseClicked(mx,my,button);
-        if(selected==null){int i=0;for(Skill skill:Skill.values()){if(i>=6)break;int cx=x()+8+(i%2)*82,cy=y()+37+(i/2)*33;i++;if(PanelTabs.inside(mx,my,cx,cy,78,29)){selected=skill;view=null;return true;}}}
+        if(selected==null){int i=0;for(Skill skill:skills()){if(i>=6)break;int cx=x()+8+(i%2)*82,cy=y()+37+(i/2)*33;i++;if(PanelTabs.inside(mx,my,cx,cy,78,29)){selected=skill;view=null;return true;}}}
         else{
             if(PanelTabs.inside(mx,my,x()+panelWidth()-19,y()+5,14,14)){expanded=!expanded;view=null;dragging=false;return true;}
             if(PanelTabs.inside(mx,my,x()+8,y()+panelHeight()-19,43,14)){selected=null;expanded=false;view=null;return true;}
@@ -140,7 +153,7 @@ public final class CoreScreen extends Screen {
     }
     @Override public boolean mouseDragged(double mx,double my,int button,double dx,double dy){if(dragging&&button==0&&selected!=null&&view!=null){view.pan(dx,dy);return true;}return super.mouseDragged(mx,my,button,dx,dy);}
     @Override public boolean mouseReleased(double mx,double my,int button){if(button==0)dragging=false;return super.mouseReleased(mx,my,button);}
-    @Override public boolean mouseScrolled(double mx,double my,double horizontal,double vertical){if(selected!=null&&CoreClient.balance!=null&&insideView(mx,my)){nodes();view.zoomAt(Math.pow(1.15,vertical),mx-x()-VIEW_X,my-y()-VIEW_Y);return true;}return super.mouseScrolled(mx,my,horizontal,vertical);}
+    @Override public boolean mouseScrolled(double mx,double my,double horizontal,double vertical){if(selected==null&&CoreClient.balance!=null){int pages=(com.faust.core.progression.TreeGroups.skills(CoreClient.balance,treeGroup).size()+5)/6;skillPage=Math.max(0,Math.min(pages-1,skillPage+(vertical<0?1:-1)));return true;}if(selected!=null&&CoreClient.balance!=null&&insideView(mx,my)){nodes();view.zoomAt(Math.pow(1.15,vertical),mx-x()-VIEW_X,my-y()-VIEW_Y);return true;}return super.mouseScrolled(mx,my,horizontal,vertical);}
     @Override public boolean keyPressed(int key,int scan,int modifiers){if(CoreClient.OPEN.matches(key,scan)){onClose();return true;}return super.keyPressed(key,scan,modifiers);}
     @Override public boolean isPauseScreen(){return false;}
 }

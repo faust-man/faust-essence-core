@@ -21,7 +21,7 @@ public final class CommandTest {
         for(var rule:new Balance().statBonuses)if(!rule.attribute.startsWith("faustcore:")&&!net.minecraft.core.registries.BuiltInRegistries.ATTRIBUTE.containsKey(net.minecraft.resources.ResourceLocation.parse(rule.attribute)))throw new AssertionError("Unknown 1.21.1 attribute "+rule.attribute);
         var dispatcher=new CommandDispatcher<CommandSourceStack>();CoreCommands.register(dispatcher);
         var admin=new Source(2);var player=new Source(0);int checks=0;
-        for(String command:new String[]{"core help","core toggle faustcore:second_wind","core max Steve","core max @s","core status","core status @a","core cap strength","core cap buy defense","core cap set @a strength 20","core skill set @s strength 8","core skill add @a constitution -2","core skill xp @s building 1.5","core ability grant @s faustcore:shield_care","core ability revoke @s faustcore:shield_care","core stamina fill @s","core stamina set @a 10","core fatigue clear @a","core fatigue set @s 4","core fatigue set @s -5","core reset @s","core unlock faustcore:controlled_strike","core path example:path","core reload"}) {
+        for(String command:new String[]{"core help","core toggle faustcore:second_wind","core max Steve","core max @s","core max @a","core panel toggle faustcore:second_wind","core panel cap strength","core status","core status @a","core cap strength","core cap buy defense","core cap set @a strength 20","core skill set @s strength 8","core skill add @a constitution -2","core skill xp @s building 1.5","core ability grant @s faustcore:shield_care","core ability revoke @s faustcore:shield_care","core stamina fill @s","core stamina set @a 10","core fatigue clear @a","core fatigue set @s 4","core fatigue set @s -5","core reset @s","core unlock faustcore:controlled_strike","core path example:path","core reload"}) {
             var parsed=dispatcher.parse(command,admin);
             if(parsed.getReader().canRead()||!parsed.getExceptions().isEmpty())throw new AssertionError("Cannot parse: "+command+" "+parsed.getExceptions());checks++;
         }
@@ -35,7 +35,7 @@ public final class CommandTest {
         if(root.getChild("cap").getChild("set").canUse(player))throw new AssertionError("Normal player may set limits");checks++;
         if(!root.getChild("cap").getChild("buy").canUse(player))throw new AssertionError("Normal player cannot buy limit");checks++;
         if(!root.getChild("toggle").canUse(player))throw new AssertionError("Normal player cannot toggle own skill");checks++;
-        if(!dispatcher.parse("core max @a",admin).getReader().canRead())throw new AssertionError("Max must target one player");checks++;
+        if(dispatcher.parse("core max @a",admin).getReader().canRead())throw new AssertionError("Max supports all players");checks++;
         var completion=dispatcher.getCompletionSuggestions(dispatcher.parse("core cap buy str",player)).get();
         if(completion.getList().stream().noneMatch(s->s.getText().equals("strength")))throw new AssertionError("Missing skill completion");checks++;
         System.out.println("Core command checks passed: "+checks);

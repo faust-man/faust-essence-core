@@ -21,6 +21,11 @@ public abstract class LivingEntityMixin {
     private void core$blockCost(DamageSource source,CallbackInfoReturnable<Boolean> ci){if(ci.getReturnValue()&&(Object)this instanceof ServerPlayer p&&CombatContext.DAMAGE.get().peek()==source&&!CoreRuntime.shieldPayment(p))ci.setReturnValue(false);}
     @Inject(method="startUsingItem",at=@At("HEAD"),cancellable=true)
     private void core$shieldStance(net.minecraft.world.InteractionHand hand,org.spongepowered.asm.mixin.injection.callback.CallbackInfo ci){if((Object)this instanceof ServerPlayer p&&p.getItemInHand(hand).is(net.minecraft.world.item.Items.SHIELD)&&!CoreRuntime.canAct(p))ci.cancel();}
+    @ModifyVariable(method="hurt",at=@At("HEAD"),argsOnly=true)
+    private float core$fallDamage(float amount,DamageSource source,float originalAmount){
+        if((Object)this instanceof ServerPlayer p&&source.is(net.minecraft.tags.DamageTypeTags.IS_FALL))return amount*(float)Math.max(0,1-CoreRuntime.data(p).effect("fall_damage_reduction",CoreRuntime.balance));
+        return amount;
+    }
     @Inject(method="hurt",at=@At("HEAD"))
     private void core$before(DamageSource source,float amount,CallbackInfoReturnable<Boolean> ci) {faustcore$health.push(((LivingEntity)(Object)this).getHealth());CombatContext.DAMAGE.get().push(source);}
     @Inject(method="hurt",at=@At("RETURN"))

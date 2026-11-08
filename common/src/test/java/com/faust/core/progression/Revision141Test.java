@@ -1,6 +1,6 @@
 package com.faust.core.progression;
 
-import com.faust.core.client.StaminaDots;
+import com.faust.core.client.StaminaSprites;
 import java.nio.file.*;
 import java.util.*;
 
@@ -19,7 +19,7 @@ public final class Revision141Test {
         p.sleptNight(b);near(p.fatigue,-5,"sleep reserve not halved");p.fatigue=1;p.rest(1,true,false,false,b);near(p.fatigue,0.8,"sleep relief speed unchanged");
         p=new Progress();p.track(Skill.strength).level=5;near(p.multiplier(Skill.strength,b),0.33,"growth at potential is thirty three percent");p.track(Skill.strength).level=100;near(p.multiplier(Skill.strength,b),0.33,"growth stays thirty three percent beyond potential");p.track(Skill.strength).level=2;near(p.multiplier(Skill.strength,b),2,"below potential acceleration preserved");
         for(var rule:b.statBonuses)check(!(rule.skill==Skill.building&&rule.attribute.equals("minecraft:player.entity_interaction_range")),"building cannot extend entity reach by default");
-        check(StaminaDots.redPixel(0,3,3)==0xFFFF4040,"filled exhausted segment explicitly red");check(StaminaDots.redPixel(1,3,0)==0xFFFF4040,"empty exhausted outline explicitly red");check(StaminaDots.redPixel(1,3,3)==0,"empty exhausted center stays transparent");check(StaminaDots.redPixel(0,0,0)==0,"circle corners transparent");
+        check(StaminaSprites.color(0,true)==0xFFFF4040,"filled exhausted segment explicitly red");check(StaminaSprites.color(1,true)==0xFFFF4040,"empty exhausted outline explicitly red");
         Path dir=Files.createTempDirectory("core-141");try{
             Balance.load(dir);Files.delete(dir.resolve(".format-1.4.1"));
             var st=Balance.JSON.toJsonTree(b.stamina).getAsJsonObject();st.remove("exhaustionTrigger");st.addProperty("exhaustionLock",0);Files.writeString(dir.resolve("stamina.json"),Balance.JSON.toJson(st));

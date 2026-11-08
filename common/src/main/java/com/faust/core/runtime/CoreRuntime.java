@@ -175,7 +175,7 @@ public final class CoreRuntime {
         p.environmentalFatigue(0.05,s.soulCampfire,p.soulFireBurn&&player.isOnFire(),b,worldAge(player));
         boolean shielding=player.isUsingItem()&&player.getUseItem().is(Items.SHIELD);
         boolean airVisible=com.faust.core.progression.Breathing.visible(player.isEyeInFluid(net.minecraft.tags.FluidTags.WATER),player.getAirSupply(),player.getMaxAirSupply())||(s.airVisible&&player.tickCount-s.inputTick<=20);
-        p.recover(0.05,player.isSleeping(),s.campfire&&player.tickCount-s.movedTick>5,player.tickCount-s.lastSpent>=b.stamina.get("delaySeconds")*20,shielding,player.isFallFlying(),airVisible,b);
+        p.recover(0.05,player.isSleeping(),s.campfire&&player.tickCount-s.movedTick>5,player.tickCount-s.lastSpent>=b.stamina.get("delaySeconds")*20,shielding,player.isFallFlying(),airVisible,player.isSwimming()&&player.isSprinting(),b);
         if(p.actionsBlocked(b)&&shielding)player.stopUsingItem();
         if(b.stamina.get("enabled")>0&&p.actionsBlocked(b))player.setSprinting(false);
         if(b.stamina.get("enabled")>0&&p.actionsBlocked(b)&&upstream)player.setSprinting(false);

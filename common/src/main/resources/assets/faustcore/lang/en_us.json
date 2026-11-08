@@ -58,7 +58,7 @@
   "core.insufficient_levels": "Not enough vanilla experience levels.",
   "core.unknown_skill": "Unknown skill. Use Tab for suggestions.",
   "core.unknown_ability": "Unknown ability. Use Tab for suggestions.",
-  "core.command.admin_help": "Admin: /core status <players>; /core skill set|add|xp <players> <skill> <value>; /core cap set <players> <skill> <0..20>; /core ability grant|revoke <players> <ability>; /core stamina fill|set <players> [amount]; /core fatigue clear|set <players> [amount]; /core reset <players>; /core reload., /core max <player>",
+  "core.command.admin_help": "Admin: /core status <players>; /core skill set|add|xp <players> <skill> <value>; /core cap set <players> <skill> <0..20>; /core ability grant|revoke <players> <ability>; /core stamina fill|set <players> [amount]; /core fatigue clear|set <players> [amount]; /core reset <players>; /core reload., /core max <players>",
   "core.command.updated": "Updated %s player(s).",
   "core.short.strength": "STR",
   "core.short.constitution": "CON",
@@ -162,5 +162,8 @@
   "core.ability.enabled": "Skill enabled",
   "core.ability.disabled": "Skill disabled",
   "core.ability.click_disable": "Click to disable",
-  "core.ability.click_enable": "Click to enable"
+  "core.ability.click_enable": "Click to enable",
+  "core.ability.cushioned_landing": "Cushioned landing",
+  "core.effect.fall_damage_reduction": "Fall damage: −%s%%.",
+  "core.effect.bow_cost_reduction_first": "Bow shot cost: −%s stamina."
 }

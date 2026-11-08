@@ -29,9 +29,9 @@ public final class CoreCommands {
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
         var root=literal("core").executes(CoreCommands::help);
         root.then(literal("help").executes(CoreCommands::help));
-        root.then(literal("max").requires(source->source.hasPermission(2)).then(argument("player",EntityArgument.player()).executes(ctx->{
-            var player=EntityArgument.getPlayer(ctx,"player");CoreRuntime.data(player).max(CoreRuntime.balance);CoreRuntime.refresh(player);
-            ctx.getSource().sendSuccess(()->Component.translatable("core.command.updated",1),true);return 1;
+        root.then(literal("max").requires(source->source.hasPermission(2)).then(argument("player",EntityArgument.players()).executes(ctx->{
+            var targets=EntityArgument.getPlayers(ctx,"player");for(var player:targets){CoreRuntime.data(player).max(CoreRuntime.balance);CoreRuntime.refresh(player);}
+            ctx.getSource().sendSuccess(()->Component.translatable("core.command.updated",targets.size()),true);return targets.size();
         })));
         root.then(literal("status").executes(ctx->{ctx.getSource().sendSuccess(()->CommandSupport.status(ctx.getSource().getPlayer()),false);return 1;})
             .then(argument("targets",EntityArgument.players()).requires(s->s.hasPermission(2)).executes(ctx->{var targets=EntityArgument.getPlayers(ctx,"targets");for(var p:targets)ctx.getSource().sendSuccess(()->CommandSupport.status(p),false);return targets.size();})));
@@ -62,6 +62,7 @@ public final class CoreCommands {
         root.then(literal("reset").requires(s->s.hasPermission(2)).then(argument("targets",EntityArgument.players()).executes(ctx->modify(ctx,p->((PlayerData)p).coreData(new Progress())))));
         root.then(literal("path").then(argument("id",ResourceLocationArgument.id()).suggests((ctx,b)->SharedSuggestionProvider.suggest(CoreApi.paths(),b)).executes(ctx->reply(ctx,"core.action.ok",CoreApi.choosePath(ctx.getSource().getPlayerOrException(),ResourceLocationArgument.getId(ctx,"id").toString())))));
         root.then(literal("reload").requires(s->s.hasPermission(2)).executes(ctx->{try{CoreRuntime.reload(ctx.getSource().getServer());return reply(ctx,"core.reload.ok",true);}catch(RuntimeException e){ctx.getSource().sendFailure(Component.literal(e.getMessage()));return 0;}}));
+        root.then(literal("panel").redirect(root.build(),ctx->ctx.getSource().withSuppressedOutput()));
         dispatcher.register(root);
     }
     private static int help(CommandContext<CommandSourceStack> ctx) {
