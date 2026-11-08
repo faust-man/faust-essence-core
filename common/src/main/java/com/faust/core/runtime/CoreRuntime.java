@@ -48,7 +48,7 @@ public final class CoreRuntime {
                 double fraction=Math.min(1,entry.getValue().xp/p.needed(entry.getKey(),previous));
                 entry.getValue().xp=fraction*p.needed(entry.getKey(),balance);entry.getValue().threshold=p.needed(entry.getKey(),balance);
             }
-            p.fatigue=Math.min(p.fatigue,balance.fatigue.get("maximum"));p.stamina=Math.min(p.stamina,p.maxStamina(balance));p.revision++;
+            p.fatigue=Math.min(p.fatigue,p.maxFatigue(balance));p.stamina=Math.min(p.stamina,p.maxStamina(balance));p.revision++;
             attributes(player);sync(player);
         }
     }
@@ -72,6 +72,7 @@ public final class CoreRuntime {
     }
     public static void stat(ServerPlayer player,Stat<?> stat,int amount) {
         if(!active(player)||amount<=0)return;
+        if(foodStat(data(player),stat,amount,balance))return;
         Session s=session(player);
         if(stat.getType()==Stats.CUSTOM) {
             Object key=stat.getValue();
@@ -95,6 +96,10 @@ public final class CoreRuntime {
             double units=Math.min(amount,Math.max(0,balance.skills.get("blockMaximumPerMinute")-s.blocks));s.blocks+=units;
             grant(player,"place",units,units);
         }
+    }
+    static boolean foodStat(Progress progress,Stat<?> stat,int amount,Balance b){
+        if(amount<=0||stat.getType()!=Stats.CUSTOM||!stat.getValue().equals(Stats.EAT_CAKE_SLICE))return false;
+        progress.sweetFood("minecraft:cake",amount,b);return true;
     }
     private static long worldAge(ServerPlayer player){return player.serverLevel().getServer().overworld().getGameTime();}
     public static boolean attack(ServerPlayer player,boolean air) {

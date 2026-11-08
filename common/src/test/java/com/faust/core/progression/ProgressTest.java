@@ -10,7 +10,7 @@ public final class ProgressTest {
     private static void near(double actual,double expected,String message){check(Math.abs(actual-expected)<1e-7,message+": "+actual+" != "+expected);}
     private static void rejects(Runnable task,String message){try{task.run();}catch(IllegalArgumentException e){checks++;return;}throw new AssertionError(message);}
     public static void main(String[] args) throws Exception {
-        CommandTest.run();Revision14Test.run();Revision141Test.run();TreeTest.run();FatigueGraceTest.run();
+        CommandTest.run();Revision14Test.run();Revision141Test.run();TreeTest.run();FatigueGraceTest.run();FatigueCapacityTest.run();com.faust.core.runtime.CakeFoodTest.run();
         Balance b=new Balance();b.validate();
         Progress lockedStats=new Progress();lockedStats.track(Skill.constitution).level=20;near(SkillEffects.health(lockedStats,b),0,"health locked before learned stat");near(lockedStats.baseStamina(b),20,"stamina capacity locked before learned stat");lockedStats.unlocked.add("faustcore:training_constitution_health");near(SkillEffects.health(lockedStats,b),20,"health node unlocks only health");near(lockedStats.baseStamina(b),20,"health node does not unlock stamina");lockedStats.unlocked.add("faustcore:training_constitution_stamina");near(lockedStats.baseStamina(b),40,"separate stamina node");
         check(!SkillEffects.damageCounts(1.99,b),"less than a heart ignored");check(SkillEffects.damageCounts(2,b),"one actual heart counts");

@@ -20,7 +20,7 @@ public final class Balance {
     public Map<String, Double> client = numbers("hud",1,"hudX",0,"hudY",0,"hudWidth",81);
     public Map<String, Double> integrations = numbers("weaponDefenseEnabled",0);
     public Map<String, Rule> actions = new LinkedHashMap<>();
-    public Map<String,Double> sweetFoods=numbers("minecraft:cookie",1,"minecraft:pumpkin_pie",3,"minecraft:honey_bottle",2,"minecraft:apple",1,"minecraft:melon_slice",0.5,"minecraft:sweet_berries",0.5,"minecraft:glow_berries",0.5);
+    public Map<String,Double> sweetFoods=numbers("minecraft:cake",1,"minecraft:cookie",1,"minecraft:pumpkin_pie",3,"minecraft:honey_bottle",2,"minecraft:apple",1,"minecraft:melon_slice",0.5,"minecraft:sweet_berries",0.5,"minecraft:glow_berries",0.5);
     public List<Ability> abilities = new ArrayList<>();
     public List<SkillTrees.Tree> trees = new ArrayList<>();
     public List<StatBonus> statBonuses = new ArrayList<>();
@@ -292,8 +292,14 @@ public final class Balance {
         Path backup=directory.resolve("migration-v1.5.1");Files.createDirectories(backup);if(!Files.exists(backup.resolve("fatigue.json")))Files.copy(file,backup.resolve("fatigue.json"));
         data.addProperty("worldGraceSeconds",300);Files.writeString(file,JSON.toJson(data)+"\n");
     }
+    private static void migrateCakeFood(Path directory) throws IOException {
+        Path file=directory.resolve("sweetFoods.json");if(Files.exists(directory.resolve(".cake-format-1.5.2"))||!Files.exists(file))return;
+        var data=JSON.fromJson(Files.readString(file),com.google.gson.JsonObject.class);if(data.has("minecraft:cake"))return;
+        Path backup=directory.resolve("migration-v1.5.2");Files.createDirectories(backup);if(!Files.exists(backup.resolve("sweetFoods.json")))Files.copy(file,backup.resolve("sweetFoods.json"));
+        data.addProperty("minecraft:cake",1);Files.writeString(file,JSON.toJson(data)+"\n");
+    }
     public static Balance load(Path directory) throws IOException {
-        Files.createDirectories(directory); migrate(directory); migrateExhaustion(directory); migrateGrowth(directory); migrateStats(directory); migrateV12(directory); migrateEnvironment(directory); migrateV13(directory); migrateV14(directory); migrateV141(directory); migrateFatigueGrace(directory);
+        Files.createDirectories(directory); migrate(directory); migrateExhaustion(directory); migrateGrowth(directory); migrateStats(directory); migrateV12(directory); migrateEnvironment(directory); migrateV13(directory); migrateV14(directory); migrateV141(directory); migrateFatigueGrace(directory); migrateCakeFood(directory);
         Path windFile=directory.resolve("stamina.json");if(Files.exists(windFile)){var data=JSON.fromJson(Files.readString(windFile),com.google.gson.JsonObject.class);if(!data.has("secondWindMultiplier")){data.addProperty("secondWindMultiplier",1.5);Files.writeString(windFile,JSON.toJson(data)+"\n");}}
         Path skillsFile=directory.resolve("skills.json");if(Files.exists(skillsFile)){var data=JSON.fromJson(Files.readString(skillsFile),com.google.gson.JsonObject.class);if(!data.has("buildingReachMaximum")){data.addProperty("buildingReachMaximum",3);Files.writeString(skillsFile,JSON.toJson(data)+"\n");}}
         Balance result=new Balance();
@@ -307,7 +313,7 @@ public final class Balance {
         } catch(ReflectiveOperationException|RuntimeException e) { throw new IOException("Invalid core configuration",e); }
         if(!Files.exists(directory.resolve("trees.json"))){result.trees=SkillTrees.defaults(result.abilities);Files.writeString(directory.resolve("trees.json"),JSON.toJson(result.trees)+"\n");}
         try {result.validate();} catch(RuntimeException e) {throw new IOException("Invalid core balance",e);}
-        Files.writeString(directory.resolve(".balance-format"),"1.2\n");Files.writeString(directory.resolve(".format-1.3"),"1\n");Files.writeString(directory.resolve(".format-1.4"),"1\n");Files.writeString(directory.resolve(".format-1.4.1"),"1\n");
+        Files.writeString(directory.resolve(".balance-format"),"1.2\n");Files.writeString(directory.resolve(".format-1.3"),"1\n");Files.writeString(directory.resolve(".format-1.4"),"1\n");Files.writeString(directory.resolve(".format-1.4.1"),"1\n");Files.writeString(directory.resolve(".cake-format-1.5.2"),"1\n");
         return result;
     }
     public static List<String> groups() {
