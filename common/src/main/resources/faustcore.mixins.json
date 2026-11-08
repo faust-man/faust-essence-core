@@ -11,7 +11,10 @@
     "SwingMixin",
     "BowItemMixin",
     "CrossbowItemMixin",
-    "SleepMixin"
+    "SleepMixin",
+    "ThrownItemMixin",
+    "EnchantmentMenuMixin",
+    "BrewingStandMixin"
   ],
   "client": [
     "ClientMixin",

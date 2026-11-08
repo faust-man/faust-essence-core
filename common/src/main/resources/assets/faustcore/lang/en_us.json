@@ -76,8 +76,8 @@
   "core.description.constitution": "Train by losing at least %s HP per hit, sprinting and swimming.",
   "core.description.dexterity": "Train by sprinting on land and firing bows.",
   "core.description.defense": "Train by sprinting in armor and blocking attacks with a shield.",
-  "core.description.intelligence": "Train by reading, enchanting, trading and discovering structures.",
-  "core.description.building": "Train by placing blocks and crafting items.",
+  "core.description.intelligence": "Train by reading, enchanting, trading, crafting and brewing.",
+  "core.description.building": "Train by placing blocks.",
   "core.effect.damage": "Melee damage: +%s%%",
   "core.effect.speed": "Sprint speed: +%s%%",
   "core.effect.breaking": "Tool speed: +%s%%",
@@ -151,5 +151,12 @@
   "core.tree.conditions_all": "Complete all conditions (%s)",
   "core.tree.conditions_count": "Complete %s of %s conditions",
   "core.tree.condition": "%s / %s: %s",
-  "core.tree.parents_count": "Required %s: %s"
+  "core.tree.parents_count": "Required %s: %s",
+  "core.tree.one": "Required skill: %s",
+  "core.counter.brewed": "potions brewed",
+  "core.ability.soft_landing": "Soft landing",
+  "core.ability.enchanting_power": "Enchanting power",
+  "core.ability.potion_duration": "Lasting potions",
+  "core.effect.enchanting_power": "Table power: +1/+3/+5/+7 shelves at intelligence 5/10/15/20 (15 total maximum).",
+  "core.effect.potion_duration": "Brewed potion duration: +1%% per intelligence level."
 }

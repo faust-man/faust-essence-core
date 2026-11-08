@@ -67,7 +67,7 @@ public final class CoreScreen extends Screen {
                     for(var r:a.skillRequirements())lines.add(Component.translatable("core.tree.level",skillName(r.skill()),r.level()));
                     if(a.actionConditions().size()>1)lines.add(Component.translatable(a.conditionMode().equals("all")?"core.tree.conditions_all":"core.tree.conditions_count",a.requiredConditions(),a.actionConditions().size()));
                     for(var c:a.actionConditions())lines.add(Component.translatable("core.tree.condition",number(p.conditionCount(c)),number(c.amount()),Component.translatable("core.counter."+c.counter())));
-                    if(!a.all().isEmpty())lines.add(dependencyText("core.tree.all",a.all(),b));
+                    if(!a.all().isEmpty())lines.add(dependencyText(a.all().size()==1?"core.tree.one":"core.tree.all",a.all(),b));
                     if(!a.requiresAny().isEmpty())lines.add(Component.translatable("core.tree.parents_count",a.requiredParents(),dependencyText("core.tree.any",a.requiresAny(),b)));
                     var excluded=b.abilities.stream().filter(other->SkillTrees.exclusive(a,other)).map(Balance.Ability::id).toList();
                     if(!excluded.isEmpty())lines.add(dependencyText("core.tree.excludes",excluded,b));

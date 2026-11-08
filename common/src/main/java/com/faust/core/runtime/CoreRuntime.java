@@ -180,18 +180,6 @@ public final class CoreRuntime {
         if(b.stamina.get("enabled")>0&&p.actionsBlocked(b))player.setSprinting(false);
         if(b.stamina.get("enabled")>0&&p.actionsBlocked(b)&&upstream)player.setSprinting(false);
         if(player.tickCount%20==0||s.wasSprinting!=player.isSprinting()){s.wasSprinting=player.isSprinting();attributes(player);}
-        int interval=Math.max(1,b.skills.get("structureIntervalTicks").intValue());
-        if(player.tickCount%interval==0) {
-            var structures=player.serverLevel().structureManager();
-            for(var structure:structures.getAllStructuresAt(player.blockPosition()).keySet()) {
-                var start=structures.getStructureWithPieceAt(player.blockPosition(),structure);
-                if(!start.isValid())continue;
-                var id=player.registryAccess().registryOrThrow(Registries.STRUCTURE).getKey(structure);
-                if(id==null||!id.getNamespace().equals("minecraft"))continue;
-                String key=player.level().dimension().location()+"/"+id+"/"+start.getChunkPos();
-                if(p.discoveries.add(key)) grant(player,"structure",1,1);
-            }
-        }
         if(player.tickCount%5==0)sync(player);
     }
     public static void rebuildAttributes(ServerPlayer player){attributes(player);}

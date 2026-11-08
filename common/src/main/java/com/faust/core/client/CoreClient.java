@@ -14,9 +14,9 @@ public final class CoreClient {
  public static boolean configAllowed;
  public static void configResult(com.faust.core.runtime.ConfigResult result){configAllowed=result.allowed();var mc=Minecraft.getInstance();if(mc.screen instanceof CoreConfigScreen screen)screen.result(result);}
  public static void receive(Snapshot snapshot) {progress=Progress.parse(snapshot.progress());if(!snapshot.balance().isEmpty())balance=Balance.JSON.fromJson(snapshot.balance(),Balance.class);experience=snapshot.experience();weight=snapshot.armorWeight();}
- private static boolean airDrawn,lastAirDrawn;private static int airTop;
- public static void beginHud(){airDrawn=false;airTop=Integer.MAX_VALUE;}
- public static void airSprite(net.minecraft.resources.ResourceLocation sprite,int y){if(sprite.getPath().equals("hud/air")||sprite.getPath().equals("hud/air_bursting")){airDrawn=true;airTop=Math.min(airTop,y);}}
+ private static boolean airDrawn,lastAirDrawn;private static int airTop,vehicleTop;
+ public static void beginHud(){airDrawn=false;airTop=vehicleTop=Integer.MAX_VALUE;}
+ public static void airSprite(net.minecraft.resources.ResourceLocation sprite,int y){if(HudClearance.vehicleHeart(sprite.getNamespace(),sprite.getPath()))vehicleTop=Math.min(vehicleTop,y);if(sprite.getPath().equals("hud/air")||sprite.getPath().equals("hud/air_bursting")){airDrawn=true;airTop=Math.min(airTop,y);}}
  public static void reset(){progress=null;balance=null;airDrawn=lastAirDrawn=false;}
 
  public static boolean canSprint(Object entity){var mc=Minecraft.getInstance();return entity!=mc.player||mc.player==null||mc.player.isCreative()||mc.player.isSpectator()||progress==null||balance==null||!progress.actionsBlocked(balance);}
@@ -30,7 +30,7 @@ public final class CoreClient {
  public static void hud(GuiGraphics g) {
   lastAirDrawn=airDrawn;var mc=Minecraft.getInstance();if(mc.player==null||mc.player.isCreative()||mc.player.isSpectator()||progress==null||balance==null||mc.options.hideGui||balance.client.get("hud")==0||balance.stamina.get("enabled")==0)return;
   int x=mc.getWindow().getGuiScaledWidth()/2+10+balance.client.get("hudX").intValue(),y=mc.getWindow().getGuiScaledHeight()-50+balance.client.get("hudY").intValue();
-  if(airDrawn)y=Math.min(y,airTop-9);
+  y=HudClearance.staminaY(y,airDrawn?airTop:Integer.MAX_VALUE,vehicleTop);
   int total=(int)Math.ceil(progress.baseStamina(balance)),available=(int)Math.floor(progress.maxStamina(balance)),filled=(int)Math.floor(progress.stamina);
   var texture=net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("faustcore","textures/gui/stamina_dots.png");
   com.mojang.blaze3d.systems.RenderSystem.enableBlend();

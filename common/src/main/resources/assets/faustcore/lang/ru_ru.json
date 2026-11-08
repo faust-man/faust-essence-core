@@ -76,8 +76,8 @@
   "core.description.constitution": "Прокачка: потеря от %s HP за удар, бег и плавание.",
   "core.description.dexterity": "Прокачка: бег по земле и выстрелы из лука.",
   "core.description.defense": "Прокачка: бег в броне и блоки атак щитом.",
-  "core.description.intelligence": "Прокачка: чтение книг, зачарование, торговля и новые постройки мира.",
-  "core.description.building": "Прокачка: установка блоков и создание предметов.",
+  "core.description.intelligence": "Растёт от чтения, зачарований, торговли, крафта и варки зелий.",
+  "core.description.building": "Растёт от установки блоков.",
   "core.effect.damage": "Ближний урон: +%s%%",
   "core.effect.speed": "Скорость бега: +%s%%",
   "core.effect.breaking": "Скорость инструмента: +%s%%",
@@ -151,5 +151,12 @@
   "core.tree.conditions_all": "Выполните все условия (%s)",
   "core.tree.conditions_count": "Выполните %s из %s условий",
   "core.tree.condition": "%s / %s: %s",
-  "core.tree.parents_count": "Нужно %s: %s"
+  "core.tree.parents_count": "Нужно %s: %s",
+  "core.tree.one": "Необходим навык: %s",
+  "core.counter.brewed": "сваренных зелий",
+  "core.ability.soft_landing": "Мягкое падение",
+  "core.ability.enchanting_power": "Сила зачарований",
+  "core.ability.potion_duration": "Длительные зелья",
+  "core.effect.enchanting_power": "Сила стола: +1/+3/+5/+7 полок на 5/10/15/20 интеллекте (до 15 суммарно).",
+  "core.effect.potion_duration": "Длительность сваренных зелий: +1%% за уровень интеллекта."
 }

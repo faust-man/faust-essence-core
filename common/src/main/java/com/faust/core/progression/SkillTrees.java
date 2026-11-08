@@ -37,6 +37,9 @@ public final class SkillTrees {
         case "crossbow_efficiency" -> "crossbow";
         case "training_dexterity_sprint" -> "leather_boots";
         case "training_dexterity_attack" -> "feather";
+        case "soft_landing" -> "feather";
+        case "enchanting_power" -> "enchanting_table";
+        case "potion_duration" -> "brewing_stand";
         case "bow_efficiency" -> "bow";
         case "bow_mastery" -> "spectral_arrow";
         case "training_constitution_health" -> "golden_apple";
