@@ -22,6 +22,7 @@ public final class Balance {
     public Map<String, Rule> actions = new LinkedHashMap<>();
     public Map<String,Double> sweetFoods=numbers("minecraft:cookie",1,"minecraft:pumpkin_pie",3,"minecraft:honey_bottle",2,"minecraft:apple",1,"minecraft:melon_slice",0.5,"minecraft:sweet_berries",0.5,"minecraft:glow_berries",0.5);
     public List<Ability> abilities = new ArrayList<>();
+    public List<SkillTrees.Tree> trees = new ArrayList<>();
     public List<StatBonus> statBonuses = new ArrayList<>();
     public static final class StatBonus {
         public String id,attribute,operation="add",requiresAbility="";
@@ -37,7 +38,12 @@ public final class Balance {
 
     public record Rule(Skill skill, double xp, String counter) {}
     public record Ability(String id, Skill skill, int level, String counter, double amount,
-                          String parent, String effect, double value) {}
+                          String parent, String effect, double value,List<String> requiresAll,List<String> requiresAny,List<String> excludes) {
+        public Ability {requiresAll=requiresAll==null?List.of():List.copyOf(requiresAll);requiresAny=requiresAny==null?List.of():List.copyOf(requiresAny);excludes=excludes==null?List.of():List.copyOf(excludes);}
+        public Ability(String id,Skill skill,int level,String counter,double amount,String parent,String effect,double value){this(id,skill,level,counter,amount,parent,effect,value,List.of(),List.of(),List.of());}
+        public List<String> all(){var ids=new LinkedHashSet<>(requiresAll);if(parent!=null&&!parent.isEmpty())ids.add(parent);return List.copyOf(ids);}
+        public List<String> dependencies(){var ids=new LinkedHashSet<>(all());ids.addAll(requiresAny);return List.copyOf(ids);}
+    }
 
     public Balance() {
         skills.keySet().removeAll(List.of("damagePerLevel","damageMaximum","speedPerLevel","speedMaximum","healthPerLevel","luckPerLevel","luckMaximum","reachEveryLevels","reachPerStep"));
@@ -91,6 +97,7 @@ public final class Balance {
         ability("crossbow_efficiency",Skill.strength,5,"crossbow_shots",30,"","crossbow_cost_reduction",1);
         ability("mace_efficiency",Skill.strength,10,"mace_hits",50,"training_strength_damage","mace_cost_reduction",1);
         for(int i=0;i<abilities.size();i++)abilities.set(i,tuneAbility(abilities.get(i)));
+        trees=SkillTrees.defaults(abilities);
 
 
     }
@@ -109,7 +116,7 @@ public final class Balance {
             case "faustcore:shield_care" -> value=0.10;
             case "faustcore:shield_recovery" -> value=0.15;
         }
-        return new Ability(a.id(),a.skill(),level,counter,amount,parent,a.effect(),value);
+        return new Ability(a.id(),a.skill(),level,counter,amount,parent,a.effect(),value,a.requiresAll(),a.requiresAny(),a.excludes());
     }
     private void action(String id, Skill skill, double xp, String counter) { actions.put(id,new Rule(skill,xp,counter)); }
     private void ability(String id, Skill skill,int level,String counter,double amount,String parent,String effect,double value) {
@@ -149,15 +156,7 @@ public final class Balance {
             if(a==null||a.id()==null||!a.id().matches("[a-z0-9_.-]+:[a-z0-9_./-]+")||!ids.add(a.id())||a.skill()==null||a.level()<0||a.level()>20||a.counter()==null||a.parent()==null||!(BonusEffects.known(a.effect())||(a.effect()!=null&&a.effect().matches("[a-z0-9_.-]+:[a-z0-9_./-]+")))||!Double.isFinite(a.amount())||a.amount()<0||!Double.isFinite(a.value())||a.value()<0) throw new IllegalArgumentException("Invalid ability");
             if((Set.of("shield_durability","shield_recovery").contains(a.effect()))&&a.value()>0.95) throw new IllegalArgumentException("Shield discount exceeds 95%");
         }
-        for(var a:abilities) {
-            Set<String> visited=new HashSet<>(); var cursor=a;
-            while(!cursor.parent().isEmpty()) {
-                if(!visited.add(cursor.id())) throw new IllegalArgumentException("Ability cycle");
-                String parent=cursor.parent();
-                cursor=abilities.stream().filter(x->x.id().equals(parent)).findFirst().orElseThrow(()->new IllegalArgumentException("Unknown parent "+parent));
-                if(cursor.skill()!=a.skill()) throw new IllegalArgumentException("Parent belongs to another skill");
-            }
-        }
+        SkillTrees.validate(this);
     }
     private static void migrate(Path directory) throws IOException {
         Path old=directory.resolve("progression.json");
@@ -297,9 +296,10 @@ public final class Balance {
                 if(java.lang.reflect.Modifier.isStatic(f.getModifiers())) continue;
                 Path file=directory.resolve(f.getName()+".json");
                 if(Files.exists(file)) f.set(result,JSON.fromJson(Files.readString(file),f.getGenericType()));
-                else Files.writeString(file,JSON.toJson(f.get(result)) + "\n",StandardOpenOption.CREATE_NEW);
+                else if(!f.getName().equals("trees"))Files.writeString(file,JSON.toJson(f.get(result)) + "\n",StandardOpenOption.CREATE_NEW);
             }
         } catch(ReflectiveOperationException|RuntimeException e) { throw new IOException("Invalid core configuration",e); }
+        if(!Files.exists(directory.resolve("trees.json"))){result.trees=SkillTrees.defaults(result.abilities);Files.writeString(directory.resolve("trees.json"),JSON.toJson(result.trees)+"\n");}
         try {result.validate();} catch(RuntimeException e) {throw new IOException("Invalid core balance",e);}
         Files.writeString(directory.resolve(".balance-format"),"1.2\n");Files.writeString(directory.resolve(".format-1.3"),"1\n");Files.writeString(directory.resolve(".format-1.4"),"1\n");Files.writeString(directory.resolve(".format-1.4.1"),"1\n");
         return result;

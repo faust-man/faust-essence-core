@@ -42,7 +42,7 @@ public final class CoreCommands {
         skills.then(literal("xp").then(argument("targets",EntityArgument.players()).then(skill().then(argument("amount",DoubleArgumentType.doubleArg(0,1000000)).executes(ctx->modify(ctx,p->CoreRuntime.data(p).grant(selected(ctx),DoubleArgumentType.getDouble(ctx,"amount"),CoreRuntime.balance)))))));
         root.then(skills);
         var abilities=literal("ability").requires(s->s.hasPermission(2));
-        for(String mode:List.of("grant","revoke"))abilities.then(literal(mode).then(argument("targets",EntityArgument.players()).then(ability().executes(ctx->{String id=abilityId(ctx);if(!CommandSupport.knownAbility(id))return reply(ctx,"core.unknown_ability",false);return modify(ctx,p->CommandSupport.ability(p,id,mode.equals("grant")));}))));
+        for(String mode:List.of("grant","revoke"))abilities.then(literal(mode).then(argument("targets",EntityArgument.players()).then(ability().executes(ctx->{String id=abilityId(ctx);if(!CommandSupport.knownAbility(id))return reply(ctx,"core.unknown_ability",false);if(mode.equals("grant")){var node=CoreRuntime.balance.abilities.stream().filter(a->a.id().equals(id)).findFirst().orElseThrow();for(var target:EntityArgument.getPlayers(ctx,"targets"))if(CoreRuntime.data(target).excluded(node,CoreRuntime.balance))return reply(ctx,"core.tree.excluded",false);}return modify(ctx,p->CommandSupport.ability(p,id,mode.equals("grant")));}))));
         root.then(abilities);
         root.then(literal("stamina").requires(s->s.hasPermission(2))
             .then(literal("fill").then(argument("targets",EntityArgument.players()).executes(ctx->modify(ctx,p->CoreRuntime.data(p).stamina=CoreRuntime.data(p).maxStamina(CoreRuntime.balance)))))

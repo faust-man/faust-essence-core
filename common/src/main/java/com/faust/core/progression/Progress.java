@@ -55,12 +55,17 @@ public final class Progress {
     }
     public double requirementCount(Balance.Ability a){return Math.max(0,Math.min(a.amount(),counters.getOrDefault(a.counter(),0.0)));}
     public double requirementProgress(Balance.Ability a){return a.amount()<=0?1:requirementCount(a)/a.amount();}
-    public boolean canUnlock(Balance.Ability a) {
-        return !unlocked.contains(a.id())&&track(a.skill()).level>=a.level()&&counters.getOrDefault(a.counter(),0.0)>=a.amount()&&(a.parent().isEmpty()||unlocked.contains(a.parent()));
+    public boolean excluded(Balance.Ability a,Balance b){return a.excludes().stream().anyMatch(unlocked::contains)||b.abilities.stream().anyMatch(other->unlocked.contains(other.id())&&other.excludes().contains(a.id()));}
+    public boolean prerequisites(Balance.Ability a){return unlocked.containsAll(a.all())&&(a.requiresAny().isEmpty()||a.requiresAny().stream().anyMatch(unlocked::contains));}
+    public boolean canUnlock(Balance.Ability a,Balance b){return !unlocked.contains(a.id())&&!excluded(a,b)&&track(a.skill()).level>=a.level()&&counters.getOrDefault(a.counter(),0.0)>=a.amount()&&prerequisites(a);}
+    public Set<String> revoke(String id,Balance b){
+        Set<String> removed=new LinkedHashSet<>();if(unlocked.remove(id))removed.add(id);boolean changed;
+        do{changed=false;for(var a:b.abilities)if(unlocked.contains(a.id())&&a.dependencies().stream().anyMatch(removed::contains)&&!prerequisites(a)){unlocked.remove(a.id());removed.add(a.id());changed=true;}}while(changed);
+        revision++;return removed;
     }
     public boolean unlock(String id,Balance b) {
         var a=b.abilities.stream().filter(x->x.id().equals(id)).findFirst().orElse(null);
-        if(a==null||!canUnlock(a)) return false;
+        if(a==null||!canUnlock(a,b)) return false;
         unlocked.add(id);revision++;return true;
     }
     public double effect(String effect,Balance b) {return b.abilities.stream().filter(a->unlocked.contains(a.id())&&a.effect().equals(effect)).mapToDouble(Balance.Ability::value).sum();}

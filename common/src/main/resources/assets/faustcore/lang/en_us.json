@@ -139,5 +139,11 @@
   "core.counter.bow_shots": "bow shots",
   "core.counter.crossbow_shots": "crossbow shots",
   "core.counter.mace_hits": "charged mace hits",
-  "core.second_wind.rate": "Recovers %s%% of base sprint cost (%s stamina/s). Half speed with air bubbles."
+  "core.second_wind.rate": "Recovers %s%% of base sprint cost (%s stamina/s). Half speed with air bubbles.",
+  "core.config.trees": "Tree layouts",
+  "core.tree.controls": "Scroll to zoom. Drag the background to pan.",
+  "core.tree.all": "Requires all: %s",
+  "core.tree.any": "Requires any: %s",
+  "core.tree.excludes": "Mutually exclusive: %s",
+  "core.tree.excluded": "Unavailable: a mutually exclusive skill was chosen."
 }

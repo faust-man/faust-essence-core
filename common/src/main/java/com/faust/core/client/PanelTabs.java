@@ -35,6 +35,15 @@ public final class PanelTabs {
         for(var line:lines){g.drawString(mc.font,line,x,y,0xFFFFFF,false);y+=10;}
         g.pose().popPose();
     }
+    public static void tooltipWithin(GuiGraphics g,java.util.List<Component> text,int mouseX,int mouseY,int left,int top,int width,int height){
+        var font=Minecraft.getInstance().font;var lines=new java.util.ArrayList<net.minecraft.util.FormattedCharSequence>();
+        for(Component line:text)lines.addAll(font.split(line,width-16));
+        int maximum=Math.max(1,(height-12)/10);if(lines.size()>maximum){lines.subList(maximum-1,lines.size()).clear();lines.add(Component.literal("...").getVisualOrderText());}
+        int w=lines.stream().mapToInt(font::width).max().orElse(0),h=lines.size()*10;
+        int x=Math.max(left+5,Math.min(mouseX+9,left+width-w-5)),y=Math.max(top+5,Math.min(mouseY+9,top+height-h-5));
+        g.pose().pushPose();g.pose().translate(0,0,400);g.fill(x-3,y-3,x+w+3,y+h+3,0xFF130F1D);g.fill(x-2,y-2,x+w+2,y+h+2,0xF0181622);
+        for(var line:lines){g.drawString(font,line,x,y,0xFFFFFF,false);y+=10;}g.pose().popPose();
+    }
     public static boolean click(double mx,double my,int button,int x,int y,boolean skills) {
         if(button!=0||Minecraft.getInstance().player==null)return false;
         if(!skills&&inside(mx,my,x+27,y-28,26,28)){Minecraft.getInstance().setScreen(new CoreScreen());return true;}

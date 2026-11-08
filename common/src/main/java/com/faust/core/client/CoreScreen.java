@@ -3,84 +3,99 @@ package com.faust.core.client;
 import com.faust.core.progression.*;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.*;
 import java.util.*;
 
-/** Two-column overview and per-skill ability tree, using attributed JustLeveling sprites. */
+/** Six item-icon skill trees clipped to the vanilla inventory panel. */
 public final class CoreScreen extends Screen {
     private static final ResourceLocation PANEL=ResourceLocation.fromNamespaceAndPath("faustcore","textures/gui/container/skill_page_1.png");
+    private static final int WIDTH=176,HEIGHT=166,VIEW_X=8,VIEW_Y=45,VIEW_WIDTH=160,VIEW_HEIGHT=96;
     private Skill selected;
-    private int page;
+    private TreeView view;
+    private Balance viewed;
+    private boolean dragging;
     public CoreScreen(){super(Component.translatable("core.panel"));}
-    private int panelWidth(){return selected==null?220:300;}
-    private int panelHeight(){return 200;}
-    private float scale(){return Math.min(1f,Math.min((width-12f)/panelWidth(),(height-12f)/(panelHeight()+28)));}
-    private int x(){return Math.round((width/scale()-panelWidth())/2);}
-    private int y(){return Math.round((height/scale()-panelHeight()+28)/2);}
-    private List<Balance.Ability> abilities(){return CoreClient.balance.abilities.stream().filter(a->a.skill()==selected).toList();}
-    private List<Balance.Ability> visible(){var list=abilities();int start=Math.min(page*2,Math.max(0,list.size()-1));return list.subList(start,Math.min(list.size(),start+2));}
+    private int x(){return (width-WIDTH)/2;}
+    private int y(){return (height-HEIGHT)/2;}
+    @Override protected void init(){view=null;dragging=false;}
     private static String number(double value){return java.math.BigDecimal.valueOf(value).setScale(4,java.math.RoundingMode.HALF_UP).stripTrailingZeros().toPlainString();}
     private static Component skillName(Skill skill){return Component.translatableWithFallback("core.skill."+skill,skill.name());}
     private static Component abilityName(Balance.Ability ability){return Component.translatableWithFallback("core.ability."+ability.id().split(":")[1],ability.id());}
+    private static Balance.Ability ability(Balance b,String id){return b.abilities.stream().filter(a->a.id().equals(id)).findFirst().orElseThrow();}
+    private static ItemStack icon(String id){var item=BuiltInRegistries.ITEM.get(ResourceLocation.parse(id));return new ItemStack(item==Items.AIR?Items.BARRIER:item);}
     private void command(String text){if(minecraft!=null&&minecraft.getConnection()!=null)minecraft.getConnection().sendCommand(text);}
+    private boolean insideView(double mx,double my){return PanelTabs.inside(mx,my,x()+VIEW_X,y()+VIEW_Y,VIEW_WIDTH,VIEW_HEIGHT);}
+    private List<SkillTrees.Node> nodes(){var b=CoreClient.balance;var nodes=SkillTrees.nodes(b,selected);if(view==null||viewed!=b){view=new TreeView(nodes,VIEW_WIDTH,VIEW_HEIGHT);viewed=b;}return nodes;}
+    private SkillTrees.Node hovered(double mx,double my){if(!insideView(mx,my))return null;var nodes=nodes();for(int i=nodes.size()-1;i>=0;i--)if(view.hit(nodes.get(i),mx-x()-VIEW_X,my-y()-VIEW_Y))return nodes.get(i);return null;}
     @Override public void renderBackground(GuiGraphics g,int mx,int my,float delta){}
-    @Override public void render(GuiGraphics g,int mx,int my,float delta) {
-        renderTransparentBackground(g);
-        float scale=scale();g.pose().pushPose();g.pose().scale(scale,scale,1);mx=(int)(mx/scale);my=(int)(my/scale);
-        int x=x(),y=y(),w=panelWidth(),h=panelHeight();
-        com.mojang.blaze3d.systems.RenderSystem.enableBlend();
-        g.blit(PANEL,x,y,w,h,0,0,176,166,256,256);
-        g.fill(x+3,y+3,x+w-3,y+h-3,0xFFC6C6C6);
-        List<Component> hoveredTooltip=null;
-        Progress p=CoreClient.progress;Balance b=CoreClient.balance;
-        if(p==null||b==null){center(g,Component.translatable("core.syncing"),x+w/2,y+70,0x555555);PanelTabs.draw(g,x,y,true,mx,my);g.pose().popPose();return;}
-        if(selected==null) {
-            center(g,minecraft.player==null?title:minecraft.player.getName(),x+w/2,y+8,0x505050);
-            center(g,Component.translatable("core.levels",CoreClient.experience),x+w/2,y+21,0x505050);
-            g.fill(x+10,y+37,x+w-10,y+41,0xFF303030);
-            if(minecraft.player!=null)g.fill(x+10,y+37,x+10+(int)((w-20)*minecraft.player.experienceProgress),y+41,0xFF80B938);
-            int i=0;
-            for(Skill skill:Skill.values()) {
-                if(i>=6)break;
-                int cx=x+9+(i%2)*102,cy=y+49+(i/2)*45;i++;
-                g.blit(PANEL,cx,cy,100,42,12,50,76,26,256,256);
-                ResourceLocation icon=ResourceLocation.fromNamespaceAndPath("faustcore","textures/skill/"+skill+"/locked_"+SkillEffects.icon(p.track(skill).level,b)+".png");
-                g.blit(icon,cx+10,cy+12,18,18,0,0,16,16,16,16);
-                g.drawString(font,Component.translatable("core.short."+skill),cx+36,cy+12,0xFFFFFF,false);
-                g.drawString(font,p.track(skill).level+" / "+(int)p.cap(skill,b),cx+36,cy+23,0xC6C6C6,false);
-                if(PanelTabs.inside(mx,my,cx,cy,100,42))hoveredTooltip=List.of(skillName(skill));
+    @Override public void render(GuiGraphics g,int mx,int my,float delta){
+        renderTransparentBackground(g);int x=x(),y=y();
+        com.mojang.blaze3d.systems.RenderSystem.enableBlend();g.blit(PANEL,x,y,0,0,WIDTH,HEIGHT,256,256);g.fill(x+3,y+3,x+WIDTH-3,y+HEIGHT-3,0xFFC6C6C6);
+        List<Component> tooltip=null;var p=CoreClient.progress;var b=CoreClient.balance;
+        if(p==null||b==null)center(g,Component.translatable("core.syncing"),x+WIDTH/2,y+70,0x505050);
+        else if(selected==null){
+            center(g,minecraft.player==null?title:minecraft.player.getName(),x+WIDTH/2,y+7,0x505050);
+            center(g,Component.translatable("core.levels",CoreClient.experience),x+WIDTH/2,y+19,0x505050);
+            int i=0;for(Skill skill:Skill.values()){
+                if(i>=6)break;int cx=x+8+(i%2)*82,cy=y+37+(i/2)*33;i++;
+                g.fill(cx,cy,cx+78,cy+29,0xFF222222);g.fill(cx+1,cy+1,cx+77,cy+28,0xFF3C3C3C);
+                String item=switch(skill.name()){case "strength"->"iron_sword";case "constitution"->"golden_apple";case "dexterity"->"bow";case "defense"->"shield";case "intelligence"->"enchanted_book";default->"iron_pickaxe";};
+                g.renderItem(icon("minecraft:"+item),cx+6,cy+6);
+                g.drawString(font,Component.translatable("core.short."+skill),cx+28,cy+5,0xFFFFFF,false);g.drawString(font,p.track(skill).level+" / "+(int)p.cap(skill,b),cx+28,cy+16,0xC6C6C6,false);
+                if(PanelTabs.inside(mx,my,cx,cy,78,29))tooltip=List.of(skillName(skill));
             }
-            center(g,Component.translatable("core.select_skill"),x+w/2,y+187,0x505050);
-        } else {
-            center(g,skillName(selected),x+w/2,y+7,0x505050);
-            g.drawWordWrap(font,Component.translatable("core.description."+selected,number(b.skills.get("damageMinimumHP"))),x+10,y+22,w-20,0x505050);
-            g.drawString(font,Component.translatable("core.skill_progress",p.track(selected).level,number(100*p.track(selected).xp/p.needed(selected,b))),x+10,y+47,0x404040,false);
-            g.drawString(font,Component.translatable("core.cap_status",(int)p.cap(selected,b),(int)Math.round(p.multiplier(selected,b)*100)),x+10,y+61,0x404040,false);
-            long cost=p.price(selected,b);boolean full=p.cap(selected,b)>=b.progression.get("maximumCap");
-            box(g,x+w-124,y+76,114,18,full?Component.translatable("core.cap.maximum"):Component.translatable("core.cap.price",cost),!full&&CoreClient.experience>=cost);
-            int row=0;
-            for(var a:visible()) {
-                int ay=y+100+row++*37;boolean unlocked=p.unlocked.contains(a.id());
-                box(g,x+10,ay,w-20,33,abilityName(a),p.canUnlock(a)||unlocked);
-                g.fill(x+11,ay+2,x+14,ay+31,0xFF202020);
-                g.fill(x+11,ay+31-(int)(29*p.requirementProgress(a)),x+14,ay+31,0xFF80B938);
-                Component condition=Component.translatable("core.node_condition",a.level(),number(p.requirementCount(a)),number(a.amount()),Component.translatable("core.counter."+a.counter()));
-                String label=(unlocked?Component.translatable("core.unlocked"):condition).getString();
-                if(font.width(label)>w-32)label=font.plainSubstrByWidth(label,w-42)+"...";
-                g.drawString(font,label,x+16,ay+18,0xCFCFCF,false);
-                if(PanelTabs.inside(mx,my,x+10,ay,w-20,33)) {
-                    var lines=abilityDescription(a,p,b);if(!unlocked)lines.add(condition);
-                    if(!unlocked&&!a.parent().isEmpty())lines.add(Component.translatable("core.parent",b.abilities.stream().filter(parent->parent.id().equals(a.parent())).map(CoreScreen::abilityName).findFirst().orElse(Component.literal(a.parent()))));
-                    hoveredTooltip=lines;
+            center(g,Component.translatable("core.select_skill"),x+WIDTH/2,y+148,0x505050);
+        }else{
+            center(g,skillName(selected),x+WIDTH/2,y+7,0x505050);
+            g.drawString(font,p.track(selected).level+" / "+(int)p.cap(selected,b),x+8,y+22,0x404040,false);
+            var growth=Component.literal((int)Math.round(p.multiplier(selected,b)*100)+"%");g.drawString(font,growth,x+WIDTH-8-font.width(growth),y+22,0x404040,false);
+            double fraction=Math.max(0,Math.min(1,p.track(selected).xp/p.needed(selected,b)));g.fill(x+8,y+35,x+168,y+38,0xFF303030);g.fill(x+8,y+35,x+8+(int)(160*fraction),y+38,0xFF80B938);
+            if(PanelTabs.inside(mx,my,x+4,y+4,168,36))tooltip=List.of(Component.translatable("core.description."+selected,number(b.skills.get("damageMinimumHP"))),Component.translatable("core.skill_progress",p.track(selected).level,number(100*fraction)),Component.translatable("core.tree.controls"));
+            drawTree(g,p,b);
+            var hovered=hovered(mx,my);if(hovered!=null){var a=ability(b,hovered.ability());boolean unlocked=p.unlocked.contains(a.id());var lines=new ArrayList<Component>();lines.add(abilityName(a));lines.addAll(abilityDescription(a,p,b));
+                if(unlocked)lines.add(Component.translatable("core.unlocked"));
+                else{
+                    lines.add(Component.translatable("core.node_condition",a.level(),number(p.requirementCount(a)),number(a.amount()),Component.translatable("core.counter."+a.counter())));
+                    if(!a.all().isEmpty())lines.add(dependencyText("core.tree.all",a.all(),b));
+                    if(!a.requiresAny().isEmpty())lines.add(dependencyText("core.tree.any",a.requiresAny(),b));
+                    var excluded=b.abilities.stream().filter(other->SkillTrees.exclusive(a,other)).map(Balance.Ability::id).toList();
+                    if(!excluded.isEmpty())lines.add(dependencyText("core.tree.excludes",excluded,b));
+                    if(p.excluded(a,b))lines.add(Component.translatable("core.tree.excluded"));
                 }
+                tooltip=lines;
             }
-            box(g,x+10,y+177,70,16,Component.translatable("core.back"),true);
-            box(g,x+w-62,y+177,22,16,Component.literal("<"),page>0);
-            box(g,x+w-36,y+177,22,16,Component.literal(">"),(page+1)*2<abilities().size());
+            box(g,x+8,y+147,43,14,Component.translatable("core.back"),true);
+            boolean full=p.cap(selected,b)>=b.progression.get("maximumCap");long cost=p.price(selected,b);
+            box(g,x+55,y+147,113,14,full?Component.translatable("core.cap.maximum"):Component.translatable("core.cap.price",cost),!full&&CoreClient.experience>=cost);
         }
-        PanelTabs.draw(g,x,y,true,mx,my);if(hoveredTooltip!=null)PanelTabs.tooltip(g,hoveredTooltip,mx,my);g.pose().popPose();
+        PanelTabs.draw(g,x,y,true,-1000,-1000);
+        if(tooltip!=null)PanelTabs.tooltipWithin(g,tooltip,mx,my,x,y,WIDTH,HEIGHT);
     }
+    private Component dependencyText(String key,List<String> ids,Balance b){var names=Component.empty();for(String id:ids){if(!names.getString().isEmpty())names.append(", ");names.append(abilityName(ability(b,id)));}return Component.translatable(key,names);}
+    private void drawTree(GuiGraphics g,Progress p,Balance b){
+        var nodes=nodes();int vx=x()+VIEW_X,vy=y()+VIEW_Y;
+        g.fill(vx-1,vy-1,vx+VIEW_WIDTH+1,vy+VIEW_HEIGHT+1,0xFF606060);g.fill(vx,vy,vx+VIEW_WIDTH,vy+VIEW_HEIGHT,0xFF383B40);
+        g.enableScissor(vx,vy,vx+VIEW_WIDTH,vy+VIEW_HEIGHT);
+        for(int xx=8;xx<VIEW_WIDTH;xx+=16)for(int yy=8;yy<VIEW_HEIGHT;yy+=16)g.fill(vx+xx,vy+yy,vx+xx+1,vy+yy+1,0xFF45484D);
+        var byId=new HashMap<String,SkillTrees.Node>();for(var n:nodes)byId.put(n.ability(),n);
+        for(var node:nodes)for(String parent:ability(b,node.ability()).dependencies()){
+            var previous=byId.get(parent);if(previous==null)continue;
+            int x1=vx+(int)Math.round(view.x(previous)+11*view.zoom),y1=vy+(int)Math.round(view.y(previous)+11*view.zoom),x2=vx+(int)Math.round(view.x(node)+11*view.zoom),y2=vy+(int)Math.round(view.y(node)+11*view.zoom);
+            line(g,x1,y1,x2,y2,SkillTrees.lineColor(p,parent));
+        }
+        for(var node:nodes){var a=ability(b,node.ability());boolean learned=p.unlocked.contains(a.id()),excluded=p.excluded(a,b);int border=learned?0xFF83C24A:excluded?0xFFA64747:p.canUnlock(a,b)?0xFFFFD36A:0xFF858585;
+            g.pose().pushPose();g.pose().translate(vx+view.x(node),vy+view.y(node),0);g.pose().scale((float)view.zoom,(float)view.zoom,1);
+            g.fill(0,0,22,22,0xFF161616);g.fill(1,1,21,21,border);g.fill(2,2,20,20,0xFF252A31);g.renderItem(icon(node.icon()),3,3);
+            if(!learned){g.fill(3,20,19,21,0xFF171717);g.fill(3,20,3+(int)(16*p.requirementProgress(a)),21,0xFF83C24A);}
+            if(excluded&&!learned){g.pose().pushPose();g.pose().translate(0,0,200);line(g,3,3,18,18,0xFFD75A5A);g.pose().popPose();}
+            g.pose().popPose();
+        }
+        g.disableScissor();
+    }
+    private static void line(GuiGraphics g,int x1,int y1,int x2,int y2,int color){int steps=Math.max(Math.abs(x2-x1),Math.abs(y2-y1));if(steps==0){g.fill(x1,y1,x1+1,y1+1,color);return;}for(int i=0;i<=steps;i++){int x=(int)Math.round(x1+(double)(x2-x1)*i/steps),y=(int)Math.round(y1+(double)(y2-y1)*i/steps);g.fill(x,y,x+1,y+1,color);}}
     private static ArrayList<Component> abilityDescription(Balance.Ability a,Progress p,Balance b){
         var lines=new ArrayList<Component>();
         if(a.effect().equals("stat_unlock")){
@@ -98,26 +113,24 @@ public final class CoreScreen extends Screen {
         }
         return lines;
     }
+
     private void center(GuiGraphics g,Component text,int x,int y,int color){g.drawString(font,text,x-font.width(text)/2,y,color,false);}
-    private void box(GuiGraphics g,int x,int y,int w,int h,Component text,boolean active) {
-        g.fill(x,y,x+w,y+h,0xFF707070);g.fill(x+1,y+1,x+w-1,y+h-1,active?0xFF373737:0xFF555555);
-        center(g,text,x+w/2,y+4,active?0xFFFFFF:0xAAAAAA);
-    }
-    @Override public boolean mouseClicked(double mx,double my,int button) {
-        float scale=scale();mx/=scale;my/=scale;
-        int x=x(),y=y(),w=panelWidth();
-        if(PanelTabs.click(mx,my,button,x,y,true))return true;
+    private void box(GuiGraphics g,int x,int y,int w,int h,Component text,boolean active){g.fill(x,y,x+w,y+h,0xFF707070);g.fill(x+1,y+1,x+w-1,y+h-1,active?0xFF373737:0xFF555555);String label=text.getString();if(font.width(label)>w-4)label=font.plainSubstrByWidth(label,w-13)+"...";center(g,Component.literal(label),x+w/2,y+3,active?0xFFFFFF:0xAAAAAA);}
+    @Override public boolean mouseClicked(double mx,double my,int button){
+        if(PanelTabs.click(mx,my,button,x(),y(),true))return true;
         if(button!=0||CoreClient.progress==null||CoreClient.balance==null)return super.mouseClicked(mx,my,button);
-        if(selected==null){int i=0;for(Skill skill:Skill.values()){if(i>=6)break;int cx=x+9+(i%2)*102,cy=y+49+(i/2)*45;i++;if(PanelTabs.inside(mx,my,cx,cy,100,42)){selected=skill;page=0;return true;}}}
-        else {
-            if(PanelTabs.inside(mx,my,x+10,y+177,70,16)){selected=null;page=0;return true;}
-            if(PanelTabs.inside(mx,my,x+w-62,y+177,22,16)){page=Math.max(0,page-1);return true;}
-            if(PanelTabs.inside(mx,my,x+w-36,y+177,22,16)){if((page+1)*2<abilities().size())page++;return true;}
-            if(PanelTabs.inside(mx,my,x+w-124,y+76,114,18)){command("core cap "+selected);return true;}
-            int row=0;for(var a:visible()){int ay=y+100+row++*37;if(PanelTabs.inside(mx,my,x+10,ay,w-20,33)){command("core unlock "+a.id());return true;}}
+        if(selected==null){int i=0;for(Skill skill:Skill.values()){if(i>=6)break;int cx=x()+8+(i%2)*82,cy=y()+37+(i/2)*33;i++;if(PanelTabs.inside(mx,my,cx,cy,78,29)){selected=skill;view=null;return true;}}}
+        else{
+            if(PanelTabs.inside(mx,my,x()+8,y()+147,43,14)){selected=null;view=null;return true;}
+            if(PanelTabs.inside(mx,my,x()+55,y()+147,113,14)){command("core cap "+selected);return true;}
+            var node=hovered(mx,my);if(node!=null){var a=ability(CoreClient.balance,node.ability());if(CoreClient.progress.canUnlock(a,CoreClient.balance))command("core unlock "+a.id());return true;}
+            if(insideView(mx,my)){dragging=true;return true;}
         }
         return super.mouseClicked(mx,my,button);
     }
+    @Override public boolean mouseDragged(double mx,double my,int button,double dx,double dy){if(dragging&&button==0&&selected!=null&&view!=null){view.pan(dx,dy);return true;}return super.mouseDragged(mx,my,button,dx,dy);}
+    @Override public boolean mouseReleased(double mx,double my,int button){if(button==0)dragging=false;return super.mouseReleased(mx,my,button);}
+    @Override public boolean mouseScrolled(double mx,double my,double horizontal,double vertical){if(selected!=null&&CoreClient.balance!=null&&insideView(mx,my)){nodes();view.zoomAt(Math.pow(1.15,vertical),mx-x()-VIEW_X,my-y()-VIEW_Y);return true;}return super.mouseScrolled(mx,my,horizontal,vertical);}
     @Override public boolean keyPressed(int key,int scan,int modifiers){if(CoreClient.OPEN.matches(key,scan)){onClose();return true;}return super.keyPressed(key,scan,modifiers);}
     @Override public boolean isPauseScreen(){return false;}
 }
