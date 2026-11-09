@@ -1,3 +1,11 @@
+## Исходники Stamina
+
+Stamina вынесена в `faust-essence-stamina` (соседний checkout). Модули `stamina`
+и `stamina-fabric` в ядре — сборочные мосты для общих тестов и dev-запусков;
+путь исходников задаётся `-PstaminaProjectDir`, по умолчанию `../faust-essence-stamina`.
+Самостоятельный проект Stamina собирается после ядра с `-PcoreProjectDir`
+(по умолчанию `../core`). Подробный порядок клонирования и сборки — в README.
+
 ## Название мода
 
 Отображаемое название — **Faust Essence** (ранее core). Mod ID `faustcore`,
@@ -353,7 +361,7 @@ HUD выносливости смещается выше всех отрисов
 reload/перезапуска. Автоматические проверки не заменяют этот игровой прогон.
 
 Актуальность: 2026-11-08. Minecraft 1.21.1, Java 21. Имя `core`, mod ID `faustcore`,
-Java package `com.faust.core`, версия 1.5.2. Документ самодостаточен: локальные
+Java package `com.faust.core`, версия 1.6.0. Документ самодостаточен: локальные
 `des-doc.md` и `work_notes/` для интеграции не нужны. Корневые инструкции Agents.md
 встроены ниже и должны обновляться вместе с оригиналом.
 
@@ -1125,8 +1133,8 @@ registerBonus. При удалении мода его неизвестные ID
 Подключение из соседнего проекта: соберите core, затем используйте локальную
 Gradle-публикацию Maven (конвенция проекта берёт путь из local_maven_url) либо
 loader-specific JAR как локальную зависимость. Готового удалённого Maven нет.
-Для Fabric используйте modImplementation files("libs/faustcore-fabric-1.21.1-1.5.2.jar"),
-для NeoForge — implementation files("libs/faustcore-neoforge-1.21.1-1.5.2.jar") в
+Для Fabric используйте modImplementation files("libs/faustcore-fabric-1.21.1-1.6.0.jar"),
+для NeoForge — implementation files("libs/faustcore-neoforge-1.21.1-1.6.0.jar") в
 совместимом ModDev-проекте; common для компиляции можно подключить как compileOnly
 files("libs/faustcore-common-1.21.1-1.3.0.jar"). Не встраивайте JAR ядра в JAR пути;
 пользователь устанавливает его отдельно. В fabric.mod.json укажите depends.faustcore,

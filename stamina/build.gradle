@@ -11,4 +11,11 @@ processResources { filesMatching(['fabric.mod.json','META-INF/neoforge.mods.toml
 
 sourceSets.main.compileClasspath += project(':common').sourceSets.main.compileClasspath
 
+def staminaProjectDir = rootProject.file(providers.gradleProperty('staminaProjectDir').getOrElse('../faust-essence-stamina'))
+if (!new File(staminaProjectDir, 'src/main/java').isDirectory()) {
+    throw new GradleException('Clone faust-essence-stamina next to core or set -PstaminaProjectDir=<path>; see README.md')
+}
+sourceSets.main.java.setSrcDirs([new File(staminaProjectDir, 'src/main/java')])
+sourceSets.main.resources.setSrcDirs([new File(staminaProjectDir, 'src/main/resources')])
 sourceSets.main.resources.exclude 'fabric.mod.json'
+jar { from(rootProject.file('LICENSE')) }

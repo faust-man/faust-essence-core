@@ -1,3 +1,37 @@
+# Репозитории серии Faust Essence
+
+Текущие версии модов: **1.6.0**, Minecraft **1.21.1**, JDK **21**.
+`main` содержит последнюю версию разработки; `1.21.1` — ветка этой версии Minecraft.
+Mod ID, команды и пути данных сохраняются при смене отображаемых названий.
+
+- [Faust Essence](https://github.com/faust-man/faust-essence-core): Fabric и NeoForge.
+- [Faust Essence: Stamina](https://github.com/faust-man/faust-essence-stamina): Fabric и NeoForge, требует ядро.
+- [Faust Essence: Epic Fight Compat](https://github.com/faust-man/faust-essence-epic-fight-compat): только NeoForge, требует ядро и Epic Fight; Stamina необязателен.
+
+Для разработки клонируйте проекты рядом с указанными локальными именами:
+
+```powershell
+git clone -b 1.21.1 https://github.com/faust-man/faust-essence-core.git core
+git clone -b 1.21.1 https://github.com/faust-man/faust-essence-stamina.git faust-essence-stamina
+git clone -b 1.21.1 https://github.com/faust-man/faust-essence-epic-fight-compat.git "epic-fight compat"
+```
+
+Сначала запустите `./gradlew.bat build` из `core`: он собирает ядро и Stamina из
+соседних исходников и проверяет работу с дополнением и без него. В core остались
+только сборочные мосты `stamina/` и `stamina-fabric/`; исходники дополнения находятся
+в отдельном репозитории. Другой путь можно задать через `-PstaminaProjectDir=<путь>`.
+Затем выполните `./gradlew.bat build` из `faust-essence-stamina` и `epic-fight compat`.
+Stamina использует собранные JAR ядра; его путь меняется через `-PcoreProjectDir=<путь>`.
+Compat использует JAR из `../core/`, включая собранный там Stamina для тестов.
+Первой сборке нужен доступ к Maven; `--offline` работает только с заполненным кэшем.
+
+Из-за зависимости тестов ядра от Stamina для полной сборки ядра нужен соседний
+checkout Stamina. Для пользователей достаточно итоговых JAR нужных модов;
+исходники и соседние каталоги при запуске игры не нужны.
+
+Разделы ниже включают историю изменений; правила из раздела 1.6.0 имеют приоритет
+над прежними описаниями обязательной выносливости.
+
 Отображаемое название мода — **Faust Essence** (ранее core). Технические имена
 `faustcore`, `com.faust.core`, Gradle-проект `core`, команда `/core`, пути конфигов
 и имена JAR сохранены для совместимости.
@@ -11,7 +45,8 @@ Core работает без системы выносливости. Для п�
 доступны без этого дополнения; их зависимости от отсутствующих узлов снимаются
 в памяти, исходные конфиги не очищаются.
 
-Wrapper `./gradlew.bat build` собирает core и два варианта дополнения:
+После клонирования соседнего репозитория Stamina Wrapper `./gradlew.bat build`
+собирает core и два варианта дополнения для интеграционных проверок:
 
 - NeoForge: `stamina/build/libs/fauststamina-neoforge-1.21.1-1.6.0.jar`.
 - Fabric: `stamina-fabric/build/libs/fauststamina-fabric-1.21.1-1.6.0.jar`.
@@ -356,7 +391,7 @@ HUD выносливости смещается выше всех отрисов
 счётчиков, режим all, подсказку для одной/двух характеристик и сохранение после
 reload/перезапуска. Автоматические проверки не заменяют этот игровой прогон.
 
-Minecraft **1.21.1**, **Java 21**, Fabric и NeoForge. Версия **1.5.2**, ID `faustcore`.
+Minecraft **1.21.1**, **Java 21**, Fabric и NeoForge. Версия **1.6.0**, ID `faustcore`.
 Шесть навыков от действий, деревья способностей, покупка пределов за vanilla-уровни
 опыта, выносливость и усталость. Пути, боевые и Create-интеграции пока не реализованы.
 
@@ -811,8 +846,8 @@ $env:GRADLE_USER_HOME = Join-Path (Get-Location) '.gradle-user-home'
 
 Итоговые JAR:
 
-- `fabric/build/libs/faustcore-fabric-1.21.1-1.5.2.jar`;
-- `neoforge/build/libs/faustcore-neoforge-1.21.1-1.5.2.jar`.
+- `fabric/build/libs/faustcore-fabric-1.21.1-1.6.0.jar`;
+- `neoforge/build/libs/faustcore-neoforge-1.21.1-1.6.0.jar`.
 
 В обычной сборке положите один соответствующий JAR в `mods` Minecraft 1.21.1.
 Не используйте `sources`, `javadoc`, `dev` или старые JAR `examplemod`/core 1.0.0.
@@ -823,7 +858,7 @@ Fabric требует Loader ≥0.16.9 и Fabric API для 1.21.1, NeoForge —
 ## Панель и выносливость
 
 Панель открывается вкладкой с книгой над инвентарём или клавишей **K**.
-Привязка меняется в **Настройки → Управление → Назначение клавиш → core**.
+Привязка меняется в **Настройки → Управление → Назначение клавиш → Faust Essence**.
 Обзор имеет две колонки, иконки и короткие описания шести навыков. Нажмите навык,
 чтобы увидеть описание, практику, скорость роста, цену предела и дерево способностей.
 Наведите на способность, чтобы увидеть эффект и предшественника. Стрелки листают
