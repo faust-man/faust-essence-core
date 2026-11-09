@@ -1,3 +1,9 @@
+## Название мода
+
+Отображаемое название — **Faust Essence** (ранее core). Mod ID `faustcore`,
+пакет `com.faust.core`, имя Gradle-проекта `core`, команда `/core`, пути конфигов
+и имена артефактов сохранены. Упоминания core ниже также относятся к Faust Essence.
+
 ## Optional Faust Stamina (1.6.0)
 
 `StaminaServices` discovers the optional `StaminaMechanics` implementation via
