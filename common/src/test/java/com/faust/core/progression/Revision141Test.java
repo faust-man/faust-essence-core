@@ -1,6 +1,6 @@
 package com.faust.core.progression;
 
-import com.faust.core.client.StaminaSprites;
+import com.faust.stamina.client.StaminaSprites;
 import java.nio.file.*;
 import java.util.*;
 

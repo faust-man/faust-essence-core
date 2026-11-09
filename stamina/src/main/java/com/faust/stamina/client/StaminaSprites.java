@@ -1,4 +1,4 @@
-package com.faust.core.client;
+package com.faust.stamina.client;
 
 /** Neutral 16px lightning masks, tinted independently for each half-unit. */
 public final class StaminaSprites {

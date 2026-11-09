@@ -1,4 +1,4 @@
-package com.faust.core.mixin;
+package com.faust.stamina.mixin;
 
 import com.faust.core.runtime.CoreRuntime;
 import net.minecraft.server.level.ServerLevel;

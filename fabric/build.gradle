@@ -43,3 +43,5 @@ loom {
         }
     }
 }
+
+if(project.hasProperty('withStamina')) dependencies { modLocalRuntime project(':stamina-fabric') }

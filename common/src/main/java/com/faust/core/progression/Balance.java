@@ -34,7 +34,7 @@ public final class Balance {
         public boolean sprintOnly;
         public double amount(int level){return Math.min(maximum,Math.floor((double)level/everyLevels)*perLevel);}
     }
-    private void stat(String id,Skill skill,String attribute,String operation,double rate,int every,double max,boolean sprint) {
+    public void stat(String id,Skill skill,String attribute,String operation,double rate,int every,double max,boolean sprint) {
         StatBonus bonus=new StatBonus();bonus.id=id;bonus.skill=skill;bonus.attribute="minecraft:"+(attribute.equals("block_interaction_range")||attribute.equals("entity_interaction_range")?"player.":"generic.")+attribute;bonus.operation=operation;bonus.perLevel=rate;bonus.everyLevels=every;bonus.maximum=max;bonus.sprintOnly=sprint;statBonuses.add(bonus);
     }
 
@@ -92,12 +92,12 @@ public final class Balance {
         action("craft",Skill.intelligence,1,"crafted");
         ability("controlled_strike",Skill.strength,5,"hits",30,"","damage",0.01);
         ability("strong_grip",Skill.strength,10,"hits",100,"controlled_strike","damage",0.02);
-        ability("second_wind",Skill.constitution,5,"damage_taken",50,"","second_wind",1);
+        StaminaServices.mechanics().defaults(this,1);
         ability("enduring_body",Skill.constitution,15,"damage_taken",200,"second_wind","stamina",2);
         ability("steady_pace",Skill.dexterity,5,"run_metres",1000,"","speed",0.01);
         ability("sure_footing",Skill.dexterity,10,"run_metres",3000,"steady_pace","speed",0.01);
-        ability("armor_familiarity",Skill.defense,5,"armor_metres",500,"","capacity",2);
-        ability("armor_mastery",Skill.defense,15,"armor_metres",2000,"armor_familiarity","capacity",4);
+        StaminaServices.mechanics().defaults(this,2);
+        StaminaServices.mechanics().defaults(this,3);
         ability("shield_care",Skill.defense,5,"blocks",30,"","shield_durability",0.10);
         ability("shield_recovery",Skill.defense,10,"blocks",100,"shield_care","shield_recovery",0.20);
         ability("applied_knowledge",Skill.intelligence,5,"books",10,"","regeneration",0.2);
@@ -107,15 +107,15 @@ public final class Balance {
         for(int i=0;i<abilities.size();i++){var a=abilities.get(i);abilities.set(i,new Ability(a.id(),a.skill(),a.level(),a.counter(),a.amount(),a.parent(),a.effect(),a.effect().equals("second_wind")?1:a.effect().startsWith("shield_")?Math.min(0.95,a.value()*10):a.value()*10));}
         abilities.removeIf(a->a.skill()!=Skill.defense&&!a.id().equals("faustcore:second_wind"));
         for(int i=0;i<abilities.size();i++){var a=abilities.get(i);if(a.id().equals("faustcore:armor_familiarity")||a.id().equals("faustcore:armor_mastery"))abilities.set(i,new Ability(a.id(),a.skill(),a.level(),a.counter(),a.amount(),a.parent(),"capacity",a.id().endsWith("familiarity")?10:4));}
-        stat("constitution_stamina",Skill.constitution,"max_health","add",1,1,1e9,false);statBonuses.getLast().attribute="faustcore:stamina";
+        StaminaServices.mechanics().defaults(this,4);
         stat("building_breaking",Skill.building,"max_health","add",0.01,1,1e9,false);statBonuses.getLast().attribute="faustcore:breaking";
         for(var rule:statBonuses){String id="training_"+rule.id;rule.requiresAbility="faustcore:"+id;String counter=switch(rule.skill.name()){case "strength"->"hits";case "constitution"->"damage_taken";case "dexterity"->"run_metres";case "defense"->"blocks";case "building"->"placed";default->"books";};String perk=rule.id.startsWith("building_")&&rule.id.endsWith("reach")?"training_building_reach":id;rule.requiresAbility="faustcore:"+perk;if(abilities.stream().noneMatch(a->a.id().equals(rule.requiresAbility)))ability(perk,rule.skill,1,counter,1,"","stat_unlock",0);}
-        ability("shield_efficiency",Skill.defense,8,"blocks",60,"shield_care","shield_cost_reduction",0.5);
-        ability("resilient_recovery",Skill.constitution,10,"constitution_run_metres",5000,"second_wind","exhaustion_threshold_reduction",0.5);
-        ability("bow_efficiency",Skill.dexterity,5,"bow_shots",30,"","bow_cost_reduction",1);
-        ability("bow_mastery",Skill.dexterity,10,"bow_shots",150,"bow_efficiency","bow_cost_reduction",1);
-        ability("crossbow_efficiency",Skill.strength,5,"crossbow_shots",30,"","crossbow_cost_reduction",1);
-        ability("mace_efficiency",Skill.strength,10,"mace_hits",50,"training_strength_damage","mace_cost_reduction",1);
+        StaminaServices.mechanics().defaults(this,5);
+        StaminaServices.mechanics().defaults(this,6);
+        StaminaServices.mechanics().defaults(this,7);
+        StaminaServices.mechanics().defaults(this,8);
+        StaminaServices.mechanics().defaults(this,9);
+        StaminaServices.mechanics().defaults(this,10);
         for(int i=0;i<abilities.size();i++)abilities.set(i,tuneAbility(abilities.get(i)));
         stat("dexterity_safe_fall",Skill.dexterity,"safe_fall_distance","add",1,5,1e9,false);
         statBonuses.getLast().requiresAbility="faustcore:soft_landing";
@@ -123,6 +123,7 @@ public final class Balance {
         ability("soft_landing",Skill.dexterity,5,"run_metres",1500,"","stat_unlock",0);
         ability("enchanting_power",Skill.intelligence,5,"enchants",1,"","enchanting_power",1);
         ability("potion_duration",Skill.intelligence,5,"brewed",1,"","potion_duration",0.01);
+        StaminaContent.withoutProvider(this);
         trees=SkillTrees.defaults(abilities);
 
 
@@ -145,7 +146,7 @@ public final class Balance {
         return new Ability(a.id(),a.skill(),level,counter,amount,parent,a.effect(),value,a.requiresAll(),a.requiresAny(),a.excludes(),a.characteristics(),a.conditions(),a.conditionMode(),a.conditionsRequired(),a.requiresCount(),a.toggleable());
     }
     private void action(String id, Skill skill, double xp, String counter) { actions.put(id,new Rule(skill,xp,counter)); }
-    private void ability(String id, Skill skill,int level,String counter,double amount,String parent,String effect,double value) {
+    public void ability(String id, Skill skill,int level,String counter,double amount,String parent,String effect,double value) {
         abilities.add(new Ability("faustcore:"+id,skill,level,counter,amount,parent.isEmpty()?"":"faustcore:"+parent,effect,value));
     }
     private static Map<String,Double> numbers(Object... pairs) {
@@ -417,7 +418,9 @@ public final class Balance {
     }
     private static String swappedConstitution(String id){return id.equals("faustcore:training_constitution_health")?"faustcore:training_constitution_stamina":id.equals("faustcore:training_constitution_stamina")?"faustcore:training_constitution_health":id;}
     public static Balance load(Path directory) throws IOException {
-        Files.createDirectories(directory); migrate(directory); migrateExhaustion(directory); migrateGrowth(directory); migrateStats(directory); migrateV12(directory); migrateEnvironment(directory); migrateV13(directory); migrateV14(directory); migrateV141(directory); migrateFatigueGrace(directory); migrateCakeFood(directory); migratePractice(directory); migrateConstitutionSwap(directory); migratePracticeLayout(directory); migratePanelUpdate(directory);
+        Files.createDirectories(directory);
+        if(!StaminaServices.present()&&!Files.exists(directory.resolve("abilities.json")))Files.writeString(directory.resolve(".without-stamina"),"1\n");
+        migrate(directory); migrateExhaustion(directory); migrateGrowth(directory); migrateStats(directory); migrateV12(directory); migrateEnvironment(directory); migrateV13(directory); migrateV14(directory); migrateV141(directory); migrateFatigueGrace(directory); migrateCakeFood(directory); migratePractice(directory); migrateConstitutionSwap(directory); migratePracticeLayout(directory); migratePanelUpdate(directory);
         Path windFile=directory.resolve("stamina.json");if(Files.exists(windFile)){var data=JSON.fromJson(Files.readString(windFile),com.google.gson.JsonObject.class);if(!data.has("secondWindMultiplier")){data.addProperty("secondWindMultiplier",1.5);Files.writeString(windFile,JSON.toJson(data)+"\n");}}
         Path skillsFile=directory.resolve("skills.json");if(Files.exists(skillsFile)){var data=JSON.fromJson(Files.readString(skillsFile),com.google.gson.JsonObject.class);if(!data.has("buildingReachMaximum")){data.addProperty("buildingReachMaximum",3);Files.writeString(skillsFile,JSON.toJson(data)+"\n");}}
         Balance result=new Balance();
@@ -426,10 +429,16 @@ public final class Balance {
                 if(java.lang.reflect.Modifier.isStatic(f.getModifiers())) continue;
                 Path file=directory.resolve(f.getName()+".json");
                 if(Files.exists(file)) f.set(result,JSON.fromJson(Files.readString(file),f.getGenericType()));
-                else if(!f.getName().equals("trees"))Files.writeString(file,JSON.toJson(f.get(result)) + "\n",StandardOpenOption.CREATE_NEW);
+                else if(!f.getName().equals("trees")){
+                    Object value=f.get(result);
+                    if(!StaminaServices.present()&&(f.getName().equals("stamina")||f.getName().equals("fatigue"))){var copy=new LinkedHashMap<Object,Object>((Map<?,?>)value);copy.put("enabled",1.0);value=copy;}
+                    Files.writeString(file,JSON.toJson(value)+"\n",StandardOpenOption.CREATE_NEW);
+                }
             }
         } catch(ReflectiveOperationException|RuntimeException e) { throw new IOException("Invalid core configuration",e); }
         if(!Files.exists(directory.resolve("trees.json"))){result.trees=SkillTrees.defaults(result.abilities);Files.writeString(directory.resolve("trees.json"),JSON.toJson(result.trees)+"\n");}
+        if(Files.exists(directory.resolve(".without-stamina")))StaminaServices.mechanics().prepare(result);
+        StaminaContent.withoutProvider(result);
         try {result.validate();} catch(RuntimeException e) {throw new IOException("Invalid core balance",e);}
         Files.writeString(directory.resolve(".balance-format"),"1.2\n");Files.writeString(directory.resolve(".format-1.3"),"1\n");Files.writeString(directory.resolve(".format-1.4"),"1\n");Files.writeString(directory.resolve(".format-1.4.1"),"1\n");Files.writeString(directory.resolve(".cake-format-1.5.2"),"1\n");
         return result;
@@ -444,7 +453,7 @@ public final class Balance {
     public Balance edited(String name,String text) {
         if(!groups().contains(name))throw new IllegalArgumentException("Unknown config section");
         var root=JSON.toJsonTree(this).getAsJsonObject();root.add(name,com.google.gson.JsonParser.parseString(text));
-        Balance result=JSON.fromJson(root,Balance.class);result.validate();return result;
+        Balance result=JSON.fromJson(root,Balance.class);StaminaContent.withoutProvider(result);result.validate();return result;
     }
     public static void saveGroup(Path directory,String name,String text) throws IOException {
         Balance candidate=load(directory).edited(name,text);

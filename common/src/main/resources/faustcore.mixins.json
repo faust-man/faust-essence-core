@@ -6,24 +6,18 @@
   "compatibilityLevel": "JAVA_21",
   "mixins": [
     "ServerPlayerMixin",
-    "GlisteringMelonMixin",
     "LivingEntityMixin",
     "PlayerMixin",
     "SwingMixin",
     "BowItemMixin",
     "CrossbowItemMixin",
-    "SleepMixin",
-    "ThrownItemMixin",
     "EnchantmentMenuMixin",
     "BrewingStandMixin",
     "PotionTooltipMixin"
   ],
   "client": [
     "ClientMixin",
-    "GuiMixin",
-    "InventoryScreenMixin",
-    "AirHudMixin",
-    "LocalPlayerMixin"
+    "InventoryScreenMixin"
   ],
   "server": [],
   "injectors": {

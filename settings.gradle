@@ -48,3 +48,6 @@ rootProject.name = 'core'
 include('common')
 include('fabric')
 include('neoforge')
+
+include('stamina')
+include('stamina-fabric')

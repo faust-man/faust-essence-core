@@ -1,4 +1,4 @@
-package com.faust.core.mixin;
+package com.faust.stamina.mixin;
 
 import com.faust.core.client.CoreClient;
 import net.minecraft.client.player.LocalPlayer;

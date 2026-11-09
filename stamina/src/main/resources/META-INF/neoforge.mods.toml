@@ -1,0 +1,21 @@
+modLoader="javafml"
+loaderVersion="[4,)"
+license="CC0-1.0 AND Apache-2.0"
+[[mods]]
+modId="fauststamina"
+version="${version}"
+displayName="Faust Stamina"
+[[dependencies.fauststamina]]
+modId="faustcore"
+type="required"
+versionRange="[1.6.0,)"
+ordering="AFTER"
+side="BOTH"
+[[dependencies.fauststamina]]
+modId="minecraft"
+type="required"
+versionRange="[1.21.1]"
+side="BOTH"
+
+[[mixins]]
+config="fauststamina.mixins.json"

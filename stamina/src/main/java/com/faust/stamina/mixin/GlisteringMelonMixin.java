@@ -1,4 +1,4 @@
-package com.faust.core.mixin;
+package com.faust.stamina.mixin;
 
 import com.faust.core.runtime.CoreRuntime;
 import net.minecraft.server.level.ServerPlayer;
@@ -17,15 +17,15 @@ public abstract class GlisteringMelonMixin {
     @Inject(method="use",at=@At("HEAD"),cancellable=true)
     private void core$use(Level level,Player player,InteractionHand hand,CallbackInfoReturnable<InteractionResultHolder<ItemStack>> ci){
         var stack=player.getItemInHand(hand);
-        if(stack.is(Items.GLISTERING_MELON_SLICE)){player.startUsingItem(hand);ci.setReturnValue(InteractionResultHolder.consume(stack));}
+        if(com.faust.core.progression.StaminaServices.present()&&stack.is(Items.GLISTERING_MELON_SLICE)){player.startUsingItem(hand);ci.setReturnValue(InteractionResultHolder.consume(stack));}
     }
     @Inject(method="getUseDuration",at=@At("HEAD"),cancellable=true)
-    private void core$duration(ItemStack stack,LivingEntity entity,CallbackInfoReturnable<Integer> ci){if(stack.is(Items.GLISTERING_MELON_SLICE))ci.setReturnValue(32);}
+    private void core$duration(ItemStack stack,LivingEntity entity,CallbackInfoReturnable<Integer> ci){if(com.faust.core.progression.StaminaServices.present()&&stack.is(Items.GLISTERING_MELON_SLICE))ci.setReturnValue(32);}
     @Inject(method="getUseAnimation",at=@At("HEAD"),cancellable=true)
-    private void core$animation(ItemStack stack,CallbackInfoReturnable<UseAnim> ci){if(stack.is(Items.GLISTERING_MELON_SLICE))ci.setReturnValue(UseAnim.EAT);}
+    private void core$animation(ItemStack stack,CallbackInfoReturnable<UseAnim> ci){if(com.faust.core.progression.StaminaServices.present()&&stack.is(Items.GLISTERING_MELON_SLICE))ci.setReturnValue(UseAnim.EAT);}
     @Inject(method="finishUsingItem",at=@At("HEAD"),cancellable=true)
     private void core$finish(ItemStack stack,Level level,LivingEntity entity,CallbackInfoReturnable<ItemStack> ci){
-        if(stack.is(Items.GLISTERING_MELON_SLICE)){
+        if(com.faust.core.progression.StaminaServices.present()&&stack.is(Items.GLISTERING_MELON_SLICE)){
             if(entity instanceof ServerPlayer player){CoreRuntime.food(player,stack);if(!player.isCreative())stack.shrink(1);}
             ci.setReturnValue(stack);
         }

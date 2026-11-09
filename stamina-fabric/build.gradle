@@ -1,0 +1,23 @@
+plugins { id 'java-library'; id 'fabric-loom' }
+version = rootProject.version
+group = 'com.faust.stamina'
+base.archivesName = 'fauststamina-fabric-1.21.1'
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+repositories {
+    mavenCentral()
+    maven { url='https://maven.parchmentmc.org/' }
+}
+dependencies {
+    minecraft "com.mojang:minecraft:${minecraft_version}"
+    mappings loom.layered {
+        officialMojangMappings()
+        parchment("org.parchmentmc.data:parchment-${parchment_minecraft}:${parchment_version}@zip")
+    }
+    modImplementation "net.fabricmc:fabric-loader:${fabric_loader_version}"
+    compileOnly(project(':common')) { capabilities { requireCapability 'com.faust.core:faustcore' } }
+}
+sourceSets.main.java { srcDir '../stamina/src/main/java'; exclude '**/StaminaMod.java' }
+sourceSets.main.resources { srcDir '../stamina/src/main/resources'; exclude 'META-INF/neoforge.mods.toml' }
+processResources { filesMatching('fabric.mod.json') { expand(version: project.version) } }
+
+loom { mixin { defaultRefmapName.set('fauststamina.refmap.json') } }

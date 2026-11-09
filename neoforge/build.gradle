@@ -42,3 +42,5 @@ neoForge {
 }
 
 sourceSets.main.resources { srcDir 'src/generated/resources' }
+
+if(project.hasProperty('withStamina')) dependencies { runtimeOnly project(':stamina') }

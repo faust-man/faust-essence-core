@@ -1,0 +1,20 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.faust.stamina.mixin",
+  "refmap": "fauststamina.refmap.json",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "SleepMixin",
+    "ThrownItemMixin",
+    "GlisteringMelonMixin"
+  ],
+  "client": [
+    "GuiMixin",
+    "AirHudMixin",
+    "LocalPlayerMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

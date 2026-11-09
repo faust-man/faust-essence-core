@@ -1,0 +1,14 @@
+plugins { id 'java-library' }
+version = rootProject.version
+group = 'com.faust.stamina'
+base.archivesName = 'fauststamina-neoforge-1.21.1'
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+dependencies { compileOnly(project(':common')) { capabilities { requireCapability 'com.faust.core:faustcore' } } }
+// Only the NeoForge entrypoint annotation is needed; the model has no loader dependencies.
+sourceSets.main.compileClasspath += project(':neoforge').sourceSets.main.compileClasspath
+processResources { filesMatching(['fabric.mod.json','META-INF/neoforge.mods.toml']) { expand(version: project.version) } }
+
+
+sourceSets.main.compileClasspath += project(':common').sourceSets.main.compileClasspath
+
+sourceSets.main.resources.exclude 'fabric.mod.json'

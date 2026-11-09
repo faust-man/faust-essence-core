@@ -1,6 +1,6 @@
 package com.faust.core.progression;
 
-import com.faust.core.client.StaminaSprites;
+import com.faust.stamina.client.StaminaSprites;
 import javax.imageio.ImageIO;
 
 public final class StaminaSpritesTest {

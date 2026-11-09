@@ -1,3 +1,21 @@
+## Optional Faust Stamina (1.6.0)
+
+`StaminaServices` discovers the optional `StaminaMechanics` implementation via
+ServiceLoader. The provider owns resource calculations, server simulation and
+stamina ability defaults. Core retains persistent fields and delegating API
+methods for save/API compatibility. `StaminaClient` is discovered only on the
+client; HUD, textures and resource-only mixins ship in the addon. No client
+provider is loaded on a dedicated server.
+
+Without the provider, resource operations are inert and old saved values are
+retained. `StaminaContent` filters resource nodes/stat bonuses and detaches
+prerequisites on the live Balance; disk configs are retained. With the provider,
+missing resource defaults are added in memory when loading configurations created
+without it. IDs retain the faustcore namespace to keep player unlocks and layouts.
+Both loader artifacts are built from stamina sources; Fabric references are
+remapped by Loom in stamina-fabric. Existing stamina/fatigue settings remain at
+their legacy paths. Other core progression and abilities remain independent.
+
 ## Учёт практики, потенциал и Телосложение
 
 Счётчики условий учитываются отдельно для каждого навыка. Пока не изучены его
