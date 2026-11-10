@@ -48,7 +48,7 @@ public final class CoreScreen extends Screen {
         if(p==null||b==null)center(g,Component.translatable("core.syncing"),x+panelWidth()/2,y+70,0x505050);
         else if(selected==null){
             center(g,minecraft.player==null?title:minecraft.player.getName(),x+panelWidth()/2,y+7,0x505050);
-            center(g,Component.translatable("core.levels",CoreClient.experience),x+panelWidth()/2,y+19,0x505050);
+            center(g,Component.translatable("core.player_level",p.totalLevel()),x+panelWidth()/2,y+19,0x505050);
             int i=0;for(Skill skill:skills()){
                 if(i>=6)break;int cx=x+8+(i%2)*82,cy=y+37+(i/2)*33;i++;
                 g.fill(cx,cy,cx+78,cy+29,0xFF222222);g.fill(cx+1,cy+1,cx+77,cy+28,0xFF3C3C3C);
@@ -128,7 +128,13 @@ public final class CoreScreen extends Screen {
             }
         }else {
             if(a.effect().equals("second_wind"))lines.add(Component.translatable("core.second_wind.rate",number(b.stamina.get("secondWindMultiplier")*100),number(b.stamina.get("runCost")*b.stamina.get("secondWindMultiplier"))));
-            else lines.add(Component.translatable("core.effect."+(a.id().equals("faustcore:bow_efficiency")?"bow_cost_reduction_first":a.effect()),number(a.value()*(Set.of("damage","speed","breaking","shield_durability","shield_recovery","fall_damage_reduction","exhaustion_threshold_reduction").contains(a.effect())?100:1))));
+            else {
+                String key="core.effect."+(a.id().equals("faustcore:bow_efficiency")?"bow_cost_reduction_first":a.effect());
+                if(net.minecraft.client.resources.language.I18n.exists(key)){
+                    var description=Component.translatable(key,number(a.value()*(Set.of("damage","speed","breaking","shield_durability","shield_recovery","fall_damage_reduction","exhaustion_threshold_reduction").contains(a.effect())?100:1)));
+                    if(!description.getString().isBlank())lines.add(description);
+                }
+            }
             if(a.effect().equals("exhaustion_threshold_reduction"))lines.add(Component.translatable("core.recovery_threshold",number(b.stamina.get("exhaustionRecovery")*(1-a.value()))));
         }
         return lines;

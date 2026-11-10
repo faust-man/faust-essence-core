@@ -19,6 +19,8 @@ public final class Progress {
     public static final class Track { public int level; public double xp, threshold; public Integer limitOverride; public long purchases; }
     public Progress() {for(Skill s:Skill.values()) tracks.put(s,new Track());}
     public Track track(Skill skill) {return tracks.computeIfAbsent(skill,k->new Track());}
+    /** Sum of characteristic levels, including registered addon characteristics. */
+    public long totalLevel(){return tracks.values().stream().mapToLong(t->t.level).sum();}
     /** Administrative full unlock; existing higher levels and XP are retained. */
     public void max(Balance b){
         max(b,null,20);

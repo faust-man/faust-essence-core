@@ -166,5 +166,6 @@
   "core.ability.cushioned_landing": "Cushioned landing",
   "core.effect.fall_damage_reduction": "Fall damage: −%s%%.",
   "core.effect.bow_cost_reduction_first": "Bow shot cost: −%s stamina.",
-  "core.counter.skill_levels": "Gain skill levels"
+  "core.counter.skill_levels": "Gain skill levels",
+  "core.player_level": "Level: %s"
 }

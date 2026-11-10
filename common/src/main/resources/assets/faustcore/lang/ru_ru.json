@@ -166,5 +166,6 @@
   "core.ability.cushioned_landing": "Амортизация",
   "core.effect.fall_damage_reduction": "Урон от падения: −%s%%.",
   "core.effect.bow_cost_reduction_first": "Стоимость выстрела из лука: −%s ед.",
-  "core.counter.skill_levels": "Набрать уровни в навыках"
+  "core.counter.skill_levels": "Набрать уровни в навыках",
+  "core.player_level": "Уровень: %s"
 }

@@ -3,6 +3,10 @@ import java.nio.file.*;
 public final class PanelUpdateTest {
     private static void check(boolean ok,String message){if(!ok)throw new AssertionError(message);}
     public static void run() throws Exception {
+        var levels=new Progress();check(levels.totalLevel()==0,"new player level0");
+        levels.track(Skill.strength).level=7;levels.track(Skill.dexterity).level=3;check(levels.totalLevel()==10,"sum characteristic levels");
+        levels.track(Skill.strength).xp=9999;levels.unlocked.add("example:ability");check(levels.totalLevel()==10,"XP and unlocked nodes do not change level");
+        check(Progress.parse(levels.json()).totalLevel()==10,"level survives save");
         Balance b=new Balance();Progress p=new Progress();p.max(b);p.stamina=3;
         for(boolean air:new boolean[]{false,true})for(boolean ready:new boolean[]{false,true}){
             p.recover(10,false,false,ready,false,false,air,true,b);
