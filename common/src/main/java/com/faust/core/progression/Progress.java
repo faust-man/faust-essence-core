@@ -21,9 +21,14 @@ public final class Progress {
     public Track track(Skill skill) {return tracks.computeIfAbsent(skill,k->new Track());}
     /** Administrative full unlock; existing higher levels and XP are retained. */
     public void max(Balance b){
-        for(var skill:Skill.values()){var t=track(skill);t.level=Math.max(20,t.level);t.limitOverride=20;reconcile(skill,b);}
-        for(var a:b.abilities)unlocked.add(a.id());
-        disabled.clear();revision++;
+        max(b,null,20);
+    }
+    /** Raises tracks and grants only abilities within the requested characteristic levels. */
+    public void max(Balance b,Skill selected,int level){
+        if(level<0||level>20)throw new IllegalArgumentException("Invalid level");
+        for(var skill:Skill.values())if(selected==null||selected==skill){var t=track(skill);t.level=Math.max(level,t.level);t.limitOverride=Math.max(level,(int)cap(skill,b));reconcile(skill,b);}
+        for(var a:b.abilities)if((selected==null||a.skill()==selected)&&a.skillRequirements().stream().allMatch(r->r.level()<=level&&track(r.skill()).level>=r.level())){unlocked.add(a.id());disabled.remove(a.id());}
+        revision++;
     }
     public double needed(Skill skill,Balance b) {return b.progression.get("levelBase")+b.progression.get("levelSlope")*track(skill).level;}
     public double cap(Skill skill,Balance b) {return Math.min(b.progression.get("maximumCap"),track(skill).limitOverride!=null?track(skill).limitOverride:b.progression.get("initialCap")+b.progression.get("capStep")*track(skill).purchases);}

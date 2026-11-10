@@ -46,6 +46,7 @@ public final class Balance {
         public Ability {
             toggleable=toggleable==null?Boolean.TRUE:toggleable;
             if(counter==null&&conditions!=null&&!conditions.isEmpty())counter="";
+            if(amount==0&&(counter==null||counter.isEmpty()||counter.equals("hits")))counter="skill_levels";
             if(parent==null)parent="";
             characteristics=characteristics==null?List.of():List.copyOf(characteristics);
             if(!characteristics.isEmpty())skill=characteristics.getFirst().skill();

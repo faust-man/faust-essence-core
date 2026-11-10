@@ -1,5 +1,5 @@
 {
-  "core.command.help": "/core status — progress; /core cap <skill> — buy +1 limit; /core unlock <ability> — unlock; /core path <id> — choose a path. Open Skills from the inventory tab or your configured key., /core toggle <ability>",
+  "core.command.help": "/essence status — progress; /essence cap <skill> — buy +1 limit; /essence unlock <ability> — unlock; /essence path <id> — choose a path. Open Skills from the inventory tab or your configured key., /essence toggle <ability>",
   "core.action.ok": "Done.",
   "core.action.denied": "Requirements not met or insufficient experience.",
   "core.reload.ok": "Faust Essence configuration reloaded.",
@@ -58,7 +58,7 @@
   "core.insufficient_levels": "Not enough vanilla experience levels.",
   "core.unknown_skill": "Unknown skill. Use Tab for suggestions.",
   "core.unknown_ability": "Unknown ability. Use Tab for suggestions.",
-  "core.command.admin_help": "Admin: /core status <players>; /core skill set|add|xp <players> <skill> <value>; /core cap set <players> <skill> <0..20>; /core ability grant|revoke <players> <ability>; /core stamina fill|set <players> [amount]; /core fatigue clear|set <players> [amount]; /core reset <players>; /core reload., /core max <players>",
+  "core.command.admin_help": "Admin: /essence status <players>; /essence skill set|add|xp <players> <skill> <value>; /essence cap set <players> <skill> <0..20>; /essence ability grant|revoke <players> <ability>; /essence stamina fill|set <players> [amount]; /essence fatigue clear|set <players> [amount]; /essence reset <players>; /essence reload., /essence max <players>",
   "core.command.updated": "Updated %s player(s).",
   "core.short.strength": "STR",
   "core.short.constitution": "CON",
@@ -165,5 +165,6 @@
   "core.ability.click_enable": "Click to enable",
   "core.ability.cushioned_landing": "Cushioned landing",
   "core.effect.fall_damage_reduction": "Fall damage: −%s%%.",
-  "core.effect.bow_cost_reduction_first": "Bow shot cost: −%s stamina."
+  "core.effect.bow_cost_reduction_first": "Bow shot cost: −%s stamina.",
+  "core.counter.skill_levels": "Gain skill levels"
 }

@@ -35,7 +35,7 @@ public final class CoreScreen extends Screen {
     private static Component abilityName(Balance.Ability ability){return Component.translatableWithFallback("core.ability."+ability.id().split(":")[1],ability.id());}
     private static Balance.Ability ability(Balance b,String id){return b.abilities.stream().filter(a->a.id().equals(id)).findFirst().orElseThrow();}
     private static ItemStack icon(String id){var item=BuiltInRegistries.ITEM.get(ResourceLocation.parse(id));return new ItemStack(item==Items.AIR?Items.BARRIER:item);}
-    private void command(String text){if(minecraft!=null&&minecraft.getConnection()!=null)minecraft.getConnection().sendCommand(text.replaceFirst("core ","core panel "));}
+    private void command(String text){if(minecraft!=null&&minecraft.getConnection()!=null)minecraft.getConnection().sendCommand(text.replaceFirst("essence ","essence panel "));}
     private boolean insideView(double mx,double my){return PanelTabs.inside(mx,my,x()+VIEW_X,y()+VIEW_Y,viewWidth(),viewHeight());}
     private List<SkillTrees.Node> nodes(){var b=CoreClient.balance;var nodes=SkillTrees.nodes(b,selected).stream().filter(n->TreeGroups.contains(b,treeGroup,n.ability())).toList();if(view==null||viewed!=b){view=new TreeView(nodes,viewWidth(),viewHeight());viewed=b;}return nodes;}
     private SkillTrees.Node hovered(double mx,double my){if(!insideView(mx,my))return null;var nodes=nodes();for(int i=nodes.size()-1;i>=0;i--)if(view.hit(nodes.get(i),mx-x()-VIEW_X,my-y()-VIEW_Y))return nodes.get(i);return null;}
@@ -71,7 +71,7 @@ public final class CoreScreen extends Screen {
                     if(a.skillRequirements().size()>1)lines.add(Component.translatable("core.tree.multiple"));
                     for(var r:a.skillRequirements())lines.add(Component.translatable("core.tree.level",skillName(r.skill()),r.level()));
                     if(a.actionConditions().size()>1)lines.add(Component.translatable(a.conditionMode().equals("all")?"core.tree.conditions_all":"core.tree.conditions_count",a.requiredConditions(),a.actionConditions().size()));
-                    for(var c:a.actionConditions())lines.add(Component.translatable("core.tree.condition",number(p.conditionCount(a,c)),number(c.amount()),Component.translatable("core.counter."+c.counter())));
+                    for(var c:a.actionConditions())if(c.counter().equals("skill_levels"))lines.add(Component.translatable("core.counter.skill_levels"));else lines.add(Component.translatable("core.tree.condition",number(p.conditionCount(a,c)),number(c.amount()),Component.translatable("core.counter."+c.counter())));
                     if(!a.all().isEmpty())lines.add(dependencyText(a.all().size()==1?"core.tree.one":"core.tree.all",a.all(),b));
                     if(!a.requiresAny().isEmpty())lines.add(Component.translatable("core.tree.parents_count",a.requiredParents(),dependencyText("core.tree.any",a.requiresAny(),b)));
                     var excluded=b.abilities.stream().filter(other->SkillTrees.exclusive(a,other)).map(Balance.Ability::id).toList();
@@ -146,8 +146,8 @@ public final class CoreScreen extends Screen {
         else{
             if(PanelTabs.inside(mx,my,x()+panelWidth()-19,y()+5,14,14)){expanded=!expanded;view=null;dragging=false;return true;}
             if(PanelTabs.inside(mx,my,x()+8,y()+panelHeight()-19,43,14)){selected=null;expanded=false;view=null;return true;}
-            if(PanelTabs.inside(mx,my,x()+55,y()+panelHeight()-19,113,14)){command("core cap "+selected);return true;}
-            var node=hovered(mx,my);if(node!=null){var a=ability(CoreClient.balance,node.ability());if(CoreClient.progress.unlocked.contains(a.id())){if(a.toggleable())command("core toggle "+a.id());}else if(CoreClient.progress.canUnlock(a,CoreClient.balance))command("core unlock "+a.id());return true;}
+            if(PanelTabs.inside(mx,my,x()+55,y()+panelHeight()-19,113,14)){command("essence cap "+selected);return true;}
+            var node=hovered(mx,my);if(node!=null){var a=ability(CoreClient.balance,node.ability());if(CoreClient.progress.unlocked.contains(a.id())){if(a.toggleable())command("essence toggle "+a.id());}else if(CoreClient.progress.canUnlock(a,CoreClient.balance))command("essence unlock "+a.id());return true;}
             if(insideView(mx,my)){dragging=true;return true;}
         }
         return super.mouseClicked(mx,my,button);

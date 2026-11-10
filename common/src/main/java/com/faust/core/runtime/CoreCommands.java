@@ -27,12 +27,16 @@ public final class CoreCommands {
         return argument("ability",ResourceLocationArgument.id()).suggests((ctx,b)->SharedSuggestionProvider.suggest(CoreRuntime.balance.abilities.stream().map(Balance.Ability::id),b));
     }
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
-        var root=literal("core").executes(CoreCommands::help);
+        var root=literal("essence").executes(CoreCommands::help);
         root.then(literal("help").executes(CoreCommands::help));
-        root.then(literal("max").requires(source->source.hasPermission(2)).then(argument("player",EntityArgument.players()).executes(ctx->{
-            var targets=EntityArgument.getPlayers(ctx,"player");for(var player:targets){CoreRuntime.data(player).max(CoreRuntime.balance);CoreRuntime.refresh(player);}
-            ctx.getSource().sendSuccess(()->Component.translatable("core.command.updated",targets.size()),true);return targets.size();
-        })));
+        var max=literal("max").requires(source->source.hasPermission(2));
+        max.executes(ctx->maximize(ctx,null,false,20)).then(maxPlayers(null));
+        max.then(literal("all").executes(ctx->maximize(ctx,null,false,20)).then(maxPlayers(null)));
+        for(var stat:Skill.values()){
+            max.then(literal(stat.name()).executes(ctx->maximize(ctx,stat,false,20)).then(maxPlayers(stat)));
+            if(stat.name().equals("defense"))max.then(literal("defence").executes(ctx->maximize(ctx,stat,false,20)).then(maxPlayers(stat)));
+        }
+        root.then(max);
         root.then(literal("status").executes(ctx->{ctx.getSource().sendSuccess(()->CommandSupport.status(ctx.getSource().getPlayer()),false);return 1;})
             .then(argument("targets",EntityArgument.players()).requires(s->s.hasPermission(2)).executes(ctx->{var targets=EntityArgument.getPlayers(ctx,"targets");for(var p:targets)ctx.getSource().sendSuccess(()->CommandSupport.status(p),false);return targets.size();})));
         var cap=literal("cap");
@@ -64,6 +68,15 @@ public final class CoreCommands {
         root.then(literal("reload").requires(s->s.hasPermission(2)).executes(ctx->{try{CoreRuntime.reload(ctx.getSource().getServer());return reply(ctx,"core.reload.ok",true);}catch(RuntimeException e){ctx.getSource().sendFailure(Component.literal(e.getMessage()));return 0;}}));
         root.then(literal("panel").redirect(root.build(),ctx->ctx.getSource().withSuppressedOutput()));
         dispatcher.register(root);
+    }
+    private static com.mojang.brigadier.builder.RequiredArgumentBuilder<CommandSourceStack,net.minecraft.commands.arguments.selector.EntitySelector> maxPlayers(Skill stat){
+        return argument("player",EntityArgument.players()).executes(ctx->maximize(ctx,stat,true,20))
+            .then(argument("number",IntegerArgumentType.integer(0,20)).executes(ctx->maximize(ctx,stat,true,IntegerArgumentType.getInteger(ctx,"number"))));
+    }
+    private static int maximize(CommandContext<CommandSourceStack> ctx,Skill stat,boolean explicit,int level) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+        Collection<ServerPlayer> targets=explicit?EntityArgument.getPlayers(ctx,"player"):List.of(ctx.getSource().getPlayerOrException());
+        for(var player:targets){CoreRuntime.data(player).max(CoreRuntime.balance,stat,level);CoreRuntime.refresh(player);}
+        ctx.getSource().sendSuccess(()->Component.translatable("core.command.updated",targets.size()),true);return targets.size();
     }
     private static int help(CommandContext<CommandSourceStack> ctx) {
         ctx.getSource().sendSuccess(()->Component.translatable("core.command.help"),false);

@@ -1,5 +1,5 @@
 {
-  "core.command.help": "/core status — прогресс; /core cap <навык> — купить +1 к пределу; /core unlock <способность> — открыть; /core path <ID> — выбрать путь. Панель открывается вкладкой в инвентаре или назначенной клавишей., /core toggle <ability>",
+  "core.command.help": "/essence status — прогресс; /essence cap <навык> — купить +1 к пределу; /essence unlock <способность> — открыть; /essence path <ID> — выбрать путь. Панель открывается вкладкой в инвентаре или назначенной клавишей., /essence toggle <ability>",
   "core.action.ok": "Готово.",
   "core.action.denied": "Не выполнены требования или недостаточно опыта.",
   "core.reload.ok": "Конфигурация Faust Essence перезагружена.",
@@ -58,7 +58,7 @@
   "core.insufficient_levels": "Недостаточно ванильных уровней опыта.",
   "core.unknown_skill": "Неизвестный навык. Используйте подсказки Tab.",
   "core.unknown_ability": "Неизвестная способность. Используйте подсказки Tab.",
-  "core.command.admin_help": "Администратор: /core status <игроки>; /core skill set|add|xp <игроки> <навык> <значение>; /core cap set <игроки> <навык> <0..20>; /core ability grant|revoke <игроки> <способность>; /core stamina fill|set <игроки> [число]; /core fatigue clear|set <игроки> [число]; /core reset <игроки>; /core reload., /core max <игроки>",
+  "core.command.admin_help": "Администратор: /essence status <игроки>; /essence skill set|add|xp <игроки> <навык> <значение>; /essence cap set <игроки> <навык> <0..20>; /essence ability grant|revoke <игроки> <способность>; /essence stamina fill|set <игроки> [число]; /essence fatigue clear|set <игроки> [число]; /essence reset <игроки>; /essence reload., /essence max <игроки>",
   "core.command.updated": "Обновлены данные игроков: %s.",
   "core.short.strength": "СИЛ",
   "core.short.constitution": "ТЕЛ",
@@ -165,5 +165,6 @@
   "core.ability.click_enable": "Нажмите, чтобы включить",
   "core.ability.cushioned_landing": "Амортизация",
   "core.effect.fall_damage_reduction": "Урон от падения: −%s%%.",
-  "core.effect.bow_cost_reduction_first": "Стоимость выстрела из лука: −%s ед."
+  "core.effect.bow_cost_reduction_first": "Стоимость выстрела из лука: −%s ед.",
+  "core.counter.skill_levels": "Набрать уровни в навыках"
 }
