@@ -27,3 +27,5 @@ jar { from(rootProject.file('LICENSE')) }
 processResources { filesMatching('fabric.mod.json') { expand(version: project.version) } }
 
 loom { mixin { defaultRefmapName.set('fauststamina.refmap.json') } }
+
+sourceSets.main.compileClasspath += project(':fabric').sourceSets.main.compileClasspath

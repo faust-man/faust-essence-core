@@ -27,8 +27,8 @@ public final class StaminaBoundaryTest {
             check(loaded.stamina.get("enabled")==1,"new standalone config retains enabled default for future install");
             check(loaded.abilities.stream().filter(a->a.id().equals("faustcore:training_constitution_health")).allMatch(a->a.parent().equals("faustcore:training_constitution_stamina")),"installed module restores original health chain");
         }
-        String before=Files.readString(dir.resolve("stamina.json"));
-        Balance.load(dir);check(before.equals(Files.readString(dir.resolve("stamina.json"))),"reload does not rewrite persisted resource settings");
+        String before=Files.readString(Balance.sectionFile(dir,"stamina"));
+        Balance.load(dir);check(before.equals(Files.readString(Balance.sectionFile(dir,"stamina"))),"reload does not rewrite persisted resource settings");
         System.out.println("Stamina boundary passed: provider="+expected);
     }
 }

@@ -20,7 +20,7 @@ public final class CoreClient {
  public static void reset(){progress=null;balance=null;STAMINA.reset();}
 
  public static boolean canSprint(Object entity){var mc=Minecraft.getInstance();return entity!=mc.player||mc.player==null||mc.player.isCreative()||mc.player.isSpectator()||progress==null||balance==null||!progress.actionsBlocked(balance);}
- static {com.faust.core.runtime.ClientActions.sprintAllowed=CoreClient::canSprint;com.faust.core.runtime.ClientActions.jumpAllowed=()->{var mc=Minecraft.getInstance();if(mc.player==null||mc.player.isCreative()||mc.player.isSpectator()||balance==null||progress==null||balance.stamina.get("enabled")==0)return true;if(progress.actionsBlocked(balance)){mc.player.setSprinting(false);return true;}return !mc.player.isSprinting()||progress.stamina>=balance.stamina.get("sprintJumpCost")+weight*balance.stamina.get("jumpArmorCost");};}
+ static {com.faust.core.runtime.ClientActions.sprintAllowed=CoreClient::canSprint;com.faust.core.runtime.ClientActions.jumpAllowed=()->{var mc=Minecraft.getInstance();if(mc.player==null||mc.player.isCreative()||mc.player.isSpectator()||balance==null||progress==null||balance.stamina.get("enabled")==0)return true;if(progress.actionsBlocked(balance)){mc.player.setSprinting(false);return weight<=progress.capacity(balance);}return !mc.player.isSprinting()||progress.stamina>=balance.stamina.get("sprintJumpCost")+weight*balance.stamina.get("jumpArmorCost");};}
  public static void tick() {
   Minecraft mc=Minecraft.getInstance();if(mc.player==null||balance==null)return;
   if(balance.stamina.get("enabled")>0&&progress!=null&&progress.actionsBlocked(balance))mc.player.setSprinting(false);

@@ -19,11 +19,18 @@ public final class Progress {
     public static final class Track { public int level; public double xp, threshold; public Integer limitOverride; public long purchases; }
     public Progress() {for(Skill s:Skill.values()) tracks.put(s,new Track());}
     public Track track(Skill skill) {return tracks.computeIfAbsent(skill,k->new Track());}
+    /** Sum of characteristic levels, including registered addon characteristics. */
+    public long totalLevel(){return tracks.values().stream().mapToLong(t->t.level).sum();}
     /** Administrative full unlock; existing higher levels and XP are retained. */
     public void max(Balance b){
-        for(var skill:Skill.values()){var t=track(skill);t.level=Math.max(20,t.level);t.limitOverride=20;reconcile(skill,b);}
-        for(var a:b.abilities)unlocked.add(a.id());
-        disabled.clear();revision++;
+        max(b,null,20);
+    }
+    /** Raises tracks and grants only abilities within the requested characteristic levels. */
+    public void max(Balance b,Skill selected,int level){
+        if(level<0||level>20)throw new IllegalArgumentException("Invalid level");
+        for(var skill:Skill.values())if(selected==null||selected==skill){var t=track(skill);t.level=Math.max(level,t.level);t.limitOverride=Math.max(level,(int)cap(skill,b));reconcile(skill,b);}
+        for(var a:b.abilities)if((selected==null||a.skill()==selected)&&a.skillRequirements().stream().allMatch(r->r.level()<=level&&track(r.skill()).level>=r.level())){unlocked.add(a.id());disabled.remove(a.id());}
+        revision++;
     }
     public double needed(Skill skill,Balance b) {return b.progression.get("levelBase")+b.progression.get("levelSlope")*track(skill).level;}
     public double cap(Skill skill,Balance b) {return Math.min(b.progression.get("maximumCap"),track(skill).limitOverride!=null?track(skill).limitOverride:b.progression.get("initialCap")+b.progression.get("capStep")*track(skill).purchases);}
@@ -72,7 +79,7 @@ public final class Progress {
     public double conditionCount(Balance.Condition c){return Math.max(0,Math.min(c.amount(),counters.getOrDefault(c.counter(),0.0)));}
     public double conditionCount(Balance.Ability a,Balance.Condition c){if(!prerequisites(a))return 0;var values=practice.get(a.id());return Math.max(0,Math.min(c.amount(),(values==null?counters:values).getOrDefault(c.counter(),0.0)));}
     public long completedConditions(Balance.Ability a){return a.actionConditions().stream().filter(c->conditionCount(a,c)>=c.amount()).count();}
-    public double requirementProgress(Balance.Ability a){return a.actionConditions().stream().mapToDouble(c->c.amount()<=0?1:conditionCount(a,c)/c.amount()).boxed().sorted(java.util.Comparator.reverseOrder()).limit(a.requiredConditions()).mapToDouble(Double::doubleValue).sum()/a.requiredConditions();}
+    public double requirementProgress(Balance.Ability a){return a.actionConditions().stream().mapToDouble(c->c.amount()<=0?(a.skillRequirements().stream().allMatch(r->track(r.skill()).level>=r.level())?1:0):conditionCount(a,c)/c.amount()).boxed().sorted(java.util.Comparator.reverseOrder()).limit(a.requiredConditions()).mapToDouble(Double::doubleValue).sum()/a.requiredConditions();}
     public boolean excluded(Balance.Ability a,Balance b){return a.excludes().stream().anyMatch(unlocked::contains)||b.abilities.stream().anyMatch(other->unlocked.contains(other.id())&&other.excludes().contains(a.id()));}
     public boolean prerequisites(Balance.Ability a){return unlocked.containsAll(a.all())&&(a.requiresAny().stream().filter(unlocked::contains).count()>=a.requiredParents());}
     public boolean canUnlock(Balance.Ability a,Balance b){return !unlocked.contains(a.id())&&!excluded(a,b)&&a.skillRequirements().stream().allMatch(r->track(r.skill()).level>=r.level())&&completedConditions(a)>=a.requiredConditions()&&prerequisites(a);}

@@ -22,7 +22,7 @@ public final class PracticeTest {
         for(int level=0;level<=20;level++){
             p.track(Skill.intelligence).level=level;p.track(Skill.dexterity).level=level;
             check(PracticeBonuses.shelves(p,b)==(level/5)*15/8,"shelf boundary "+level);
-            check(Math.abs(PracticeBonuses.duration(p,b)-(1+level*0.01))<1e-8,"duration "+level);
+            check(Math.abs(PracticeBonuses.duration(p,b)-(1+level*0.02))<1e-8,"duration "+level);
             check(SkillEffects.attribute(p,b,"minecraft:generic.safe_fall_distance",false)==0,"fall locked");
             p.unlocked.add("faustcore:soft_landing");
             check(SkillEffects.attribute(p,b,"minecraft:generic.safe_fall_distance",false)==level/5,"fall boundary "+level);
@@ -75,7 +75,7 @@ public final class PracticeTest {
             var abilities=b.abilities.stream().filter(a->!java.util.Set.of("faustcore:soft_landing","faustcore:enchanting_power","faustcore:potion_duration").contains(a.id())).toList();
             Files.writeString(dir.resolve("abilities.json"),Balance.JSON.toJson(abilities));
             var stats=b.statBonuses.stream().filter(r->!r.id.equals("dexterity_safe_fall")).toList();Files.writeString(dir.resolve("statBonuses.json"),Balance.JSON.toJson(stats));
-            var stamina=new java.util.LinkedHashMap<>(b.stamina);stamina.remove("throwCost");Files.writeString(dir.resolve("stamina.json"),Balance.JSON.toJson(stamina));
+            var stamina=new java.util.LinkedHashMap<>(b.stamina);stamina.remove("throwCost");Files.writeString(Balance.sectionFile(dir,"stamina"),Balance.JSON.toJson(stamina));
             Balance migrated=Balance.load(dir);check(!migrated.actions.containsKey("structure"),"migration removes structures");check(migrated.actions.get("craft").skill()==Skill.intelligence&&migrated.actions.get("craft").xp()==3,"migration retains craft XP");check(migrated.abilities.size()==b.abilities.size(),"new abilities migrate");check(migrated.statBonuses.size()==b.statBonuses.size(),"fall stat migrates");
             check(Balance.load(dir).abilities.size()==b.abilities.size(),"idempotent migration");check(Files.exists(dir.resolve("migration-practice/actions.json")),"backup");
         } finally {try(var files=Files.walk(dir)){for(var file:files.sorted(java.util.Comparator.reverseOrder()).toList())Files.delete(file);}}

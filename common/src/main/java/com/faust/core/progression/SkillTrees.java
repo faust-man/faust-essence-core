@@ -19,10 +19,10 @@ public final class SkillTrees {
                     case "enchanting_power" -> new double[]{-104,0};
                     case "crossbow_efficiency","bow_efficiency","second_wind" -> new double[]{52,0};
                     case "mace_efficiency","training_dexterity_attack","training_constitution_health","training_building_reach" -> new double[]{0,40};
-                    case "bow_mastery","resilient_recovery","shield_efficiency" -> new double[]{52,40};
+                    case "bow_mastery","resilient_recovery","shield_care" -> new double[]{52,40};
                     case "armor_mastery" -> new double[]{-26,40};
                     case "training_defense_armor" -> new double[]{26,40};
-                    case "shield_care" -> new double[]{78,0};
+                    case "shield_efficiency" -> new double[]{78,0};
                     case "shield_recovery" -> new double[]{104,40};
                     default -> new double[]{0,nodes.isEmpty()?0:80+nodes.size()*36};
                 };
