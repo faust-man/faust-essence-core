@@ -37,7 +37,7 @@ public final class PanelUpdateTest {
         check(TreeGroups.groups(b).equals(java.util.List.of("faustcore")),"additional namespace configurable");
         check(TreeGroups.contains(Balance.JSON.fromJson(Balance.JSON.toJson(b),Balance.class),"faustcore","panel_test:node"),"snapshot preserves merge policy");
         Path dir=Files.createTempDirectory("core-panel-update");Balance.load(dir);Files.delete(dir.resolve(".panel-update-format"));
-        Path foods=dir.resolve("sweetFoods.json");var json=com.google.gson.JsonParser.parseString(Files.readString(foods)).getAsJsonObject();json.addProperty("minecraft:golden_apple",7);json.remove("minecraft:golden_carrot");Files.writeString(foods,Balance.JSON.toJson(json));
+        Path foods=Balance.sectionFile(dir,"sweetFoods");var json=com.google.gson.JsonParser.parseString(Files.readString(foods)).getAsJsonObject();json.addProperty("minecraft:golden_apple",7);json.remove("minecraft:golden_carrot");Files.writeString(foods,Balance.JSON.toJson(json));
         var loaded=Balance.load(dir);check(loaded.sweetFoods.get("minecraft:golden_apple")==7,"custom food preserved");check(loaded.sweetFoods.get("minecraft:golden_carrot")==3,"missing food migrated");
         check(Balance.load(dir).abilities.size()==loaded.abilities.size(),"migration idempotent");
         check(Files.exists(dir.resolve("integratedTreeNamespaces.json")),"new config created for existing installations");

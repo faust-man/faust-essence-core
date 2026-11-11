@@ -81,7 +81,8 @@ public final class CoreRuntime {
                 double metres=Math.min(amount/100.0,Math.max(0,balance.skills.get("runMetresPerMinute")-s.run));s.run+=metres;
                 grant(player,"run",metres,metres);
                 grant(player,"constitution_run",metres,metres);
-                if(weight(player)>0) grant(player,"armor_run",metres,metres);
+                if(trainsArmor(player)) grant(player,"armor_run",metres,metres);
+            } else if(key.equals(Stats.JUMP)&&player.isSprinting()) {grant(player,"run",1,1);
             } else if(key.equals(Stats.SWIM_ONE_CM)&&player.isSwimming()&&!player.isPassenger()) {
                 double metres=Math.min(amount/100.0,Math.max(0,balance.skills.get("swimMetresPerMinute")-s.swim));s.swim+=metres;
                 grant(player,"constitution_swim",metres*balance.skills.get("constitutionSwimMultiplier"),metres);
@@ -110,8 +111,9 @@ public final class CoreRuntime {
         data.spend(cost,balance,worldAge(player));s.lastSpent=player.tickCount;s.attackTick=player.tickCount;s.paidSwing=!air;return true;
     }
     public static boolean pay(ServerPlayer player,double cost){if(player.isCreative()||player.isSpectator()||balance.stamina.get("enabled")==0)return true;var p=data(player);if(p.actionsBlocked(balance))return false;p.spend(cost,balance,worldAge(player));if(cost>0)session(player).lastSpent=player.tickCount;return true;}
-    public static boolean shieldPayment(ServerPlayer player){return pay(player,Math.max(0,1-Math.min(0.5,data(player).effect("shield_cost_reduction",balance))));}
-    public static boolean jump(ServerPlayer player){if(!active(player)||balance.stamina.get("enabled")==0)return true;if(data(player).actionsBlocked(balance)){player.setSprinting(false);return true;}return !player.isSprinting()||pay(player,balance.stamina.get("sprintJumpCost")+weight(player)*balance.stamina.get("jumpArmorCost"));}
+    public static boolean shieldPayment(ServerPlayer player){return shieldPayment(player,false);}
+    public static boolean shieldPayment(ServerPlayer player,boolean projectile){double cost=ShieldCosts.block(projectile,balance.stamina.get("shieldCost"),data(player).effect("shield_cost_reduction",balance));return cost==0||pay(player,cost);}
+    public static boolean jump(ServerPlayer player){if(!active(player)||balance.stamina.get("enabled")==0)return true;if(data(player).actionsBlocked(balance)){player.setSprinting(false);return weight(player)<=data(player).capacity(balance);}return !player.isSprinting()||pay(player,balance.stamina.get("sprintJumpCost")+weight(player)*balance.stamina.get("jumpArmorCost"));}
     public static boolean canAct(ServerPlayer player){return !active(player)||!data(player).actionsBlocked(balance);}
     public static boolean ranged(ServerPlayer player,String weapon){return pay(player,data(player).actionCost(weapon,balance));}
     public static void sleptNight(net.minecraft.server.level.ServerLevel level){for(var player:level.players())if(player.isSleeping())data(player).sleptNight(balance);}
@@ -121,6 +123,13 @@ public final class CoreRuntime {
         Session s=session(p);
         if(p.tickCount-s.lastRead<balance.skills.get("readCooldownSeconds")*20) return;
         s.lastRead=p.tickCount;grant(p,"read",1,1);
+    }
+    public static boolean trainsArmor(ServerPlayer player) {
+        for(ItemStack stack:player.getArmorSlots())if(stack.getItem() instanceof ArmorItem item){
+            String id=BuiltInRegistries.ITEM.getKey(stack.getItem()).toString();
+            if(id.startsWith("minecraft:chainmail_")||id.startsWith("minecraft:iron_")||id.startsWith("minecraft:diamond_")||id.startsWith("minecraft:netherite_")||!id.startsWith("minecraft:")&&item.getDefense()>=2)return true;
+        }
+        return false;
     }
     public static double weight(ServerPlayer player) {
         double weight=0;

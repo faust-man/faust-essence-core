@@ -18,7 +18,7 @@ public final class FatigueGraceTest {
         b.fatigue.put("worldGraceSeconds",0.0);check(FatigueRules.accumulates(0,b),"zero disables grace");p=new Progress();p.spend(1,b,0);near(p.fatigue,0.025,"disabled grace spends fatigue immediately");
         b.fatigue.put("worldGraceSeconds",10.0);check(!FatigueRules.accumulates(199,b)&&FatigueRules.accumulates(200,b),"custom duration boundary");
         Path dir=Files.createTempDirectory("core-fatigue-grace");try{
-            var original=Balance.load(dir);var data=Balance.JSON.toJsonTree(original.fatigue).getAsJsonObject();data.remove("worldGraceSeconds");data.addProperty("perSpentFraction",0.123);Files.writeString(dir.resolve("fatigue.json"),Balance.JSON.toJson(data));
+            var original=Balance.load(dir);var data=Balance.JSON.toJsonTree(original.fatigue).getAsJsonObject();data.remove("worldGraceSeconds");data.addProperty("perSpentFraction",0.123);Files.writeString(Balance.sectionFile(dir,"fatigue"),Balance.JSON.toJson(data));
             var migrated=Balance.load(dir);near(migrated.fatigue.get("worldGraceSeconds"),300,"existing configs gain duration");near(migrated.fatigue.get("perSpentFraction"),0.123,"custom rate preserved");check(Files.exists(dir.resolve("migration-v1.5.1/fatigue.json")),"old fatigue config backed up");
             var edited=Balance.JSON.toJsonTree(migrated.fatigue).getAsJsonObject();edited.addProperty("worldGraceSeconds",0);Balance.saveGroup(dir,"fatigue",edited.toString());near(Balance.load(dir).fatigue.get("worldGraceSeconds"),0,"explicit disabling survives reload");
         }finally{try(var paths=Files.walk(dir)){for(Path file:paths.sorted(Comparator.reverseOrder()).toList())Files.delete(file);}}

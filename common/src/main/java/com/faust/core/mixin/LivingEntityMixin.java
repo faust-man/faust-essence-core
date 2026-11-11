@@ -18,7 +18,7 @@ public abstract class LivingEntityMixin {
     @ModifyVariable(method="setSprinting",at=@At("HEAD"),argsOnly=true)
     private boolean core$sprint(boolean sprinting){if(!sprinting)return false;if((Object)this instanceof ServerPlayer p)return CoreRuntime.canAct(p);return com.faust.core.runtime.ClientActions.sprintAllowed.test(this);}
     @Inject(method="isDamageSourceBlocked",at=@At("RETURN"),cancellable=true)
-    private void core$blockCost(DamageSource source,CallbackInfoReturnable<Boolean> ci){if(ci.getReturnValue()&&(Object)this instanceof ServerPlayer p&&CombatContext.DAMAGE.get().peek()==source&&!CoreRuntime.shieldPayment(p))ci.setReturnValue(false);}
+    private void core$blockCost(DamageSource source,CallbackInfoReturnable<Boolean> ci){if(ci.getReturnValue()&&(Object)this instanceof ServerPlayer p&&CombatContext.DAMAGE.get().peek()==source&&!CoreRuntime.shieldPayment(p,source.is(net.minecraft.tags.DamageTypeTags.IS_PROJECTILE)))ci.setReturnValue(false);}
     @Inject(method="startUsingItem",at=@At("HEAD"),cancellable=true)
     private void core$shieldStance(net.minecraft.world.InteractionHand hand,org.spongepowered.asm.mixin.injection.callback.CallbackInfo ci){if((Object)this instanceof ServerPlayer p&&p.getItemInHand(hand).is(net.minecraft.world.item.Items.SHIELD)&&!CoreRuntime.canAct(p))ci.cancel();}
     @ModifyVariable(method="hurt",at=@At("HEAD"),argsOnly=true)

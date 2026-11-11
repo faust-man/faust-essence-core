@@ -19,3 +19,5 @@ sourceSets.main.java.setSrcDirs([new File(staminaProjectDir, 'src/main/java')])
 sourceSets.main.resources.setSrcDirs([new File(staminaProjectDir, 'src/main/resources')])
 sourceSets.main.resources.exclude 'fabric.mod.json'
 jar { from(rootProject.file('LICENSE')) }
+
+sourceSets.main.java.exclude '**/StaminaModMenu.java'
