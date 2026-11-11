@@ -58,7 +58,7 @@ dependencies { testImplementation project(':stamina') }
 ['withStaminaTest':true,'withoutStaminaTest':false].each { taskName, enabled ->
     tasks.register(taskName,JavaExec) {
         dependsOn testClasses
-        classpath = enabled ? sourceSets.test.runtimeClasspath : sourceSets.test.runtimeClasspath.filter { !it.name.startsWith('fauststamina-') }
+        classpath = enabled ? sourceSets.test.runtimeClasspath : sourceSets.test.runtimeClasspath.filter { !it.name.startsWith('essence-stamina-') }
         mainClass='com.faust.core.progression.StaminaBoundaryTest'
         args enabled.toString(), layout.buildDirectory.dir("stamina-boundary").get().asFile.absolutePath
     }

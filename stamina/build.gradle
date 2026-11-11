@@ -1,7 +1,7 @@
 plugins { id 'java-library' }
 version = rootProject.version
 group = 'com.faust.stamina'
-base.archivesName = 'fauststamina-neoforge-1.21.1'
+base.archivesName = 'essence-stamina-neoforge-1.21.1'
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 dependencies { compileOnly(project(':common')) { capabilities { requireCapability 'com.faust.core:faustcore' } } }
 // Only the NeoForge entrypoint annotation is needed; the model has no loader dependencies.

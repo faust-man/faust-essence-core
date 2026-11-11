@@ -1183,10 +1183,10 @@ registerBonus. При удалении мода его неизвестные ID
 Подключение из соседнего проекта: соберите core, затем используйте локальную
 Gradle-публикацию Maven (конвенция проекта берёт путь из local_maven_url) либо
 loader-specific JAR как локальную зависимость. Готового удалённого Maven нет.
-Для Fabric используйте modImplementation files("libs/faustcore-fabric-1.21.1-1.6.0.jar"),
-для NeoForge — implementation files("libs/faustcore-neoforge-1.21.1-1.6.0.jar") в
+Для Fabric используйте modImplementation files("libs/essence-core-fabric-1.21.1-1.6.0.jar"),
+для NeoForge — implementation files("libs/essence-core-neoforge-1.21.1-1.6.0.jar") в
 совместимом ModDev-проекте; common для компиляции можно подключить как compileOnly
-files("libs/faustcore-common-1.21.1-1.3.0.jar"). Не встраивайте JAR ядра в JAR пути;
+files("libs/essence-core-common-1.21.1-1.3.0.jar"). Не встраивайте JAR ядра в JAR пути;
 пользователь устанавливает его отдельно. В fabric.mod.json укажите depends.faustcore,
 в neoforge.mods.toml — required dependency faustcore, обе стороны, совместимую
 версию (для текущего контракта 1.1.0). Для новой версии API сначала проверить
