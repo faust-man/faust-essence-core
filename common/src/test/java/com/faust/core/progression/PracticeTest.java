@@ -22,7 +22,7 @@ public final class PracticeTest {
         for(int level=0;level<=20;level++){
             p.track(Skill.intelligence).level=level;p.track(Skill.dexterity).level=level;
             check(PracticeBonuses.shelves(p,b)==(level/5)*15/8,"shelf boundary "+level);
-            check(Math.abs(PracticeBonuses.duration(p,b)-(1+level*0.01))<1e-8,"duration "+level);
+            check(Math.abs(PracticeBonuses.duration(p,b)-(1+level*0.02))<1e-8,"duration "+level);
             check(SkillEffects.attribute(p,b,"minecraft:generic.safe_fall_distance",false)==0,"fall locked");
             p.unlocked.add("faustcore:soft_landing");
             check(SkillEffects.attribute(p,b,"minecraft:generic.safe_fall_distance",false)==level/5,"fall boundary "+level);

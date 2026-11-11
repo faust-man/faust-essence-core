@@ -88,6 +88,8 @@ public final class CoreRuntime {
                 grant(player,"constitution_swim",metres*balance.skills.get("constitutionSwimMultiplier"),metres);
             } else if(key.equals(Stats.TRADED_WITH_VILLAGER)) grant(player,"trade",amount,amount);
             else if(key.equals(Stats.ENCHANT_ITEM)) grant(player,"enchant",amount,amount);
+        } else if(stat.getType()==Stats.BLOCK_MINED) {
+            double units=Math.min(amount,Math.max(0,balance.skills.get("blockMaximumPerMinute")-s.blocks));s.blocks+=units;grant(player,"mine",units,units);
         } else if(stat.getType()==Stats.ITEM_CRAFTED) {
             double units=Math.min(amount,Math.max(0,balance.skills.get("blockMaximumPerMinute")-s.blocks));s.blocks+=units;
             grant(player,"craft",units,units);

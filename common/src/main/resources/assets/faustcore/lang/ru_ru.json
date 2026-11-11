@@ -158,7 +158,7 @@
   "core.ability.enchanting_power": "Сила зачарований",
   "core.ability.potion_duration": "Длительные зелья",
   "core.effect.enchanting_power": "Добавляет силу 1/3/5/7 книжных полок при интеллекте 5/10/15/20. Заменяет недостающие полки: вместе с настоящими учитывается максимум 15 — обычный предел стола зачарований.",
-  "core.effect.potion_duration": "Длительность сваренных зелий: +1%% за уровень интеллекта.",
+  "core.effect.potion_duration": "Длительность сваренных зелий: +2%% за уровень интеллекта.",
   "core.ability.enabled": "Навык включён",
   "core.ability.disabled": "Навык выключен",
   "core.ability.click_disable": "Нажмите, чтобы выключить",

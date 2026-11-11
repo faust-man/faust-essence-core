@@ -91,6 +91,8 @@ public final class Balance {
         action("brew",Skill.intelligence,5,"brewed");
         action("trade",Skill.intelligence,3,"trades");
         action("place",Skill.building,1,"placed");
+        action("mine",Skill.building,0.05,"mined");
+        action("dodge",Skill.dexterity,0.05,"dodges");
         action("craft",Skill.intelligence,0.5,"crafted");
         ability("controlled_strike",Skill.strength,5,"hits",30,"","damage",0.01);
         ability("strong_grip",Skill.strength,10,"hits",100,"controlled_strike","damage",0.02);
@@ -124,7 +126,7 @@ public final class Balance {
         ability("cushioned_landing",Skill.dexterity,10,"run_metres",1500,"soft_landing","fall_damage_reduction",0.5);
         ability("soft_landing",Skill.dexterity,5,"run_metres",1500,"","stat_unlock",0);
         ability("enchanting_power",Skill.intelligence,5,"enchants",1,"","enchanting_power",1);
-        ability("potion_duration",Skill.intelligence,5,"brewed",1,"","potion_duration",0.01);
+        ability("potion_duration",Skill.intelligence,5,"brewed",30,"","potion_duration",0.02);
         swapShieldRules();
         StaminaContent.withoutProvider(this);
         trees=SkillTrees.defaults(abilities);
@@ -438,7 +440,7 @@ public final class Balance {
         Files.createDirectories(directory);
         if(!StaminaServices.present()&&!Files.exists(directory.resolve("abilities.json")))Files.writeString(directory.resolve(".without-stamina"),"1\n");
         migrate(directory); migrateExhaustion(directory); migrateGrowth(directory); migrateStats(directory); migrateV12(directory); migrateEnvironment(directory); migrateV13(directory); migrateV14(directory); migrateV141(directory); migrateFatigueGrace(directory); migrateCakeFood(directory); migratePractice(directory); migrateConstitutionSwap(directory); migratePracticeLayout(directory); migratePanelUpdate(directory);
-        migrateBalanceRevision(directory);
+        migrateBalanceRevision(directory);migrateFollowup(directory);
         Path windFile=sectionFile(directory,"stamina");if(Files.exists(windFile)){var data=JSON.fromJson(Files.readString(windFile),com.google.gson.JsonObject.class);if(!data.has("secondWindMultiplier")){data.addProperty("secondWindMultiplier",1.5);Files.writeString(windFile,JSON.toJson(data)+"\n");}}
         Path skillsFile=directory.resolve("skills.json");if(Files.exists(skillsFile)){var data=JSON.fromJson(Files.readString(skillsFile),com.google.gson.JsonObject.class);if(!data.has("buildingReachMaximum")){data.addProperty("buildingReachMaximum",3);Files.writeString(skillsFile,JSON.toJson(data)+"\n");}}
         Balance result=new Balance();
@@ -479,6 +481,19 @@ public final class Balance {
                 }
             }
             if(name.equals("trees"))for(var tree:data.getAsJsonArray())for(var entry:tree.getAsJsonObject().getAsJsonArray("nodes")){var node=entry.getAsJsonObject();node.addProperty("ability",swapShield(node.get("ability").getAsString()));}
+            Files.writeString(file,JSON.toJson(data)+"\n");
+        }
+        Files.writeString(marker,"1\n");
+    }
+    private static void migrateFollowup(Path directory) throws IOException {
+        Path marker=directory.resolve(".balance-followup");if(Files.exists(marker))return;
+        Path backup=directory.resolve("migration-balance-followup");Files.createDirectories(backup);
+        for(String name:List.of("abilities","actions")){
+            Path file=sectionFile(directory,name);if(!Files.exists(file))continue;
+            Files.copy(file,backup.resolve(name+".json"),StandardCopyOption.REPLACE_EXISTING);
+            var data=com.google.gson.JsonParser.parseString(Files.readString(file));
+            if(name.equals("actions")){Balance defaults=new Balance();for(String action:List.of("mine","dodge"))if(!data.getAsJsonObject().has(action))data.getAsJsonObject().add(action,JSON.toJsonTree(defaults.actions.get(action)));}
+            else for(var entry:data.getAsJsonArray()){var a=entry.getAsJsonObject();String id=a.get("id").getAsString();if(id.equals("faustcore:shield_efficiency"))a.addProperty("value",1);if(id.equals("faustcore:potion_duration")){a.addProperty("amount",30);a.addProperty("value",0.02);a.add("conditions",new com.google.gson.JsonArray());}}
             Files.writeString(file,JSON.toJson(data)+"\n");
         }
         Files.writeString(marker,"1\n");

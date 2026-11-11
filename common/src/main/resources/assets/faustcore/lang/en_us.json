@@ -158,7 +158,7 @@
   "core.ability.enchanting_power": "Enchanting power",
   "core.ability.potion_duration": "Lasting potions",
   "core.effect.enchanting_power": "Adds the power of 1/3/5/7 bookshelves at intelligence 5/10/15/20. Replaces missing shelves; real shelves and this bonus count up to 15 total, the normal enchanting table limit.",
-  "core.effect.potion_duration": "Brewed potion duration: +1%% per intelligence level.",
+  "core.effect.potion_duration": "Brewed potion duration: +2%% per intelligence level.",
   "core.ability.enabled": "Skill enabled",
   "core.ability.disabled": "Skill disabled",
   "core.ability.click_disable": "Click to disable",

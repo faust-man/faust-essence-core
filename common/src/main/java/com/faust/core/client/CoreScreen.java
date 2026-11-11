@@ -135,7 +135,6 @@ public final class CoreScreen extends Screen {
                     if(!description.getString().isBlank())lines.add(description);
                 }
             }
-            if(a.effect().equals("exhaustion_threshold_reduction"))lines.add(Component.translatable("core.recovery_threshold",number(b.stamina.get("exhaustionRecovery")*(1-a.value()))));
         }
         return lines;
     }
