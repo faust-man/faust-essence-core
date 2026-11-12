@@ -89,7 +89,7 @@ public final class CoreRuntime {
             } else if(key.equals(Stats.TRADED_WITH_VILLAGER)) grant(player,"trade",amount,amount);
             else if(key.equals(Stats.ENCHANT_ITEM)) grant(player,"enchant",amount,amount);
         } else if(stat.getType()==Stats.BLOCK_MINED) {
-            double units=Math.min(amount,Math.max(0,balance.skills.get("blockMaximumPerMinute")-s.blocks));s.blocks+=units;grant(player,"mine",units,units);
+            // Mining is awarded from the successful server break with position/tool context.
         } else if(stat.getType()==Stats.ITEM_CRAFTED) {
             double units=Math.min(amount,Math.max(0,balance.skills.get("blockMaximumPerMinute")-s.blocks));s.blocks+=units;
             grant(player,"craft",units,units);
@@ -119,6 +119,9 @@ public final class CoreRuntime {
     public static boolean canAct(ServerPlayer player){return !active(player)||!data(player).actionsBlocked(balance);}
     public static boolean ranged(ServerPlayer player,String weapon){return pay(player,data(player).actionCost(weapon,balance));}
     public static void sleptNight(net.minecraft.server.level.ServerLevel level){for(var player:level.players())if(player.isSleeping())data(player).sleptNight(balance);}
+    public static void mined(ServerPlayer player){
+        if(!active(player))return;var s=session(player);double units=Math.min(1,Math.max(0,balance.skills.get("blockMaximumPerMinute")-s.blocks));s.blocks+=units;grant(player,"mine",units,units);
+    }
     public static void food(ServerPlayer player,net.minecraft.world.item.ItemStack stack){if(!active(player))return;data(player).sweetFood(BuiltInRegistries.ITEM.getKey(stack.getItem()).toString(),balance);var food=stack.get(net.minecraft.core.component.DataComponents.FOOD);if(food!=null)data(player).recordCounter("food_nutrition",food.nutrition(),balance);}
     public static void read(ServerPlayer p,ItemStack stack) {
         if(!(stack.is(Items.WRITTEN_BOOK)||stack.is(Items.WRITABLE_BOOK)))return;

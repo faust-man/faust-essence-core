@@ -3,6 +3,7 @@ import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.core.*;
+/** Persistent player-placed blocks; legacy class/file name retained for existing worlds. */
 public final class PlacedLogs extends SavedData {
  private final java.util.Set<Long> logs=new java.util.HashSet<>();
  public static PlacedLogs get(ServerLevel level){return level.getDataStorage().computeIfAbsent(new SavedData.Factory<>(PlacedLogs::new,PlacedLogs::load,null),"faustcore_placed_logs");}

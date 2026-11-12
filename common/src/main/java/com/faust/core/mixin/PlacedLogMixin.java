@@ -9,5 +9,5 @@ import org.spongepowered.asm.mixin.injection.*;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(BlockItem.class)
 public abstract class PlacedLogMixin {
- @Inject(method="placeBlock",at=@At("RETURN")) private void core$placed(BlockPlaceContext context,BlockState state,CallbackInfoReturnable<Boolean> ci){if(ci.getReturnValue()&&context.getPlayer()!=null&&context.getLevel() instanceof ServerLevel level&&state.is(net.minecraft.tags.BlockTags.LOGS))PlacedLogs.get(level).add(context.getClickedPos());}
+ @Inject(method="placeBlock",at=@At("RETURN")) private void core$placed(BlockPlaceContext context,BlockState state,CallbackInfoReturnable<Boolean> ci){if(ci.getReturnValue()&&context.getPlayer()!=null&&context.getLevel() instanceof ServerLevel level)PlacedLogs.get(level).add(context.getClickedPos());}
 }

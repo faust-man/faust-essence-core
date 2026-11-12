@@ -13,6 +13,7 @@ public final class Progress {
     public Set<String> disabled=new HashSet<>();
     public long purchases, revision;
     public double stamina=20, fatigue;
+    public double externalStaminaBonus;
     public boolean exhausted,soulFireBurn;
     public double campfireRest;
     public String path="";
@@ -105,7 +106,7 @@ public final class Progress {
         revision++;return true;
     }
     public double effect(String effect,Balance b) {return b.abilities.stream().filter(a->enabled(a.id(),b)&&a.effect().equals(effect)).mapToDouble(Balance.Ability::value).sum();}
-    public double baseStamina(Balance b) {return StaminaServices.mechanics().baseStamina(this, b);}
+    public double baseStamina(Balance b) {return StaminaServices.mechanics().baseStamina(this, b)+(StaminaServices.present()&&Double.isFinite(externalStaminaBonus)?externalStaminaBonus:0);}
     public double maxFatigue(Balance b) {return StaminaServices.mechanics().maxFatigue(this, b);}
     public double maxStamina(Balance b) {return StaminaServices.mechanics().maxStamina(this, b);}
     public double capacity(Balance b) {return StaminaServices.mechanics().capacity(this, b);}

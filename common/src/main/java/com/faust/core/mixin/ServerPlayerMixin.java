@@ -19,7 +19,7 @@ public abstract class ServerPlayerMixin implements PlayerData {
     @Inject(method="addAdditionalSaveData",at=@At("TAIL"))
     private void core$save(CompoundTag tag,CallbackInfo ci){tag.putString("faustcore",faustcore$data.json());}
     @Inject(method="readAdditionalSaveData",at=@At("TAIL"))
-    private void core$load(CompoundTag tag,CallbackInfo ci){if(tag.contains("faustcore")){faustcore$data=Progress.parse(tag.getString("faustcore"),CoreRuntime.balance);var player=(ServerPlayer)(Object)this;CoreRuntime.rebuildAttributes(player);if(tag.contains("Health"))player.setHealth(tag.getFloat("Health"));}}
+    private void core$load(CompoundTag tag,CallbackInfo ci){if(tag.contains("faustcore")){faustcore$data=Progress.parse(tag.getString("faustcore"),CoreRuntime.balance);faustcore$data.externalStaminaBonus=0;var player=(ServerPlayer)(Object)this;CoreRuntime.rebuildAttributes(player);if(tag.contains("Health"))player.setHealth(tag.getFloat("Health"));}}
     @Inject(method="restoreFrom",at=@At("TAIL"))
     private void core$copy(ServerPlayer previous,boolean keepEverything,CallbackInfo ci){faustcore$data=Progress.parse(CoreRuntime.data(previous).json());CoreRuntime.disconnected(previous);var player=(ServerPlayer)(Object)this;CoreRuntime.rebuildAttributes(player);if(!keepEverything)player.setHealth(player.getMaxHealth());}
     @Inject(method="tick",at=@At("TAIL"))

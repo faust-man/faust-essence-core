@@ -23,7 +23,8 @@
     "MetabolismMixin",
     "PlacedLogMixin",
     "LogChangeMixin",
-    "FireBlockAccessor"
+    "FireBlockAccessor",
+    "MiningMixin"
   ],
   "client": [
     "ClientMixin",

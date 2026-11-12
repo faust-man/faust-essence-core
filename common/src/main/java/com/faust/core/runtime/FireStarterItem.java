@@ -25,7 +25,7 @@ public final class FireStarterItem extends Item {
         if(campfire)level.setBlock(pos,state.setValue(CampfireBlock.LIT,true),11);
         else if(level.random.nextInt(100)<Math.min(100,5*CoreRuntime.data(p).track(com.faust.core.progression.Skill.building).level)){
             if(block.getDirection()==net.minecraft.core.Direction.UP&&state.is(net.minecraft.tags.BlockTags.LOGS)&&CoreRuntime.data(p).enabled("faustcore:fire_starter",CoreRuntime.balance)&&PlacedLogs.get(p.serverLevel()).contains(pos)){
-                level.setBlock(pos,Blocks.CAMPFIRE.defaultBlockState(),11);
+                level.setBlock(pos,Blocks.CAMPFIRE.defaultBlockState(),11);PlacedLogs.get(p.serverLevel()).add(pos);
             }else{
                 boolean vegetation=state.getCollisionShape(level,pos).isEmpty()&&(((com.faust.core.mixin.FireBlockAccessor)Blocks.FIRE).core$igniteOdds(state)>0||state.is(net.minecraft.tags.BlockTags.SAPLINGS))&&!state.getFluidState().isSource();
                 var firePos=vegetation?pos:pos.relative(block.getDirection());

@@ -13,14 +13,17 @@ public final class ForestSkillsTest {
   var fire=b.abilities.stream().filter(a->a.id().endsWith(":fire_starter")).findFirst().orElseThrow();
   var locked=new Progress();locked.track(Skill.building).level=20;check(locked.requirementProgress(fire)==0&&!locked.canUnlock(fire,b),"no green progress without forester");
   check(fire.level()==5&&fire.counter().equals("charcoal_smelted"),"fire starter requirements");
-  var bad=new SkillTrees.Node("test:bad",22,0,"minecraft:stick");var good=new SkillTrees.Node("test:good",0,0,"minecraft:stick");
+  var bad=new SkillTrees.Node("test:bad",2,0,"minecraft:stick");var good=new SkillTrees.Node("test:good",0,0,"minecraft:stick");
   check(!SkillTrees.validPosition(bad,java.util.List.of(good,bad)),"gap below half width invalid");
-  check(new SkillTrees.Node("test:snap",40,-52,"minecraft:stick").x()==44,"grid rounding");
+  check(new SkillTrees.Node("test:snap",3.6,-4.7,"minecraft:stick").x()==4,"grid rounding");
   for(var tree:b.trees)for(var node:tree.nodes())check(SkillTrees.validPosition(node,tree.nodes()),"default spacing "+node.ability());
   Path dir=Files.createTempDirectory("forest-skills");try{
    Balance.load(dir);Files.delete(dir.resolve(".forest-skills"));
    var old=Balance.JSON.toJsonTree(b.abilities).getAsJsonArray();for(int i=old.size()-1;i>=0;i--)if(old.get(i).getAsJsonObject().get("id").getAsString().endsWith(":forester"))old.remove(i);
    Files.writeString(dir.resolve("abilities.json"),Balance.JSON.toJson(old));Balance migrated=Balance.load(dir);check(migrated.abilities.stream().anyMatch(a->a.id().endsWith(":forester")),"migration adds skill");
+   var unitTrees=Balance.JSON.toJsonTree(migrated.trees).getAsJsonArray();
+   for(var tree:unitTrees)for(var entry:tree.getAsJsonObject().getAsJsonArray("nodes")){var node=entry.getAsJsonObject();node.addProperty("x",node.get("x").getAsDouble()*11);node.addProperty("y",node.get("y").getAsDouble()*11);}
+   Files.writeString(dir.resolve("trees.json"),Balance.JSON.toJson(unitTrees));Files.delete(dir.resolve(".tree-coordinate-units"));var units=Balance.load(dir);check(units.trees.equals(migrated.trees),"legacy pixel coordinates convert to units exactly");check(Files.exists(dir.resolve("migration-coordinate-units/trees.json")),"coordinate backup retained");
    String saved=Files.readString(dir.resolve("abilities.json"));Balance.load(dir);check(saved.equals(Files.readString(dir.resolve("abilities.json"))),"migration idempotent");
   }finally{try(var files=Files.walk(dir)){for(var f:files.sorted(java.util.Comparator.reverseOrder()).toList())Files.delete(f);}}
  }
