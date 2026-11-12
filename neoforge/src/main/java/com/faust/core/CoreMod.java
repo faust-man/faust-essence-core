@@ -15,6 +15,8 @@ public final class CoreMod {
   var items=net.neoforged.neoforge.registries.DeferredRegister.createItems("faustcore");
   var starter=items.register("fire_starter",FireStarterItem::new);FireStarterItem.ITEM=starter;
   items.register(bus);
+  var recipes=net.neoforged.neoforge.registries.DeferredRegister.create(net.minecraft.core.registries.Registries.RECIPE_SERIALIZER,"faustcore");
+  SkillCraftingRecipe.SERIALIZER=recipes.register("skill_crafting",()->new net.minecraft.world.item.crafting.SimpleCraftingRecipeSerializer<>(SkillCraftingRecipe::new));recipes.register(bus);
   bus.addListener((net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent e)->{if(e.getTabKey()==net.minecraft.world.item.CreativeModeTabs.TOOLS_AND_UTILITIES)e.accept(starter.get());});
   CoreRuntime.initialize(FMLPaths.CONFIGDIR.get().resolve(Constants.MOD_ID));
   bus.addListener(this::payloads);

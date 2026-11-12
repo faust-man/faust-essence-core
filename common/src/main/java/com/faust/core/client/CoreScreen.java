@@ -32,9 +32,9 @@ public final class CoreScreen extends Screen {
     @Override protected void init(){view=null;dragging=false;}
     private static String number(double value){return java.math.BigDecimal.valueOf(value).setScale(4,java.math.RoundingMode.HALF_UP).stripTrailingZeros().toPlainString();}
     private static Component skillName(Skill skill){return Component.translatableWithFallback("core.skill."+skill,skill.name());}
-    private static Component abilityName(Balance.Ability ability){return Component.translatableWithFallback("core.ability."+ability.id().split(":")[1],ability.id());}
+    public static Component abilityName(Balance.Ability ability){return Component.translatableWithFallback("core.ability."+ability.id().split(":")[1],ability.id());}
     private static Balance.Ability ability(Balance b,String id){return b.abilities.stream().filter(a->a.id().equals(id)).findFirst().orElseThrow();}
-    private static ItemStack icon(String id){var item=BuiltInRegistries.ITEM.get(ResourceLocation.parse(id));return new ItemStack(item==Items.AIR?Items.BARRIER:item);}
+    public static ItemStack icon(String id){var item=BuiltInRegistries.ITEM.get(ResourceLocation.parse(id));return new ItemStack(item==Items.AIR?Items.BARRIER:item);}
     private void command(String text){if(minecraft!=null&&minecraft.getConnection()!=null)minecraft.getConnection().sendCommand(text.replaceFirst("essence ","essence panel "));}
     private boolean insideView(double mx,double my){return PanelTabs.inside(mx,my,x()+VIEW_X,y()+VIEW_Y,viewWidth(),viewHeight());}
     private List<SkillTrees.Node> nodes(){var b=CoreClient.balance;var nodes=SkillTrees.nodes(b,selected).stream().filter(n->TreeGroups.contains(b,treeGroup,n.ability())).toList();if(view==null||viewed!=b){view=new TreeView(nodes,viewWidth(),viewHeight());viewed=b;}return nodes;}
@@ -108,7 +108,7 @@ public final class CoreScreen extends Screen {
         }
         for(var node:nodes){var a=ability(b,node.ability());boolean learned=p.unlocked.contains(a.id()),excluded=p.excluded(a,b);int border=SkillTrees.nodeColor(p,a,b);
             g.pose().pushPose();g.pose().translate(vx+view.x(node),vy+view.y(node),0);g.pose().scale((float)view.zoom,(float)view.zoom,1);
-            g.fill(0,0,22,22,0xFF161616);g.fill(1,1,21,21,border);g.fill(2,2,20,20,0xFF252A31);g.renderItem(icon(node.icon()),3,3);
+            g.fill(0,0,22,22,0xFF161616);g.fill(1,1,21,21,border);g.fill(2,2,20,20,0xFF252A31);if(SkillTrees.validPosition(node,nodes))g.renderItem(icon(node.icon()),3,3);
             if(!learned){g.fill(3,20,19,21,0xFF171717);g.fill(3,20,3+(int)(16*p.requirementProgress(a)),21,0xFF83C24A);}
             if(excluded&&!learned){g.pose().pushPose();g.pose().translate(0,0,200);line(g,3,3,18,18,0xFFD75A5A);g.pose().popPose();}
             g.pose().popPose();

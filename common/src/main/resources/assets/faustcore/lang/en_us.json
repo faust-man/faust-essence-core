@@ -179,7 +179,12 @@
   "core.counter.cats_tamed": "Tame a cat",
   "core.effect.faustcore:soft_foot": "Allows walking on powder snow.",
   "core.effect.faustcore:forester": "Craft a sapling into two sticks.",
-  "core.effect.faustcore:fire_starter": "Craft two sticks into fire sticks; combine them with a log to craft a campfire.",
-  "core.effect.faustcore:cat_scent": "Repels creepers at half the cat radius.",
-  "core.counter.mined": "blocks broken"
+  "core.effect.faustcore:fire_starter": "Craft two sticks into fire sticks. Hold use to ignite. Ignite the top of a player-placed log to turn it into a campfire.",
+  "core.effect.faustcore:cat_scent": "Repels creepers within 5 blocks and prevents nearby explosions.",
+  "core.counter.mined": "blocks broken",
+  "core.ability.metabolism": "Metabolism",
+  "core.effect.faustcore:metabolism": "Doubles natural health regeneration and its food consumption.",
+  "core.counter.food_nutrition": "food points eaten",
+  "core.counter.charcoal_smelted": "Collect charcoal from a furnace",
+  "core.skill.available": "New skill available!"
 }

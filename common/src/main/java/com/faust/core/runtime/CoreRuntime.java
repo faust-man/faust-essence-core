@@ -119,7 +119,7 @@ public final class CoreRuntime {
     public static boolean canAct(ServerPlayer player){return !active(player)||!data(player).actionsBlocked(balance);}
     public static boolean ranged(ServerPlayer player,String weapon){return pay(player,data(player).actionCost(weapon,balance));}
     public static void sleptNight(net.minecraft.server.level.ServerLevel level){for(var player:level.players())if(player.isSleeping())data(player).sleptNight(balance);}
-    public static void food(ServerPlayer player,net.minecraft.world.item.ItemStack stack){if(!active(player))return;data(player).sweetFood(BuiltInRegistries.ITEM.getKey(stack.getItem()).toString(),balance);}
+    public static void food(ServerPlayer player,net.minecraft.world.item.ItemStack stack){if(!active(player))return;data(player).sweetFood(BuiltInRegistries.ITEM.getKey(stack.getItem()).toString(),balance);var food=stack.get(net.minecraft.core.component.DataComponents.FOOD);if(food!=null)data(player).recordCounter("food_nutrition",food.nutrition(),balance);}
     public static void read(ServerPlayer p,ItemStack stack) {
         if(!(stack.is(Items.WRITTEN_BOOK)||stack.is(Items.WRITABLE_BOOK)))return;
         Session s=session(p);

@@ -14,5 +14,15 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class CreeperMixin extends Monster {
  protected CreeperMixin(EntityType<? extends Monster> type,Level level){super(type,level);}
  @Inject(method="registerGoals",at=@At("RETURN"))
- private void core$catScent(CallbackInfo ci){goalSelector.addGoal(3,new AvoidEntityGoal<Player>(this,Player.class,3.0F,1.0,1.2,e->e instanceof ServerPlayer p&&CoreRuntime.active(p)&&CoreRuntime.data(p).enabled("faustcore:cat_scent",CoreRuntime.balance)));}
+ private void core$catScent(CallbackInfo ci){goalSelector.addGoal(1,new AvoidEntityGoal<Player>(this,Player.class,5.0F,1.0,1.2,e->e instanceof ServerPlayer p&&CoreRuntime.active(p)&&CoreRuntime.data(p).enabled("faustcore:cat_scent",CoreRuntime.balance)));}
+ @Inject(method="tick",at=@At("HEAD"))
+ private void core$defuse(CallbackInfo ci){
+  var self=(Creeper)(Object)this;
+  if(!level().isClientSide&&level().getEntitiesOfClass(ServerPlayer.class,getBoundingBox().inflate(5),p->p.distanceToSqr(self)<=25&&CoreRuntime.active(p)&&CoreRuntime.data(p).enabled("faustcore:cat_scent",CoreRuntime.balance)).size()>0){
+   self.setSwellDir(-1);self.getEntityData().set(DATA_IS_IGNITED,false);core$resetSwell();
+  }
+ }
+ @org.spongepowered.asm.mixin.Shadow private int swell;
+ @org.spongepowered.asm.mixin.Unique private void core$resetSwell(){swell=0;}
+ @org.spongepowered.asm.mixin.Shadow @org.spongepowered.asm.mixin.Final private static net.minecraft.network.syncher.EntityDataAccessor<Boolean> DATA_IS_IGNITED;
 }

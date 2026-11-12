@@ -1,0 +1,4 @@
+Firestarter texture: TerraFirmaCraft Team, TerraFirmaCraft (1.21.x).
+Unmodified source: https://github.com/TerraFirmaCraft/TerraFirmaCraft/blob/1.21.x/src/main/resources/assets/tfc/textures/item/firestarter.png
+Licensed under EUPL-1.2; see TerraFirmaCraft-EUPL-1.2.txt.
+Only the attributed texture is covered by this third-party notice.

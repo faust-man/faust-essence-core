@@ -5,7 +5,14 @@ import java.util.*;
 /** Configurable layouts and dependency graph validation; no platform or client types. */
 public final class SkillTrees {
     public static final int NODE_SIZE=22;
-    public record Node(String ability,double x,double y,String icon) {}
+    public static final int GRID=NODE_SIZE/2;
+    public static double snap(double value){return Double.isFinite(value)?Math.round(value/GRID)*(double)GRID:value;}
+    public record Node(String ability,double x,double y,String icon) {public Node{x=snap(x);y=snap(y);}}
+    public static boolean validPosition(Node node,List<Node> nodes){return nodes.stream().filter(n->!n.ability().equals(node.ability())).allMatch(n->Math.hypot(Math.max(0,Math.abs(n.x()-node.x())-NODE_SIZE),Math.max(0,Math.abs(n.y()-node.y())-NODE_SIZE))>=GRID);}
+    public static List<Node> spaced(List<Node> nodes){
+        var placed=new ArrayList<Node>();
+        for(var node:nodes){if(!Double.isFinite(node.x())||!Double.isFinite(node.y()))throw new IllegalArgumentException("Nonfinite tree position");var n=node;while(!validPosition(n,placed)){if(n.y()>4096)throw new IllegalArgumentException("Tree exceeds layout bounds");n=new Node(n.ability(),n.x(),n.y()+GRID,n.icon());}placed.add(n);}return placed;
+    }
     public record Tree(Skill skill,List<Node> nodes) {}
     private SkillTrees() {}
     public static List<Tree> defaults(List<Balance.Ability> abilities){
@@ -14,6 +21,7 @@ public final class SkillTrees {
             var nodes=new ArrayList<Node>();
             for(var a:abilities)if(a.skill()==skill){
                 double[] pos=switch(a.id().replace("faustcore:","")){
+                    case "metabolism" -> new double[]{110,0};
                     case "cat_scent" -> new double[]{-104,40};
                     case "soft_foot" -> new double[]{-104,40};
                     case "forester" -> new double[]{52,0};
@@ -34,11 +42,12 @@ public final class SkillTrees {
                 boolean collision;do{collision=false;for(var n:nodes)if(Math.abs(n.x()-pos[0])<NODE_SIZE&&Math.abs(n.y()-pos[1])<NODE_SIZE){pos=new double[]{0,nodes.stream().mapToDouble(Node::y).max().orElse(0)+40};collision=true;break;}}while(collision);
                 nodes.add(new Node(a.id(),pos[0],pos[1],icon(a)));
             }
-            trees.add(new Tree(skill,nodes));
+            trees.add(new Tree(skill,spaced(nodes)));
         }
         return trees;
     }
     public static String icon(Balance.Ability a){return "minecraft:"+switch(a.id().replace("faustcore:","")){
+        case "metabolism" -> "cooked_porkchop";
         case "cat_scent" -> "cod";
         case "soft_foot" -> "leather_boots";
         case "forester" -> "oak_sapling";

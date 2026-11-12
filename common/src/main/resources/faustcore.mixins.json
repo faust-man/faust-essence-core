@@ -17,7 +17,13 @@
     "CraftingMenuMixin",
     "PowderSnowMixin",
     "CreeperMixin",
-    "CatMixin"
+    "CatMixin",
+    "ResultSlotMixin",
+    "FurnaceResultMixin",
+    "MetabolismMixin",
+    "PlacedLogMixin",
+    "LogChangeMixin",
+    "FireBlockAccessor"
   ],
   "client": [
     "ClientMixin",
