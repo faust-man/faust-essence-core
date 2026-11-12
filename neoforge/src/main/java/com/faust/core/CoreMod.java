@@ -12,6 +12,10 @@ import net.neoforged.fml.loading.FMLEnvironment;
 @Mod(Constants.MOD_ID)
 public final class CoreMod {
  public CoreMod(IEventBus bus,net.neoforged.fml.ModContainer container) {
+  var items=net.neoforged.neoforge.registries.DeferredRegister.createItems("faustcore");
+  var starter=items.register("fire_starter",FireStarterItem::new);FireStarterItem.ITEM=starter;
+  items.register(bus);
+  bus.addListener((net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent e)->{if(e.getTabKey()==net.minecraft.world.item.CreativeModeTabs.TOOLS_AND_UTILITIES)e.accept(starter.get());});
   CoreRuntime.initialize(FMLPaths.CONFIGDIR.get().resolve(Constants.MOD_ID));
   bus.addListener(this::payloads);
   if(FMLEnvironment.dist==Dist.CLIENT)ClientRegistration.keys(bus,container);

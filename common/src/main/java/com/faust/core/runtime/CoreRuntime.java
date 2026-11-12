@@ -155,6 +155,9 @@ public final class CoreRuntime {
     public static void tick(ServerPlayer player) {
         if(!active(player)) {if(player.tickCount%20==0)syncIfChanged(player);return;}
         Progress p=data(player); Session s=session(player); Balance b=balance;p.reconcile(b);
+        int saplings=0;for(var stack:player.getInventory().items)if(stack.is(net.minecraft.tags.ItemTags.SAPLINGS))saplings+=stack.getCount();
+        p.recordMaximum("saplings_inventory",saplings,b);
+        if(player.hasEffect(net.minecraft.world.effect.MobEffects.SLOW_FALLING))p.recordMaximum("slow_falling_received",1,b);
         StaminaServices.mechanics().tick(player,p,s,b);
         if(player.tickCount%20==0||s.wasSprinting!=player.isSprinting()){s.wasSprinting=player.isSprinting();attributes(player);}
         if(player.tickCount%5==0)syncIfChanged(player);

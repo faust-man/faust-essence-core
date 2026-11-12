@@ -167,5 +167,19 @@
   "core.effect.fall_damage_reduction": "Fall damage: −%s%%.",
   "core.effect.bow_cost_reduction_first": "Bow shot cost: −%s stamina.",
   "core.counter.skill_levels": "Gain skill levels",
-  "core.player_level": "Level: %s"
+  "core.player_level": "Level: %s",
+  "core.ability.soft_foot": "Soft Foot",
+  "core.ability.forester": "Forester",
+  "core.ability.fire_starter": "Fire Starter",
+  "core.counter.fall_damage": "Fall damage taken",
+  "core.counter.saplings_inventory": "Saplings in inventory",
+  "item.faustcore.fire_starter": "Fire sticks",
+  "core.counter.slow_falling_received": "Receive Slow Falling",
+  "core.ability.cat_scent": "Cat Scent",
+  "core.counter.cats_tamed": "Tame a cat",
+  "core.effect.faustcore:soft_foot": "Allows walking on powder snow.",
+  "core.effect.faustcore:forester": "Craft a sapling into two sticks.",
+  "core.effect.faustcore:fire_starter": "Craft two sticks into fire sticks; combine them with a log to craft a campfire.",
+  "core.effect.faustcore:cat_scent": "Repels creepers at half the cat radius.",
+  "core.counter.mined": "blocks broken"
 }

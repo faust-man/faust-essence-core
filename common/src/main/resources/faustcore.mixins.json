@@ -13,7 +13,11 @@
     "CrossbowItemMixin",
     "EnchantmentMenuMixin",
     "BrewingStandMixin",
-    "PotionTooltipMixin"
+    "PotionTooltipMixin",
+    "CraftingMenuMixin",
+    "PowderSnowMixin",
+    "CreeperMixin",
+    "CatMixin"
   ],
   "client": [
     "ClientMixin",

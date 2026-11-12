@@ -167,5 +167,19 @@
   "core.effect.fall_damage_reduction": "Урон от падения: −%s%%.",
   "core.effect.bow_cost_reduction_first": "Стоимость выстрела из лука: −%s ед.",
   "core.counter.skill_levels": "Набрать уровни в навыках",
-  "core.player_level": "Уровень: %s"
+  "core.player_level": "Уровень: %s",
+  "core.ability.soft_foot": "Мягкая нога",
+  "core.ability.forester": "Лесник",
+  "core.ability.fire_starter": "Разжигатель костров",
+  "core.counter.fall_damage": "Урон от падений",
+  "core.counter.saplings_inventory": "Саженцы в инвентаре",
+  "item.faustcore.fire_starter": "Огниво из палок",
+  "core.counter.slow_falling_received": "Получить эффект мягкого падения",
+  "core.ability.cat_scent": "Кошачий запах",
+  "core.counter.cats_tamed": "Приручить кота",
+  "core.effect.faustcore:soft_foot": "Позволяет стоять на рыхлом снегу.",
+  "core.effect.faustcore:forester": "Позволяет перекрафчивать саженец в две палки.",
+  "core.effect.faustcore:fire_starter": "Позволяет делать из двух палок огниво и сочетать его с древесиной для создания костра.",
+  "core.effect.faustcore:cat_scent": "Отпугивает криперов в половине кошачьего радиуса.",
+  "core.counter.mined": "сломанных блоков"
 }
