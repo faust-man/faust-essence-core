@@ -58,7 +58,7 @@
   "core.insufficient_levels": "Not enough vanilla experience levels.",
   "core.unknown_skill": "Unknown skill. Use Tab for suggestions.",
   "core.unknown_ability": "Unknown ability. Use Tab for suggestions.",
-  "core.command.admin_help": "Admin: /essence status <players>; /essence skill set|add|xp <players> <skill> <value>; /essence cap set <players> <skill> <0..20>; /essence ability grant|revoke <players> <ability>; /essence stamina fill|set <players> [amount]; /essence fatigue clear|set <players> [amount]; /essence reset <players>; /essence reload., /essence max <players>",
+  "core.command.admin_help": "Admin: /essence status <players>; /essence skill set|add|xp <players> <skill> <value>; /essence cap set <players> <skill> <0..20>; /essence ability grant|revoke <players> <ability>; /essence stamina fill|set <players> [amount]; /essence fatigue clear|set <players> [amount]; /essence reset [players]; /essence reload., /essence max <players>",
   "core.command.updated": "Updated %s player(s).",
   "core.short.strength": "STR",
   "core.short.constitution": "CON",

@@ -58,7 +58,7 @@
   "core.insufficient_levels": "Недостаточно ванильных уровней опыта.",
   "core.unknown_skill": "Неизвестный навык. Используйте подсказки Tab.",
   "core.unknown_ability": "Неизвестная способность. Используйте подсказки Tab.",
-  "core.command.admin_help": "Администратор: /essence status <игроки>; /essence skill set|add|xp <игроки> <навык> <значение>; /essence cap set <игроки> <навык> <0..20>; /essence ability grant|revoke <игроки> <способность>; /essence stamina fill|set <игроки> [число]; /essence fatigue clear|set <игроки> [число]; /essence reset <игроки>; /essence reload., /essence max <игроки>",
+  "core.command.admin_help": "Администратор: /essence status <игроки>; /essence skill set|add|xp <игроки> <навык> <значение>; /essence cap set <игроки> <навык> <0..20>; /essence ability grant|revoke <игроки> <способность>; /essence stamina fill|set <игроки> [число]; /essence fatigue clear|set <игроки> [число]; /essence reset [игроки]; /essence reload., /essence max <игроки>",
   "core.command.updated": "Обновлены данные игроков: %s.",
   "core.short.strength": "СИЛ",
   "core.short.constitution": "ТЕЛ",
