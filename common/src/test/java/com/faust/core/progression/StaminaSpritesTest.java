@@ -62,6 +62,22 @@ public final class StaminaSpritesTest {
         check(com.faust.stamina.client.StaminaLayers.state(5,30,25,20)!=2,"30/5 fatigue hidden at twenty");
         check(com.faust.stamina.client.StaminaLayers.state(5,30,25,21)==2,"30/5 fatigue shown at twenty-one");
         check(com.faust.stamina.client.StaminaLayers.state(0,30,25,21)==0,"second layer begins filled");
+        for(int slot=5;slot<20;slot++)check(com.faust.stamina.client.StaminaLayers.state(slot,30,25,21)==2,"entire right tail is fatigue, including past partial capacity");
+        check(com.faust.stamina.client.StaminaLayers.state(15,30,30,21)==0,"without fatigue lower layer remains visible");
+        for(int layer=1;layer<5;layer++) {
+            check(StaminaSprites.layerColor(layer,false,false)==StaminaSprites.STAMINA_COLOR,"spent upper layer reveals yellow base");
+            check(StaminaSprites.layerColor(layer,true,false)==0xFFE9801C,"upper fill is orange");
+        }
+        int border=0,shine=0,body=0;
+        for(int y=0;y<8;y++)for(int x=0;x<8;x++) {
+            int pixel=StaminaSprites.pixel(x,y,0,StaminaSprites.STAMINA_COLOR);
+            if(pixel==0xFF181818)border++;
+            if(pixel==0xFFFFF3CF)shine++;
+            if(pixel==StaminaSprites.STAMINA_COLOR)body++;
+            int fatigue=StaminaSprites.pixel(x,y,2,StaminaSprites.STAMINA_COLOR);
+            check(fatigue==0||fatigue==StaminaSprites.FATIGUE_COLOR,"fatigue has no colored outline or shine");
+        }
+        check(border>0&&shine>0&&body>0,"native sprite contains outline, shine and tinted body");
         System.out.println("Stamina lightning checks passed: " + checks);
     }
 }
