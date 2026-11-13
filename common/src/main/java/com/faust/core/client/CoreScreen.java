@@ -1,4 +1,6 @@
 package com.faust.core.client;
+import com.faust.essence.api.Skill;
+
 
 import com.faust.core.progression.*;
 import net.minecraft.client.gui.GuiGraphics;

@@ -1,4 +1,6 @@
 package com.faust.core.progression;
+import com.faust.essence.api.Skill;
+
 
 import java.util.*;
 
@@ -20,7 +22,7 @@ public final class Progress {
     public double campfireRest;
     public String path="";
     public static final class Track { public int level; public double xp, threshold; public Integer limitOverride; public long purchases; }
-    public Progress() {for(Skill s:Skill.values()) tracks.put(s,new Track());}
+    public Progress() {CoreSkills.initialize();for(Skill s:Skill.values()) tracks.put(s,new Track());}
     public Track track(Skill skill) {return tracks.computeIfAbsent(skill,k->new Track());}
     /** Sum of characteristic levels, including registered addon characteristics. */
     public long totalLevel(){return tracks.values().stream().mapToLong(t->t.level).sum();}
@@ -35,11 +37,12 @@ public final class Progress {
         for(var a:b.abilities)if((selected==null||a.skill()==selected)&&a.skillRequirements().stream().allMatch(r->r.level()<=level&&track(r.skill()).level>=r.level())){unlocked.add(a.id());disabled.remove(a.id());}
         revision++;
     }
-    public double needed(Skill skill,Balance b) {return b.progression.get("levelBase")+b.progression.get("levelSlope")*track(skill).level;}
-    public double cap(Skill skill,Balance b) {return Math.min(b.progression.get("maximumCap"),track(skill).limitOverride!=null?track(skill).limitOverride:(initialCap==null?b.progression.get("initialCap"):initialCap)+b.progression.get("capStep")*track(skill).purchases);}
+    private double rule(Skill skill,Balance b,String key){var custom=b.characteristicRules.stream().filter(r->r.skill()==skill).findFirst().orElse(null);if(custom==null)return b.progression.get(key);return switch(key){case "initialCap"->custom.initialCap();case "maximumCap"->custom.maximumCap();case "capStep"->custom.capStep();case "levelBase"->custom.levelBase();case "levelSlope"->custom.levelSlope();case "maximumGrowth"->custom.maximumGrowth();default->b.progression.get(key);};}
+    public double needed(Skill skill,Balance b) {return rule(skill,b,"levelBase")+rule(skill,b,"levelSlope")*track(skill).level;}
+    public double cap(Skill skill,Balance b) {return Math.min(rule(skill,b,"maximumCap"),track(skill).limitOverride!=null?track(skill).limitOverride:(initialCap==null||b.characteristicRules.stream().anyMatch(r->r.skill()==skill)?rule(skill,b,"initialCap"):initialCap)+rule(skill,b,"capStep")*track(skill).purchases);}
     public double multiplier(Skill skill,Balance b) {
         double level=track(skill).level,cap=cap(skill,b);
-        return level<cap?Math.min(b.progression.get("maximumGrowth"),1+0.25*Math.max(0,cap-level-1)):Math.max(1,Math.ceil(100*Math.pow(2,-(level-cap+1))))/100;
+        return level<cap?Math.min(rule(skill,b,"maximumGrowth"),1+0.25*Math.max(0,cap-level-1)):Math.max(1,Math.ceil(100*Math.pow(2,-(level-cap+1))))/100;
     }
     public long price(Skill skill,Balance b) {
         String group=costGroup(skill);
@@ -50,7 +53,7 @@ public final class Progress {
     public static String costGroup(Skill skill){int colon=skill.name().indexOf(':');return colon<0?"core":skill.name().substring(0,colon);}
 
     public boolean buy(Skill skill,long funds,Balance b) {
-        if(cap(skill,b)>=b.progression.get("maximumCap")||price(skill,b)>funds||purchases==Long.MAX_VALUE||track(skill).purchases==Long.MAX_VALUE)return false;
+        if(cap(skill,b)>=rule(skill,b,"maximumCap")||price(skill,b)>funds||purchases==Long.MAX_VALUE||track(skill).purchases==Long.MAX_VALUE)return false;
         if(track(skill).limitOverride!=null)track(skill).limitOverride++;track(skill).purchases++;purchases++;revision++;return true;
     }
     public void grant(Skill skill,double raw,Balance b) {

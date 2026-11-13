@@ -26,7 +26,8 @@
     "fabricloader": ">=${fabric_loader_version}",
     "fabric-api": "*",
     "minecraft": "${minecraft_version}",
-    "java": ">=${java_version}"
+    "java": ">=${java_version}",
+    "essence_api": ">=1.0.0"
   },
   "suggests": {
     "modmenu": ">=11.0.3"

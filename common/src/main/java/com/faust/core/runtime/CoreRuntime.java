@@ -1,6 +1,8 @@
 package com.faust.core.runtime;
+import com.faust.essence.api.Skill;
 
-import com.faust.core.api.CoreApi;
+
+import com.faust.essence.api.EssenceApi;
 import com.faust.core.progression.*;
 import com.faust.core.platform.Services;
 import net.minecraft.core.BlockPos;
@@ -20,11 +22,11 @@ public final class CoreRuntime {
     private static Path configDirectory;
     private static final Set<UUID> GRANTING=new HashSet<>();
     private static final Map<UUID,Session> SESSIONS=new HashMap<>();
-    public static final class Session {public long sentRevision=Long.MIN_VALUE;public double sentStamina=Double.NaN,sentFatigue=Double.NaN,sentWeight=Double.NaN;public int sentExperience=-1;public boolean sentExhausted;public int lastSpent=-100000,attackTick=-100000, lastRead=-100000, shieldTick=-100000, inputTick=-100000,ranTick=-100000,movedTick=-100000,budgetWindow,swimTicks;public double run,swim,shield,blocks;public boolean airVisible,campfire,soulCampfire,forward,paidSwing,wasSprinting;public Balance sentBalance;public Vec3 lastPosition;public Map<ResourceLocation,net.minecraft.core.Holder<Attribute>> statModifiers=new HashMap<>();}
+    public static final class Session {public com.faust.essence.api.PlayerSnapshot observed;public long sentRevision=Long.MIN_VALUE;public double sentStamina=Double.NaN,sentFatigue=Double.NaN,sentWeight=Double.NaN;public int sentExperience=-1;public boolean sentExhausted;public int lastSpent=-100000,attackTick=-100000, lastRead=-100000, shieldTick=-100000, inputTick=-100000,ranTick=-100000,movedTick=-100000,budgetWindow,swimTicks;public double run,swim,shield,blocks;public boolean airVisible,campfire,soulCampfire,forward,paidSwing,wasSprinting;public Balance sentBalance;public Vec3 lastPosition;public Map<ResourceLocation,net.minecraft.core.Holder<Attribute>> statModifiers=new HashMap<>();}
     public static void input(ServerPlayer p,boolean forward,boolean airVisible) {Session s=session(p);s.forward=forward;s.airVisible=airVisible;s.inputTick=p.tickCount;}
     public static void initialize(Path directory) {configDirectory=directory;reload();}
     public static ConfigResult editConfig(ServerPlayer player,ConfigEdit edit) {
-        CoreApi.requireServerThread(player);
+        EssenceApi.requireServerThread(player);
         boolean allowed=player.hasPermissions(2)||player.getServer().isSingleplayerOwner(player.getGameProfile());
         if(!allowed)return new ConfigResult(false,false,"core.config.denied");
         if(edit.section().isEmpty()){session(player).sentBalance=null;sync(player);return new ConfigResult(true,true,"core.config.ready");}
@@ -37,7 +39,7 @@ public final class CoreRuntime {
     }
     public static void refresh(ServerPlayer player){data(player).reconcile(balance);attributes(player);sync(player);}
     public static void reload() {
-        try {Balance candidate=Balance.load(configDirectory);balance=candidate;}
+        try {Balance candidate=Balance.load(configDirectory);balance=candidate;EssenceApi.configurationReloaded();}
         catch(java.io.IOException ex) {throw new IllegalStateException("Cannot load core config: "+configDirectory,ex);}
     }
     public static void reload(net.minecraft.server.MinecraftServer server) {
@@ -61,13 +63,13 @@ public final class CoreRuntime {
     }
     public static void disconnected(ServerPlayer p) {SESSIONS.remove(p.getUUID());}
     public static boolean grant(ServerPlayer player,String action,double units,double count) {
-        CoreApi.requireServerThread(player);
+        EssenceApi.requireServerThread(player);
         if(player.isCreative()||player.isSpectator()||(!action.equals("damage")&&player.isDeadOrDying())||!GRANTING.add(player.getUUID())) return false;
         try {
-            Progress p=data(player);boolean listeners=CoreApi.hasAfterListeners();String before=listeners?p.json():null;double scale=CoreApi.before(new CoreApi.Grant(player,action,units,count));
+            Progress p=data(player);boolean listeners=EssenceApi.hasAfterListeners();com.faust.essence.api.PlayerSnapshot before=listeners?EssenceApi.snapshot(player):null;double scale=EssenceApi.before(new EssenceApi.Grant(player,action,units,count));
             if(scale==0) return false;
             if(!p.event(action,units*scale,count,balance)) return false;
-            if(listeners)CoreApi.after(new CoreApi.Change(player.getUUID(),action,before,p.json()));return true;
+            if(listeners)EssenceApi.after(new EssenceApi.Change(player.getUUID(),action,before,EssenceApi.snapshot(player)));return true;
         } finally {GRANTING.remove(player.getUUID());}
     }
     public static void stat(ServerPlayer player,Stat<?> stat,int amount) {
@@ -188,7 +190,7 @@ public final class CoreRuntime {
             var attribute=BuiltInRegistries.ATTRIBUTE.getHolder(key);if(attribute.isEmpty())continue;
             var instance=player.getAttribute(attribute.get());if(instance==null)continue;
             double amount=rule.sprintOnly&&!player.isSprinting()?0:rule.amount(p.track(rule.skill).level);if(amount==0)continue;
-            if(rule.skill==Skill.building&&(rule.attribute.equals("minecraft:player.block_interaction_range")||rule.attribute.equals("minecraft:player.entity_interaction_range"))){amount=Math.min(amount,Math.max(0,b.skills.get("buildingReachMaximum")-buildingReachUsed.getOrDefault(rule.attribute,0.0)));buildingReachUsed.merge(rule.attribute,amount,Double::sum);}
+            if(rule.skill==CoreSkills.building&&(rule.attribute.equals("minecraft:player.block_interaction_range")||rule.attribute.equals("minecraft:player.entity_interaction_range"))){amount=Math.min(amount,Math.max(0,b.skills.get("buildingReachMaximum")-buildingReachUsed.getOrDefault(rule.attribute,0.0)));buildingReachUsed.merge(rule.attribute,amount,Double::sum);}
             var id=ResourceLocation.fromNamespaceAndPath("faustcore","stat/"+rule.id);
             var operation=switch(rule.operation){case "multiply_base"->AttributeModifier.Operation.ADD_MULTIPLIED_BASE;case "multiply_total"->AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL;default->AttributeModifier.Operation.ADD_VALUE;};
             instance.addTransientModifier(new AttributeModifier(id,amount,operation));session.statModifiers.put(id,attribute.get());
@@ -196,7 +198,7 @@ public final class CoreRuntime {
         setAttribute(player,Attributes.ATTACK_DAMAGE,"tree_damage",p.effect("damage",b));
         setAttribute(player,Attributes.MOVEMENT_SPEED,"tree_sprint",player.isSprinting()?p.effect("speed",b):0);
         if(player.getHealth()>player.getMaxHealth())player.setHealth(player.getMaxHealth());
-        CoreApi.applyBonuses(player);
+        EssenceApi.applyBonuses(player);
     }
     private static void setAttribute(ServerPlayer p,net.minecraft.core.Holder<Attribute> attribute,String name,double value) {
         AttributeInstance instance=p.getAttribute(attribute);if(instance==null)return;
@@ -216,6 +218,7 @@ public final class CoreRuntime {
     }
     public static void sync(ServerPlayer player) {
         Session session=session(player);
+        if(EssenceApi.hasStateListeners()){var current=EssenceApi.snapshot(player);var previous=session.observed;session.observed=current;if(previous!=null&&!previous.equals(current))EssenceApi.stateChanged(new EssenceApi.StateChange(player.getUUID(),previous,current));}
         var publicData=Balance.JSON.toJsonTree(data(player)).getAsJsonObject();publicData.remove("discoveries");publicData.addProperty("naturalRegeneration",player.level().getGameRules().getBoolean(net.minecraft.world.level.GameRules.RULE_NATURAL_REGENERATION));
         var snapshot=new Snapshot(publicData.toString(),session.sentBalance==balance?"":Balance.JSON.toJson(balance),player.experienceLevel,weight(player));
         Services.PLATFORM.send(player,snapshot);

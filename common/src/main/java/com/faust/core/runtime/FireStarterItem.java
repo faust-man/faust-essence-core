@@ -1,4 +1,5 @@
 package com.faust.core.runtime;
+import com.faust.core.progression.CoreSkills;
 
 import net.minecraft.world.item.*;
 import net.minecraft.world.*;
@@ -23,7 +24,7 @@ public final class FireStarterItem extends Item {
         if(!level.mayInteract(p,pos)||!p.mayUseItemAt(pos,block.getDirection(),stack))return stack;
         boolean campfire=CampfireBlock.canLight(state);
         if(campfire)level.setBlock(pos,state.setValue(CampfireBlock.LIT,true),11);
-        else if(level.random.nextInt(100)<Math.min(100,5*CoreRuntime.data(p).track(com.faust.core.progression.Skill.building).level)){
+        else if(level.random.nextInt(100)<Math.min(100,5*CoreRuntime.data(p).track(com.faust.core.progression.CoreSkills.building).level)){
             if(block.getDirection()==net.minecraft.core.Direction.UP&&state.is(net.minecraft.tags.BlockTags.LOGS)&&CoreRuntime.data(p).enabled("faustcore:fire_starter",CoreRuntime.balance)&&PlacedLogs.get(p.serverLevel()).contains(pos)){
                 level.setBlock(pos,Blocks.CAMPFIRE.defaultBlockState(),11);PlacedLogs.get(p.serverLevel()).add(pos);
             }else{

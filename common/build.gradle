@@ -66,3 +66,5 @@ dependencies { testImplementation project(':stamina') }
 }
 
 tasks.named('withStaminaTest') { dependsOn 'withoutStaminaTest' }
+
+dependencies { compileOnly files(new File(rootProject.file(providers.gradleProperty('apiProjectDir').getOrElse('../faust-essence-api')), 'neoforge/build/libs/essence-api-neoforge-1.21.1-1.0.0.jar')); testImplementation files(new File(rootProject.file(providers.gradleProperty('apiProjectDir').getOrElse('../faust-essence-api')), 'neoforge/build/libs/essence-api-neoforge-1.21.1-1.0.0.jar')) }

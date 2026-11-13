@@ -1,4 +1,6 @@
 package com.faust.core.progression;
+import com.faust.essence.api.Skill;
+
 
 import com.faust.core.runtime.CoreCommands;
 import com.mojang.brigadier.CommandDispatcher;
@@ -32,11 +34,11 @@ public final class CommandTest {
         var balance=new Balance();
         for(int level:new int[]{0,3,4,5,10,20,21,100,Integer.MAX_VALUE}){
             var progress=new Progress();progress.max(balance,null,level);
-            if(progress.track(Skill.strength).level!=level)throw new AssertionError("max level truncated");
+            if(progress.track(CoreSkills.strength).level!=level)throw new AssertionError("max level truncated");
             for(var ability:balance.abilities)if(progress.unlocked.contains(ability.id())&&ability.skillRequirements().stream().anyMatch(r->r.level()>level))throw new AssertionError("max granted above requested level");
         }
-        var progress=new Progress();progress.max(balance,Skill.defense,5);
-        if(progress.track(Skill.strength).level!=0||progress.track(Skill.defense).level!=5)throw new AssertionError("max changed unrelated characteristic");
+        var progress=new Progress();progress.max(balance,CoreSkills.defense,5);
+        if(progress.track(CoreSkills.strength).level!=0||progress.track(CoreSkills.defense).level!=5)throw new AssertionError("max changed unrelated characteristic");
         var root=dispatcher.getRoot().getChild("essence");
         for(String name:new String[]{"skill","ability","stamina","fatigue","reset","reload","max"}) {
             if(root.getChild(name).canUse(player)||!root.getChild(name).canUse(admin))throw new AssertionError("Permission failure: "+name);checks++;

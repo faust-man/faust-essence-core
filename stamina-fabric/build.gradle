@@ -29,3 +29,5 @@ processResources { filesMatching('fabric.mod.json') { expand(version: project.ve
 loom { mixin { defaultRefmapName.set('fauststamina.refmap.json') } }
 
 sourceSets.main.compileClasspath += project(':fabric').sourceSets.main.compileClasspath
+
+dependencies { modImplementation files(new File(rootProject.file(providers.gradleProperty('apiProjectDir').getOrElse('../faust-essence-api')), 'fabric/build/libs/essence-api-fabric-1.21.1-1.0.0.jar')) }

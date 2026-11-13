@@ -1,4 +1,6 @@
 package com.faust.core.progression;
+import com.faust.essence.api.Skill;
+
 import java.nio.file.*;
 public final class BalanceRevisionTest {
     private static void check(boolean v){if(!v)throw new AssertionError("balance revision");}
@@ -16,8 +18,8 @@ public final class BalanceRevisionTest {
         check(Files.exists(Balance.sectionFile(dir,"stamina")));check(!Files.exists(dir.resolve("stamina.json")));
         Balance.saveGroup(dir,"stamina",b.group("stamina"));check(Balance.load(dir).stamina.get("shieldCost")==2);
         var potion=b.abilities.stream().filter(a->a.id().equals("faustcore:potion_duration")).findFirst().orElseThrow();check(potion.amount()==30&&potion.value()==0.02);
-        var levelOnly=new Balance.Ability("test:levels",Skill.strength,5,"skill_levels",0,"","stat_unlock",0);
-        p=new Progress();check(p.requirementProgress(levelOnly)==0);p.track(Skill.strength).level=5;check(p.requirementProgress(levelOnly)==1);
+        var levelOnly=new Balance.Ability("test:levels",CoreSkills.strength,5,"skill_levels",0,"","stat_unlock",0);
+        p=new Progress();check(p.requirementProgress(levelOnly)==0);p.track(CoreSkills.strength).level=5;check(p.requirementProgress(levelOnly)==1);
         check(b.actions.get("mine").xp()==0.05&&b.actions.get("dodge").xp()==0.05);
         System.out.println("Balance revision checks passed");
     }

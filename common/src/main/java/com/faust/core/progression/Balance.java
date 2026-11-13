@@ -1,4 +1,7 @@
 package com.faust.core.progression;
+import com.faust.essence.api.Skill;
+import com.faust.essence.api.BonusEffects;
+
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -15,6 +18,7 @@ public final class Balance {
         public Skill read(com.google.gson.stream.JsonReader in) throws IOException {return Skill.saved(in.nextString());}
     }).setPrettyPrinting().create();
     public Map<String, Double> progression = numbers("levelBase",100,"levelSlope",20,"initialCap",3,"capStep",1,"maximumCap",20,"costDivisor",5,"maximumGrowth",2,"trainingMultiplier",2,"slowdown",0.5,"overCapGrowth",0.33);
+    public List<com.faust.essence.api.Extensions.Characteristic> characteristicRules=new ArrayList<>();
     public Map<String,Double> limitCosts = new LinkedHashMap<>();
     public List<String> metabolismExcludedEffects = new ArrayList<>();
     public Map<String, Double> stamina = numbers("enabled",1,"base",20,"constitutionPerLevel",1,"regeneration",4,"delaySeconds",1.5,"armorCost",0.25,"waterCost",1,"exhaustionLock",1,"exhaustionTrigger",1,"exhaustionRecovery",10,"airRecoveryMultiplier",0.5,"swimCost",0.4,"swimDelaySeconds",3,"throwCost",1,"bowCost",2,"crossbowCost",1,"attackCost",1,"maceCost",2,"shieldCost",2,"sprintJumpCost",0.5,"jumpArmorCost",0.05,"runCost",0.1,"secondWindMultiplier",1.5,"flowThreshold",0.05);
@@ -70,51 +74,52 @@ public final class Balance {
     }
 
     public Balance() {
+        CoreSkills.initialize();
         skills.keySet().removeAll(List.of("damagePerLevel","damageMaximum","speedPerLevel","speedMaximum","healthPerLevel","luckPerLevel","luckMaximum","reachEveryLevels","reachPerStep"));
-        stat("strength_damage",Skill.strength,"attack_damage","multiply_base",0.01,1,1e9,false);
-        stat("dexterity_sprint",Skill.dexterity,"movement_speed","multiply_base",0.01,1,1e9,true);
-        stat("dexterity_attack",Skill.dexterity,"attack_speed","multiply_base",0.01,1,1e9,false);
-        stat("constitution_health",Skill.constitution,"max_health","add",1,1,1e9,false);
-        stat("defense_armor",Skill.defense,"armor","add",1,2,1e9,false);
-        stat("intelligence_luck",Skill.intelligence,"luck","add",0.01,1,0.2,false);
-        stat("building_block_reach",Skill.building,"block_interaction_range","add",1,10,3,false);
-        action("melee",Skill.strength,2.0/3,"hits");
-        action("damage",Skill.constitution,1,"damage_taken");
-        action("run",Skill.dexterity,0.05,"run_metres");
-        action("constitution_run",Skill.constitution,0.01,"constitution_run_metres");
-        action("constitution_swim",Skill.constitution,0.01,"swim_metres");
-        action("bow",Skill.dexterity,1,"bow_shots");
-        action("crossbow",Skill.strength,1,"crossbow_shots");
-        action("mace",Skill.strength,0,"mace_hits");
-        action("armor_run",Skill.defense,0.05,"armor_metres");
-        action("shield",Skill.defense,1,"blocks");
-        action("read",Skill.intelligence,5,"books");
-        action("enchant",Skill.intelligence,10,"enchants");
-        action("brew",Skill.intelligence,5,"brewed");
-        action("trade",Skill.intelligence,3,"trades");
-        action("place",Skill.building,1,"placed");
-        action("mine",Skill.building,0.05,"mined");
-        action("dodge",Skill.dexterity,0.05,"dodges");
-        action("craft",Skill.intelligence,0.5,"crafted");
-        ability("controlled_strike",Skill.strength,5,"hits",30,"","damage",0.01);
-        ability("strong_grip",Skill.strength,10,"hits",100,"controlled_strike","damage",0.02);
+        stat("strength_damage",CoreSkills.strength,"attack_damage","multiply_base",0.01,1,1e9,false);
+        stat("dexterity_sprint",CoreSkills.dexterity,"movement_speed","multiply_base",0.01,1,1e9,true);
+        stat("dexterity_attack",CoreSkills.dexterity,"attack_speed","multiply_base",0.01,1,1e9,false);
+        stat("constitution_health",CoreSkills.constitution,"max_health","add",1,1,1e9,false);
+        stat("defense_armor",CoreSkills.defense,"armor","add",1,2,1e9,false);
+        stat("intelligence_luck",CoreSkills.intelligence,"luck","add",0.01,1,0.2,false);
+        stat("building_block_reach",CoreSkills.building,"block_interaction_range","add",1,10,3,false);
+        action("melee",CoreSkills.strength,2.0/3,"hits");
+        action("damage",CoreSkills.constitution,1,"damage_taken");
+        action("run",CoreSkills.dexterity,0.05,"run_metres");
+        action("constitution_run",CoreSkills.constitution,0.01,"constitution_run_metres");
+        action("constitution_swim",CoreSkills.constitution,0.01,"swim_metres");
+        action("bow",CoreSkills.dexterity,1,"bow_shots");
+        action("crossbow",CoreSkills.strength,1,"crossbow_shots");
+        action("mace",CoreSkills.strength,0,"mace_hits");
+        action("armor_run",CoreSkills.defense,0.05,"armor_metres");
+        action("shield",CoreSkills.defense,1,"blocks");
+        action("read",CoreSkills.intelligence,5,"books");
+        action("enchant",CoreSkills.intelligence,10,"enchants");
+        action("brew",CoreSkills.intelligence,5,"brewed");
+        action("trade",CoreSkills.intelligence,3,"trades");
+        action("place",CoreSkills.building,1,"placed");
+        action("mine",CoreSkills.building,0.05,"mined");
+        action("dodge",CoreSkills.dexterity,0.05,"dodges");
+        action("craft",CoreSkills.intelligence,0.5,"crafted");
+        ability("controlled_strike",CoreSkills.strength,5,"hits",30,"","damage",0.01);
+        ability("strong_grip",CoreSkills.strength,10,"hits",100,"controlled_strike","damage",0.02);
         StaminaServices.mechanics().defaults(this,1);
-        ability("enduring_body",Skill.constitution,15,"damage_taken",200,"second_wind","stamina",2);
-        ability("steady_pace",Skill.dexterity,5,"run_metres",1000,"","speed",0.01);
-        ability("sure_footing",Skill.dexterity,10,"run_metres",3000,"steady_pace","speed",0.01);
+        ability("enduring_body",CoreSkills.constitution,15,"damage_taken",200,"second_wind","stamina",2);
+        ability("steady_pace",CoreSkills.dexterity,5,"run_metres",1000,"","speed",0.01);
+        ability("sure_footing",CoreSkills.dexterity,10,"run_metres",3000,"steady_pace","speed",0.01);
         StaminaServices.mechanics().defaults(this,2);
         StaminaServices.mechanics().defaults(this,3);
-        ability("shield_care",Skill.defense,5,"blocks",30,"","shield_durability",0.10);
-        ability("shield_recovery",Skill.defense,10,"blocks",100,"shield_care","shield_recovery",0.20);
-        ability("applied_knowledge",Skill.intelligence,5,"books",10,"","regeneration",0.2);
-        ability("deep_understanding",Skill.intelligence,15,"enchants",20,"applied_knowledge","regeneration",0.4);
-        ability("tool_handling",Skill.building,5,"placed",100,"","breaking",0.02);
-        ability("master_builder",Skill.building,20,"crafted",300,"tool_handling","breaking",0.03);
+        ability("shield_care",CoreSkills.defense,5,"blocks",30,"","shield_durability",0.10);
+        ability("shield_recovery",CoreSkills.defense,10,"blocks",100,"shield_care","shield_recovery",0.20);
+        ability("applied_knowledge",CoreSkills.intelligence,5,"books",10,"","regeneration",0.2);
+        ability("deep_understanding",CoreSkills.intelligence,15,"enchants",20,"applied_knowledge","regeneration",0.4);
+        ability("tool_handling",CoreSkills.building,5,"placed",100,"","breaking",0.02);
+        ability("master_builder",CoreSkills.building,20,"crafted",300,"tool_handling","breaking",0.03);
         for(int i=0;i<abilities.size();i++){var a=abilities.get(i);abilities.set(i,new Ability(a.id(),a.skill(),a.level(),a.counter(),a.amount(),a.parent(),a.effect(),a.effect().equals("second_wind")?1:a.effect().startsWith("shield_")?Math.min(0.95,a.value()*10):a.value()*10));}
-        abilities.removeIf(a->a.skill()!=Skill.defense&&!a.id().equals("faustcore:second_wind"));
+        abilities.removeIf(a->a.skill()!=CoreSkills.defense&&!a.id().equals("faustcore:second_wind"));
         for(int i=0;i<abilities.size();i++){var a=abilities.get(i);if(a.id().equals("faustcore:armor_familiarity")||a.id().equals("faustcore:armor_mastery"))abilities.set(i,new Ability(a.id(),a.skill(),a.level(),a.counter(),a.amount(),a.parent(),"capacity",a.id().endsWith("familiarity")?10:4));}
         StaminaServices.mechanics().defaults(this,4);
-        stat("building_breaking",Skill.building,"max_health","add",0.01,1,1e9,false);statBonuses.getLast().attribute="faustcore:breaking";
+        stat("building_breaking",CoreSkills.building,"max_health","add",0.01,1,1e9,false);statBonuses.getLast().attribute="faustcore:breaking";
         for(var rule:statBonuses){String id="training_"+rule.id;rule.requiresAbility="faustcore:"+id;String counter=switch(rule.skill.name()){case "strength"->"hits";case "constitution"->"damage_taken";case "dexterity"->"run_metres";case "defense"->"blocks";case "building"->"placed";default->"books";};String perk=rule.id.startsWith("building_")&&rule.id.endsWith("reach")?"training_building_reach":id;rule.requiresAbility="faustcore:"+perk;if(abilities.stream().noneMatch(a->a.id().equals(rule.requiresAbility)))ability(perk,rule.skill,1,counter,1,"","stat_unlock",0);}
         StaminaServices.mechanics().defaults(this,5);
         StaminaServices.mechanics().defaults(this,6);
@@ -123,25 +128,26 @@ public final class Balance {
         StaminaServices.mechanics().defaults(this,9);
         StaminaServices.mechanics().defaults(this,10);
         for(int i=0;i<abilities.size();i++)abilities.set(i,tuneAbility(abilities.get(i)));
-        stat("dexterity_safe_fall",Skill.dexterity,"safe_fall_distance","add",1,5,1e9,false);
+        stat("dexterity_safe_fall",CoreSkills.dexterity,"safe_fall_distance","add",1,5,1e9,false);
         statBonuses.getLast().requiresAbility="faustcore:soft_landing";
-        ability("cushioned_landing",Skill.dexterity,15,"fall_damage",300,"soft_landing","fall_damage_reduction",0.5);
-        ability("soft_landing",Skill.dexterity,5,"fall_damage",100,"","stat_unlock",0);
-        ability("enchanting_power",Skill.intelligence,5,"enchants",1,"","enchanting_power",1);
-        ability("potion_duration",Skill.intelligence,5,"brewed",30,"","potion_duration",0.02);
-        ability("soft_foot",Skill.dexterity,10,"slow_falling_received",1,"soft_landing","faustcore:soft_foot",1);
-        ability("forester",Skill.building,3,"saplings_inventory",64,"","faustcore:forester",1);
-        ability("fire_starter",Skill.building,5,"charcoal_smelted",1,"forester","faustcore:fire_starter",1);
+        ability("cushioned_landing",CoreSkills.dexterity,15,"fall_damage",300,"soft_landing","fall_damage_reduction",0.5);
+        ability("soft_landing",CoreSkills.dexterity,5,"fall_damage",100,"","stat_unlock",0);
+        ability("enchanting_power",CoreSkills.intelligence,5,"enchants",1,"","enchanting_power",1);
+        ability("potion_duration",CoreSkills.intelligence,5,"brewed",30,"","potion_duration",0.02);
+        ability("soft_foot",CoreSkills.dexterity,10,"slow_falling_received",1,"soft_landing","faustcore:soft_foot",1);
+        ability("forester",CoreSkills.building,3,"saplings_inventory",64,"","faustcore:forester",1);
+        ability("fire_starter",CoreSkills.building,5,"charcoal_smelted",1,"forester","faustcore:fire_starter",1);
         for(int i=0;i<abilities.size();i++)if(abilities.get(i).id().equals("faustcore:training_building_reach")){
             var j=JSON.toJsonTree(abilities.get(i)).getAsJsonObject();
             j.add("conditions",JSON.toJsonTree(List.of(new Condition("mined",1024),new Condition("placed",1024))));
             abilities.set(i,JSON.fromJson(j,Ability.class));
         }
-        ability("cat_scent",Skill.intelligence,5,"cats_tamed",1,"","faustcore:cat_scent",1);
-        ability("metabolism",Skill.constitution,15,"food_nutrition",20,"","faustcore:metabolism",1);
+        ability("cat_scent",CoreSkills.intelligence,5,"cats_tamed",1,"","faustcore:cat_scent",1);
+        ability("metabolism",CoreSkills.constitution,15,"food_nutrition",20,"","faustcore:metabolism",1);
         swapShieldRules();
         StaminaContent.withoutProvider(this);
         trees=SkillTrees.defaults(abilities);
+        com.faust.core.runtime.EssenceBackendImpl.apply(this);
 
 
     }
@@ -189,6 +195,7 @@ public final class Balance {
     public void validate() {
         counterEpoch++;
         if(integratedTreeNamespaces==null||integratedTreeNamespaces.stream().anyMatch(n->n==null||!n.matches("[a-z0-9_.-]+"))||new HashSet<>(integratedTreeNamespaces).size()!=integratedTreeNamespaces.size())throw new IllegalArgumentException("Invalid integrated tree namespaces");
+        if(characteristicRules==null||characteristicRules.stream().anyMatch(java.util.Objects::isNull)||characteristicRules.stream().map(r->r.skill().name()).distinct().count()!=characteristicRules.size())throw new IllegalArgumentException("Invalid characteristic rules");
         if(metabolismExcludedEffects==null||metabolismExcludedEffects.stream().anyMatch(id->id==null||!id.matches("[a-z0-9_.-]+:[a-z0-9_./-]+")))throw new IllegalArgumentException("Invalid metabolism exclusions");
         if(limitCosts==null||limitCosts.keySet().stream().anyMatch(k->!k.matches("[a-z0-9_.-]+:(base|step)")))throw new IllegalArgumentException("Invalid limit costs");
         Balance defaults=new Balance();
@@ -303,7 +310,7 @@ public final class Balance {
         st.addProperty("runCost",0.1);Files.writeString(stamina,JSON.toJson(st)+"\n");
         Path file=sectionFile(directory,"fatigue");if(Files.exists(file)){var data=JSON.fromJson(Files.readString(file),com.google.gson.JsonObject.class);data.addProperty("soulCampfirePerSecond",0.04);data.addProperty("soulFirePerSecond",0.1);Files.writeString(file,JSON.toJson(data)+"\n");}
         file=directory.resolve("progression.json");if(Files.exists(file)){var data=JSON.fromJson(Files.readString(file),com.google.gson.JsonObject.class);if(data.has("slowdown"))data.addProperty("slowdown",data.get("slowdown").getAsDouble()*2);Files.writeString(file,JSON.toJson(data)+"\n");}
-        file=directory.resolve("statBonuses.json");if(Files.exists(file)){var list=new java.util.ArrayList<StatBonus>(java.util.Arrays.asList(JSON.fromJson(Files.readString(file),StatBonus[].class)));for(var r:list)if(r.skill==Skill.building&&(r.attribute.equals("minecraft:player.block_interaction_range")||r.attribute.equals("minecraft:player.entity_interaction_range")))r.maximum=Math.min(3,r.maximum);if(list.stream().noneMatch(r->r.id.equals("defense_armor")))list.add(new Balance().statBonuses.stream().filter(r->r.id.equals("defense_armor")).findFirst().orElseThrow());Files.writeString(file,JSON.toJson(list)+"\n");}
+        file=directory.resolve("statBonuses.json");if(Files.exists(file)){var list=new java.util.ArrayList<StatBonus>(java.util.Arrays.asList(JSON.fromJson(Files.readString(file),StatBonus[].class)));for(var r:list)if(r.skill==CoreSkills.building&&(r.attribute.equals("minecraft:player.block_interaction_range")||r.attribute.equals("minecraft:player.entity_interaction_range")))r.maximum=Math.min(3,r.maximum);if(list.stream().noneMatch(r->r.id.equals("defense_armor")))list.add(new Balance().statBonuses.stream().filter(r->r.id.equals("defense_armor")).findFirst().orElseThrow());Files.writeString(file,JSON.toJson(list)+"\n");}
     }
     private static void migrateV13(Path directory) throws IOException {
         if(Files.exists(directory.resolve(".format-1.3"))||!Files.exists(directory.resolve("abilities.json")))return;
@@ -346,7 +353,7 @@ public final class Balance {
             Files.createDirectories(backup);if(!Files.exists(backup.resolve(file.getFileName())))Files.copy(file,backup.resolve(file.getFileName()));
             if(group.equals("statBonuses")){
                 var rules=new ArrayList<>(Arrays.asList(JSON.fromJson(Files.readString(file),StatBonus[].class)));
-                rules.removeIf(r->r.skill==Skill.building&&r.attribute.equals("minecraft:player.entity_interaction_range"));
+                rules.removeIf(r->r.skill==CoreSkills.building&&r.attribute.equals("minecraft:player.entity_interaction_range"));
                 Files.writeString(file,JSON.toJson(rules)+"\n");continue;
             }
             var data=JSON.fromJson(Files.readString(file),com.google.gson.JsonObject.class);
@@ -389,10 +396,10 @@ public final class Balance {
         var trees=new ArrayList<SkillTrees.Tree>(Arrays.asList(JSON.fromJson(Files.readString(file),SkillTrees.Tree[].class)));
         for(int i=0;i<trees.size();i++){
             var tree=trees.get(i);var nodes=new ArrayList<>(tree.nodes());
-            String root=tree.skill()==Skill.intelligence?"faustcore:training_intelligence_luck":tree.skill()==Skill.dexterity?"faustcore:training_dexterity_sprint":"";
+            String root=tree.skill()==CoreSkills.intelligence?"faustcore:training_intelligence_luck":tree.skill()==CoreSkills.dexterity?"faustcore:training_dexterity_sprint":"";
             if(root.isEmpty())continue;
             var anchor=nodes.stream().filter(n->n.ability().equals(root)).findFirst().orElse(new SkillTrees.Node(root,0,0,"minecraft:book"));
-            var ids=tree.skill()==Skill.intelligence?List.of("faustcore:potion_duration","faustcore:enchanting_power"):List.of("faustcore:soft_landing");
+            var ids=tree.skill()==CoreSkills.intelligence?List.of("faustcore:potion_duration","faustcore:enchanting_power"):List.of("faustcore:soft_landing");
             for(int j=0;j<ids.size();j++){
                 String id=ids.get(j);String icon=nodes.stream().filter(n->n.ability().equals(id)).map(SkillTrees.Node::icon).findFirst().orElse(id.endsWith("soft_landing")?"minecraft:feather":id.endsWith("potion_duration")?"minecraft:brewing_stand":"minecraft:enchanting_table");
                 nodes.removeIf(n->n.ability().equals(id));nodes.add(new SkillTrees.Node(id,anchor.x()-5*(j+1),anchor.y(),icon));
@@ -487,6 +494,7 @@ public final class Balance {
         if(!Files.exists(directory.resolve("trees.json"))){result.trees=SkillTrees.defaults(result.abilities);Files.writeString(directory.resolve("trees.json"),JSON.toJson(result.trees)+"\n");}
         if(Files.exists(directory.resolve(".without-stamina")))StaminaServices.mechanics().prepare(result);
         StaminaContent.withoutProvider(result);
+        com.faust.core.runtime.EssenceBackendImpl.apply(result);
         try {result.validate();} catch(RuntimeException e) {throw new IOException("Invalid core balance",e);}
         Files.writeString(directory.resolve(".balance-format"),"1.2\n");Files.writeString(directory.resolve(".format-1.3"),"1\n");Files.writeString(directory.resolve(".format-1.4"),"1\n");Files.writeString(directory.resolve(".format-1.4.1"),"1\n");Files.writeString(directory.resolve(".cake-format-1.5.2"),"1\n");
         return result;
@@ -572,7 +580,7 @@ public final class Balance {
         if(Files.exists(trees)){
             Path backup=directory.resolve("migration-skill-revision");Files.createDirectories(backup);Files.copy(trees,backup.resolve("trees.json"),StandardCopyOption.REPLACE_EXISTING);
             var layouts=JSON.fromJson(Files.readString(trees),SkillTrees.Tree[].class);var output=new ArrayList<SkillTrees.Tree>();
-            for(var tree:layouts){var nodes=new ArrayList<>(tree.nodes());if(tree.skill()==Skill.constitution&&nodes.stream().noneMatch(n->n.ability().equals("faustcore:metabolism")))nodes.add(new SkillTrees.Node("faustcore:metabolism",10,0,"minecraft:cooked_porkchop"));output.add(new SkillTrees.Tree(tree.skill(),SkillTrees.spaced(nodes)));}
+            for(var tree:layouts){var nodes=new ArrayList<>(tree.nodes());if(tree.skill()==CoreSkills.constitution&&nodes.stream().noneMatch(n->n.ability().equals("faustcore:metabolism")))nodes.add(new SkillTrees.Node("faustcore:metabolism",10,0,"minecraft:cooked_porkchop"));output.add(new SkillTrees.Tree(tree.skill(),SkillTrees.spaced(nodes)));}
             Files.writeString(trees,JSON.toJson(output)+"\n");
         }
         Files.writeString(marker,"1\n");

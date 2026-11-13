@@ -1,6 +1,8 @@
 package com.faust.core.runtime;
+import com.faust.essence.api.Skill;
 
-import com.faust.core.api.CoreApi;
+
+import com.faust.essence.api.EssenceApi;
 import com.faust.core.progression.*;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
@@ -63,7 +65,7 @@ public final class CoreCommands {
             .then(literal("clear").then(argument("targets",EntityArgument.players()).executes(ctx->modify(ctx,p->CoreRuntime.data(p).fatigue=0))))
             .then(literal("set").then(argument("targets",EntityArgument.players()).then(argument("amount",DoubleArgumentType.doubleArg(-1000000,1000000)).executes(ctx->modify(ctx,p->{var data=CoreRuntime.data(p);data.fatigue=Math.max(-CoreRuntime.balance.fatigue.get("sleepReserve"),Math.min(DoubleArgumentType.getDouble(ctx,"amount"),data.maxFatigue(CoreRuntime.balance)));data.stamina=Math.min(data.stamina,data.maxStamina(CoreRuntime.balance));}))))));
         root.then(literal("reset").requires(s->s.hasPermission(2)).executes(ctx->reset(ctx,false)).then(argument("targets",EntityArgument.players()).executes(ctx->reset(ctx,true))));
-        root.then(literal("path").then(argument("id",ResourceLocationArgument.id()).suggests((ctx,b)->SharedSuggestionProvider.suggest(CoreApi.paths(),b)).executes(ctx->reply(ctx,"core.action.ok",CoreApi.choosePath(ctx.getSource().getPlayerOrException(),ResourceLocationArgument.getId(ctx,"id").toString())))));
+        root.then(literal("path").then(argument("id",ResourceLocationArgument.id()).suggests((ctx,b)->SharedSuggestionProvider.suggest(EssenceApi.paths(),b)).executes(ctx->reply(ctx,"core.action.ok",EssenceApi.choosePath(ctx.getSource().getPlayerOrException(),ResourceLocationArgument.getId(ctx,"id").toString())))));
         root.then(literal("reload").requires(s->s.hasPermission(2)).executes(ctx->{try{CoreRuntime.reload(ctx.getSource().getServer());return reply(ctx,"core.reload.ok",true);}catch(RuntimeException e){ctx.getSource().sendFailure(Component.literal(e.getMessage()));return 0;}}));
         root.then(literal("panel").redirect(root.build(),ctx->ctx.getSource().withSuppressedOutput()));
         dispatcher.register(root);

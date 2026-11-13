@@ -1,4 +1,6 @@
 package com.faust.core.progression;
+import com.faust.essence.api.Skill;
+
 import java.nio.file.*;
 public final class ForestSkillsTest {
  private static void check(boolean ok,String message){if(!ok)throw new AssertionError(message);}
@@ -11,7 +13,7 @@ public final class ForestSkillsTest {
   var cat=b.abilities.stream().filter(a->a.id().endsWith(":cat_scent")).findFirst().orElseThrow();check(cat.level()==5&&cat.counter().equals("cats_tamed"),"cat requirements");
   check(soft.parent().equals("faustcore:soft_landing"),"soft foot needs soft landing");
   var fire=b.abilities.stream().filter(a->a.id().endsWith(":fire_starter")).findFirst().orElseThrow();
-  var locked=new Progress();locked.track(Skill.building).level=20;check(locked.requirementProgress(fire)==0&&!locked.canUnlock(fire,b),"no green progress without forester");
+  var locked=new Progress();locked.track(CoreSkills.building).level=20;check(locked.requirementProgress(fire)==0&&!locked.canUnlock(fire,b),"no green progress without forester");
   check(fire.level()==5&&fire.counter().equals("charcoal_smelted"),"fire starter requirements");
   var bad=new SkillTrees.Node("test:bad",2,0,"minecraft:stick");var good=new SkillTrees.Node("test:good",0,0,"minecraft:stick");
   check(!SkillTrees.validPosition(bad,java.util.List.of(good,bad)),"gap below half width invalid");
