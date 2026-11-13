@@ -1,7 +1,7 @@
 plugins { id 'java-library'; id 'fabric-loom' }
 version = rootProject.version
 group = 'com.faust.stamina'
-base.archivesName = 'fauststamina-fabric-1.21.1'
+base.archivesName = 'essence-stamina-fabric-1.21.1'
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 repositories {
     mavenCentral()

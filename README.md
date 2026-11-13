@@ -1,3 +1,7 @@
+Имена итоговых файлов: `essence-core-<loader>-1.21.1-1.6.0.jar`,
+`essence-stamina-<loader>-1.21.1-1.6.0.jar`, `essence-compat-epic-fight-1.21.1-1.6.0.jar`.
+При обновлении удаляйте прежние JAR с префиксом faust, чтобы не установить мод дважды.
+
 Правки: зельеварение требует 30 зелий и даёт +2% длительности за уровень интеллекта;
 ломание блоков даёт немного опыта строительства. Раскладка Телосложения разнесена по строкам.
 
@@ -97,8 +101,8 @@ Core работает без системы выносливости. Для п�
 После клонирования соседнего репозитория Stamina Wrapper `./gradlew.bat build`
 собирает core и два варианта дополнения для интеграционных проверок:
 
-- NeoForge: `stamina/build/libs/fauststamina-neoforge-1.21.1-1.6.0.jar`.
-- Fabric: `stamina-fabric/build/libs/fauststamina-fabric-1.21.1-1.6.0.jar`.
+- NeoForge: `stamina/build/libs/essence-stamina-neoforge-1.21.1-1.6.0.jar`.
+- Fabric: `stamina-fabric/build/libs/essence-stamina-fabric-1.21.1-1.6.0.jar`.
 
 Выбирайте один JAR под свой загрузчик. Запуски разработки core по умолчанию
 без выносливости; добавьте `-PwithStamina` к `:fabric:runClient`,
@@ -895,8 +899,8 @@ $env:GRADLE_USER_HOME = Join-Path (Get-Location) '.gradle-user-home'
 
 Итоговые JAR:
 
-- `fabric/build/libs/faustcore-fabric-1.21.1-1.6.0.jar`;
-- `neoforge/build/libs/faustcore-neoforge-1.21.1-1.6.0.jar`.
+- `fabric/build/libs/essence-core-fabric-1.21.1-1.6.0.jar`;
+- `neoforge/build/libs/essence-core-neoforge-1.21.1-1.6.0.jar`.
 
 В обычной сборке положите один соответствующий JAR в `mods` Minecraft 1.21.1.
 Не используйте `sources`, `javadoc`, `dev` или старые JAR `examplemod`/essence 1.0.0.
