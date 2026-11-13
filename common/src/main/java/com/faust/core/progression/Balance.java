@@ -14,7 +14,9 @@ public final class Balance {
         public void write(com.google.gson.stream.JsonWriter out,Skill skill) throws IOException {out.value(skill.name());}
         public Skill read(com.google.gson.stream.JsonReader in) throws IOException {return Skill.saved(in.nextString());}
     }).setPrettyPrinting().create();
-    public Map<String, Double> progression = numbers("levelBase",100,"levelSlope",20,"initialCap",5,"capStep",1,"maximumCap",20,"costDivisor",5,"maximumGrowth",2,"trainingMultiplier",2,"slowdown",0.5,"overCapGrowth",0.33);
+    public Map<String, Double> progression = numbers("levelBase",100,"levelSlope",20,"initialCap",3,"capStep",1,"maximumCap",20,"costDivisor",5,"maximumGrowth",2,"trainingMultiplier",2,"slowdown",0.5,"overCapGrowth",0.33);
+    public Map<String,Double> limitCosts = new LinkedHashMap<>();
+    public List<String> metabolismExcludedEffects = new ArrayList<>();
     public Map<String, Double> stamina = numbers("enabled",1,"base",20,"constitutionPerLevel",1,"regeneration",4,"delaySeconds",1.5,"armorCost",0.25,"waterCost",1,"exhaustionLock",1,"exhaustionTrigger",1,"exhaustionRecovery",10,"airRecoveryMultiplier",0.5,"swimCost",0.4,"swimDelaySeconds",3,"throwCost",1,"bowCost",2,"crossbowCost",1,"attackCost",1,"maceCost",2,"shieldCost",2,"sprintJumpCost",0.5,"jumpArmorCost",0.05,"runCost",0.1,"secondWindMultiplier",1.5,"flowThreshold",0.05);
     public Map<String, Double> fatigue = numbers("enabled",1,"worldGraceSeconds",300,"accumulationMultiplier",0.5,"perSpentFraction",0.05,"maximum",16,"minimum",4,"sleepPerSecond",0.2,"campfirePerSecond",0.04,"campfireRadius",4,"soulCampfirePerSecond",0.04,"soulFirePerSecond",0.1,"resetAfterNight",1,"sleepReserve",5);
     public Map<String, Double> armor = numbers("baseCapacity",0,"capacityPerLevel",0,"fallbackWeight",2,"leather",1,"chainmail",2,"iron",2.5,"golden",2,"diamond",3,"netherite",3.5);
@@ -187,6 +189,8 @@ public final class Balance {
     public void validate() {
         counterEpoch++;
         if(integratedTreeNamespaces==null||integratedTreeNamespaces.stream().anyMatch(n->n==null||!n.matches("[a-z0-9_.-]+"))||new HashSet<>(integratedTreeNamespaces).size()!=integratedTreeNamespaces.size())throw new IllegalArgumentException("Invalid integrated tree namespaces");
+        if(metabolismExcludedEffects==null||metabolismExcludedEffects.stream().anyMatch(id->id==null||!id.matches("[a-z0-9_.-]+:[a-z0-9_./-]+")))throw new IllegalArgumentException("Invalid metabolism exclusions");
+        if(limitCosts==null||limitCosts.keySet().stream().anyMatch(k->!k.matches("[a-z0-9_.-]+:(base|step)")))throw new IllegalArgumentException("Invalid limit costs");
         Balance defaults=new Balance();
         try {
             for(var field:Balance.class.getFields()) {
@@ -455,6 +459,18 @@ public final class Balance {
         migrateBalanceRevision(directory);migrateFollowup(directory);migrateForestSkills(directory);migrateSkillRevision(directory);migrateTreePolish(directory);migrateHealthTen(directory);migrateDefenseParents(directory);
         Path windFile=sectionFile(directory,"stamina");if(Files.exists(windFile)){var data=JSON.fromJson(Files.readString(windFile),com.google.gson.JsonObject.class);if(!data.has("secondWindMultiplier")){data.addProperty("secondWindMultiplier",1.5);Files.writeString(windFile,JSON.toJson(data)+"\n");}}
         Path skillsFile=directory.resolve("skills.json");if(Files.exists(skillsFile)){var data=JSON.fromJson(Files.readString(skillsFile),com.google.gson.JsonObject.class);if(!data.has("buildingReachMaximum")){data.addProperty("buildingReachMaximum",3);Files.writeString(skillsFile,JSON.toJson(data)+"\n");}}
+        Path capMarker=directory.resolve(".cap-format-3");
+        Path capFile=directory.resolve("progression.json");
+        if(!Files.exists(capMarker)){
+            if(Files.exists(capFile)){
+                var data=com.google.gson.JsonParser.parseString(Files.readString(capFile)).getAsJsonObject();
+                Path backup=directory.resolve("migration-cap-3");Files.createDirectories(backup);
+                if(!Files.exists(backup.resolve("progression.json")))Files.copy(capFile,backup.resolve("progression.json"));
+                data.addProperty("legacyInitialCap",data.get("initialCap").getAsDouble());data.addProperty("initialCap",3);
+                Files.writeString(capFile,JSON.toJson(data)+"\n");
+            }
+            Files.writeString(capMarker,"1\n");
+        }
         Balance result=new Balance();
         try {
             for(var f:Balance.class.getFields()) {

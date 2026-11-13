@@ -164,6 +164,7 @@ public final class CoreRuntime {
     public static void tick(ServerPlayer player) {
         if(!active(player)) {if(player.tickCount%20==0)syncIfChanged(player);return;}
         Progress p=data(player); Session s=session(player); Balance b=balance;p.reconcile(b);
+        boolean natural=player.level().getGameRules().getBoolean(net.minecraft.world.level.GameRules.RULE_NATURAL_REGENERATION);if(p.naturalRegeneration!=natural){p.naturalRegeneration=natural;p.revision++;}
         int saplings=0;for(var stack:player.getInventory().items)if(stack.is(net.minecraft.tags.ItemTags.SAPLINGS))saplings+=stack.getCount();
         p.recordMaximum("saplings_inventory",saplings,b);
         if(player.hasEffect(net.minecraft.world.effect.MobEffects.SLOW_FALLING))p.recordMaximum("slow_falling_received",1,b);
@@ -215,7 +216,7 @@ public final class CoreRuntime {
     }
     public static void sync(ServerPlayer player) {
         Session session=session(player);
-        var publicData=Balance.JSON.toJsonTree(data(player)).getAsJsonObject();publicData.remove("discoveries");
+        var publicData=Balance.JSON.toJsonTree(data(player)).getAsJsonObject();publicData.remove("discoveries");publicData.addProperty("naturalRegeneration",player.level().getGameRules().getBoolean(net.minecraft.world.level.GameRules.RULE_NATURAL_REGENERATION));
         var snapshot=new Snapshot(publicData.toString(),session.sentBalance==balance?"":Balance.JSON.toJson(balance),player.experienceLevel,weight(player));
         Services.PLATFORM.send(player,snapshot);
         session.sentBalance=balance;var progress=data(player);session.sentRevision=progress.revision;session.sentStamina=progress.stamina;session.sentFatigue=progress.fatigue;session.sentExhausted=progress.exhausted;session.sentExperience=player.experienceLevel;session.sentWeight=snapshot.armorWeight();

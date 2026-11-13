@@ -12,7 +12,7 @@ public final class Revision14Test {
     public static void run() throws Exception {
         Balance b=new Balance();Progress p=new Progress();b.validate();
         near(b.stamina.get("runCost"),0.1,"base sprint cost halved");near(b.stamina.get("armorCost"),0.25,"armor sprint cost halved");near(b.stamina.get("sprintJumpCost"),0.5,"sprint jump cost halved");near(b.stamina.get("jumpArmorCost"),0.05,"armor jump cost halved");
-        near(p.cap(Skill.strength,b),5,"initial potential is five");near(p.price(Skill.strength,b),5,"purchase formula uses new initial caps");
+        near(p.cap(Skill.strength,b),3,"initial potential is three");near(p.price(Skill.strength,b),1,"purchase formula uses new initial caps");
         for(var a:b.abilities)if(a.effect().equals("stat_unlock")){check(a.level()>=3,"stat unlock requires trained level");check(a.amount()>=15,"stat unlock requires substantial practice");}
         var requirement=node(b,"training_strength_damage");p.counters.put("hits",1e6);near(p.requirementCount(requirement),100,"display counter capped at requirement");near(p.requirementProgress(requirement),1,"overcompletion bar stays within bounds");near(p.counters.get("hits"),1e6,"underlying counter remains available for later nodes");
         near(node(b,"shield_care").value(),0.25,"shield wear bonus reduced to ten percent");near(node(b,"shield_recovery").value(),0.25,"shield disable bonus reduced to fifteen percent");

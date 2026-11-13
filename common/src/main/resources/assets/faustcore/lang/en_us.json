@@ -182,6 +182,7 @@
   "core.effect.faustcore:fire_starter": "Craft two sticks into fire sticks. Hold use to ignite. Ignite the top of a player-placed log to turn it into a campfire.",
   "core.effect.faustcore:cat_scent": "Repels creepers within 5 blocks and prevents nearby explosions.",
   "core.counter.mined": "blocks broken",
+  "core.metabolism.potions": "Potion and tipped arrow effects last half as long with +1 potency. Excludes instant, infinite and configured effects.",
   "core.ability.metabolism": "Metabolism",
   "core.effect.faustcore:metabolism": "Doubles natural health regeneration and its food consumption.",
   "core.counter.food_nutrition": "food points eaten",

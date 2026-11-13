@@ -10,7 +10,7 @@ public final class ProgressTest {
     private static void near(double actual,double expected,String message){check(Math.abs(actual-expected)<1e-7,message+": "+actual+" != "+expected);}
     private static void rejects(Runnable task,String message){try{task.run();}catch(IllegalArgumentException e){checks++;return;}throw new AssertionError(message);}
     public static void main(String[] args) throws Exception {
-        ForestSkillsTest.run();BalanceRevisionTest.run();CounterPlanTest.run();PanelUpdateTest.run();CommandTest.run();AbilityToggleTest.run();NonToggleableTest.run();PracticeTest.run();Revision14Test.run();Revision141Test.run();StaminaSpritesTest.run();TreeTest.run();FatigueGraceTest.run();FatigueCapacityTest.run();com.faust.core.runtime.CakeFoodTest.run();
+        ForestSkillsTest.run();BalanceRevisionTest.run();CounterPlanTest.run();PanelUpdateTest.run();CommandTest.run();AbilityToggleTest.run();NonToggleableTest.run();PracticeTest.run();Revision14Test.run();Revision141Test.run();StaminaSpritesTest.run();TreeTest.run();ProgressionRevisionTest.run();FatigueGraceTest.run();FatigueCapacityTest.run();com.faust.core.runtime.CakeFoodTest.run();
         Balance b=new Balance();b.validate();
         Progress lockedStats=new Progress();lockedStats.track(Skill.constitution).level=20;near(SkillEffects.health(lockedStats,b),0,"health locked before learned stat");near(lockedStats.baseStamina(b),20,"stamina capacity locked before learned stat");lockedStats.unlocked.add("faustcore:training_constitution_health");near(SkillEffects.health(lockedStats,b),20,"health node unlocks only health");near(lockedStats.baseStamina(b),20,"health node does not unlock stamina");lockedStats.unlocked.add("faustcore:training_constitution_stamina");near(lockedStats.baseStamina(b),40,"separate stamina node");
         check(!SkillEffects.damageCounts(1.99,b),"less than a heart ignored");check(SkillEffects.damageCounts(2,b),"one actual heart counts");
@@ -38,22 +38,22 @@ public final class ProgressTest {
         com.faust.core.api.CoreApi.afterProgress(change->notified.incrementAndGet());
         com.faust.core.api.CoreApi.after(new com.faust.core.api.CoreApi.Change(java.util.UUID.randomUUID(),"test","before","after"));
         check(notified.get()==1,"API after-progress notification");
-        Progress p=new Progress();near(p.multiplier(Skill.strength,b),2,"zero level growth limited to 200 percent");
-        p.track(Skill.strength).level=2;near(p.multiplier(Skill.strength,b),2,"cap double -> 200 percent");
+        Progress p=new Progress();near(p.multiplier(Skill.strength,b),1.5,"zero level growth reflects distance to cap");
+        p.track(Skill.strength).level=2;near(p.multiplier(Skill.strength,b),1,"last step before cap is 100 percent");
         p.track(Skill.strength).level=3;p.track(Skill.strength).limitOverride=9;near(p.multiplier(Skill.strength,b),2,"cap triple still limited to 200 percent");
-        p=new Progress();p.track(Skill.strength).level=4;p.track(Skill.strength).xp=175;p.grant(Skill.strength,20,b);check(p.track(Skill.strength).level==5,"cross soft cap");near(p.track(Skill.strength).xp,(20-4)*0.33,"split award at accelerated boundary");
+        p=new Progress();p.track(Skill.strength).level=4;p.track(Skill.strength).xp=175;p.grant(Skill.strength,40,b);check(p.track(Skill.strength).level==5,"cross soft cap");near(p.track(Skill.strength).xp,(40-20)*0.13,"split award at accelerated boundary");
         Progress small=new Progress(),large=new Progress();
         for(int i=0;i<1000;i++)small.grant(Skill.strength,0.5,b);large.grant(Skill.strength,500,b);
         check(small.track(Skill.strength).level==large.track(Skill.strength).level,"grouping invariant below and above cap");near(small.track(Skill.strength).xp,large.track(Skill.strength).xp,"fractional precision");
         small.track(Skill.strength).level=1000;small.track(Skill.strength).xp=0;small.track(Skill.strength).threshold=small.needed(Skill.strength,b);small.grant(Skill.strength,0.001,b);check(small.track(Skill.strength).xp>0,"growth above cap remains positive");
-        p=new Progress();long[] prices={5,7,8,9,10};
-        for(int i=0;i<prices.length;i++){check(p.price(Skill.strength,b)==prices[i],"n + total caps / 5 rounded up "+i);check(p.buy(Skill.strength,10000,b),"purchase +1");}
-        near(p.cap(Skill.strength,b),10,"five purchases add five");near(p.cap(Skill.building,b),5,"other cap unchanged");near(p.price(Skill.building,b),6,"shared sum affects different branch");
+        p=new Progress();long[] prices={1,2,3,4,5};
+        for(int i=0;i<prices.length;i++){check(p.price(Skill.strength,b)==prices[i],"shared purchase count plus one "+i);check(p.buy(Skill.strength,10000,b),"purchase +1");}
+        near(p.cap(Skill.strength,b),8,"five purchases add five");near(p.cap(Skill.building,b),3,"other cap unchanged");near(p.price(Skill.building,b),6,"shared sum affects different branch");
         for(int i=0;i<30;i++)p.buy(Skill.strength,10000,b);near(p.cap(Skill.strength,b),20,"cap hard maximum 20");
         long before=p.purchases;check(!p.buy(Skill.strength,10000,b),"cannot buy beyond 20");check(p.purchases==before,"capped purchase atomicity");check(!p.buy(Skill.defense,0,b),"insufficient vanilla levels");
-        Progress mixed=new Progress();near(mixed.price(Skill.strength,b),5,"first selected cap price");mixed.buy(Skill.strength,5,b);near(mixed.price(Skill.building,b),6,"global increase across branches");mixed.buy(Skill.building,6,b);near(mixed.price(Skill.strength,b),7,"return to purchased branch");
+        Progress mixed=new Progress();near(mixed.price(Skill.strength,b),1,"first selected cap price");mixed.buy(Skill.strength,5,b);near(mixed.price(Skill.building,b),2,"global increase across branches");mixed.buy(Skill.building,6,b);near(mixed.price(Skill.strength,b),3,"return to purchased branch");
         Skill custom=Skill.register("test:path_skill");rejects(()->Skill.register("test:path_skill"),"duplicate skill rejected");
-        Progress extension=new Progress();extension.grant(custom,5,b);check(Progress.parse(extension.json()).track(custom).xp==10,"extension skill persistence");
+        Progress extension=new Progress();extension.grant(custom,5,b);check(Progress.parse(extension.json()).track(custom).xp==7.5,"extension skill persistence");
         p=new Progress();var a=b.abilities.stream().filter(n->n.id().equals("faustcore:armor_familiarity")).findFirst().orElseThrow();p.track(a.skill()).level=a.level();check(!p.unlock(a.id(),b),"level alone insufficient");
         p.track(a.skill()).level=0;p.counters.put(a.counter(),a.amount());check(!p.unlock(a.id(),b),"condition alone insufficient");p.track(a.skill()).level=a.level();check(p.unlock(a.id(),b),"both conditions");check(!p.unlock(a.id(),b),"no duplicate unlock");
         var child=b.abilities.stream().filter(n->n.id().equals("faustcore:armor_mastery")).findFirst().orElseThrow();Progress q=new Progress();q.track(child.skill()).level=20;q.counters.put(child.counter(),10000.0);check(!q.unlock(child.id(),b),"parent required");
@@ -74,9 +74,9 @@ public final class ProgressTest {
         locked.rest(20,false,false,true,lockBalance);check(!locked.exhausted,"full available recovery unlocks sprint");near(locked.stamina,locked.maxStamina(lockBalance),"unlock at available maximum with fatigue");
         near((14-2)*lockBalance.stamina.get("armorCost"),3,"armor surcharge halved");
         b=new Balance();p=new Progress();p.buy(Skill.defense,1000,b);p.fatigue=4;p.stamina=10;p.discoveries.add("minecraft:test/1");Progress restored=Progress.parse(p.json());check(restored.json().equals(p.json()),"save/load round trip");
-        Progress migrated=Progress.parse("{\"schema\":1,\"stamina\":50,\"fatigue\":0.2}");near(migrated.stamina,10,"migrate v1 stamina");near(migrated.fatigue,4,"migrate fraction to units");check(migrated.schema==2,"new schema");
-        rejects(()->Progress.parse("{\"schema\":3}"),"future schema rejected");
-        Progress offline=new Progress();offline.grant(Skill.building,5,b);String saved=offline.json();Balance changed=new Balance();changed.progression.put("levelBase",200.0);offline=Progress.parse(saved);offline.reconcile(changed);near(offline.track(Skill.building).xp,20,"offline threshold migration retains fraction");
+        Progress migrated=Progress.parse("{\"schema\":1,\"stamina\":50,\"fatigue\":0.2}");near(migrated.stamina,10,"migrate v1 stamina");near(migrated.fatigue,4,"migrate fraction to units");check(migrated.schema==3,"new schema");
+        rejects(()->Progress.parse("{\"schema\":4}"),"future schema rejected");
+        Progress offline=new Progress();offline.grant(Skill.building,5,b);String saved=offline.json();Balance changed=new Balance();changed.progression.put("levelBase",200.0);offline=Progress.parse(saved);offline.reconcile(changed);near(offline.track(Skill.building).xp,15,"offline threshold migration retains fraction");
         Balance invalid=new Balance();var one=invalid.abilities.getFirst();invalid.abilities.set(0,new Balance.Ability(one.id(),one.skill(),one.level(),one.counter(),one.amount(),one.id(),one.effect(),one.value()));rejects(invalid::validate,"cycle rejected");
         invalid=new Balance();invalid.fatigue.put("maximum",21.0);rejects(invalid::validate,"zero maximum prohibited");
         Path dir=Files.createTempDirectory("core-config-test");try {

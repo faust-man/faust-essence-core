@@ -4,7 +4,8 @@ import java.util.*;
 
 /** Persistent player data and deterministic balance calculations, independent of Minecraft. */
 public final class Progress {
-    public int schema=2;
+    public int schema=3;
+    public Double initialCap;
     public Map<Skill,Track> tracks=new LinkedHashMap<>();
     public Map<String,Double> counters=new HashMap<>();
     public Map<String,Map<String,Double>> practice=new HashMap<>();
@@ -15,6 +16,7 @@ public final class Progress {
     public double stamina=20, fatigue;
     public double externalStaminaBonus;
     public boolean exhausted,soulFireBurn;
+    public boolean naturalRegeneration=true;
     public double campfireRest;
     public String path="";
     public static final class Track { public int level; public double xp, threshold; public Integer limitOverride; public long purchases; }
@@ -34,16 +36,19 @@ public final class Progress {
         revision++;
     }
     public double needed(Skill skill,Balance b) {return b.progression.get("levelBase")+b.progression.get("levelSlope")*track(skill).level;}
-    public double cap(Skill skill,Balance b) {return Math.min(b.progression.get("maximumCap"),track(skill).limitOverride!=null?track(skill).limitOverride:b.progression.get("initialCap")+b.progression.get("capStep")*track(skill).purchases);}
+    public double cap(Skill skill,Balance b) {return Math.min(b.progression.get("maximumCap"),track(skill).limitOverride!=null?track(skill).limitOverride:(initialCap==null?b.progression.get("initialCap"):initialCap)+b.progression.get("capStep")*track(skill).purchases);}
     public double multiplier(Skill skill,Balance b) {
         double level=track(skill).level,cap=cap(skill,b);
-        return level<cap?Math.min(b.progression.get("maximumGrowth"),cap/Math.max(1,level)):b.progression.get("overCapGrowth");
+        return level<cap?Math.min(b.progression.get("maximumGrowth"),1+0.25*Math.max(0,cap-level-1)):Math.max(1,Math.ceil(100*Math.pow(2,-(level-cap+1))))/100;
     }
     public long price(Skill skill,Balance b) {
-        double sum=Arrays.stream(Skill.values()).mapToDouble(s->Math.max(0,cap(s,b)-b.progression.get("initialCap"))).sum();
-        double value=Math.ceil(cap(skill,b)+sum/b.progression.get("costDivisor"));
-        return value>=Long.MAX_VALUE?Long.MAX_VALUE:(long)value;
+        String group=costGroup(skill);
+        double count=tracks.entrySet().stream().filter(e->costGroup(e.getKey()).equals(group)).mapToDouble(e->e.getValue().purchases).sum();
+        double value=Math.ceil(b.limitCosts.getOrDefault(group+":base",1.0)+count*b.limitCosts.getOrDefault(group+":step",1.0));
+        return value>=Long.MAX_VALUE?Long.MAX_VALUE:Math.max(0,(long)value);
     }
+    public static String costGroup(Skill skill){int colon=skill.name().indexOf(':');return colon<0?"core":skill.name().substring(0,colon);}
+
     public boolean buy(Skill skill,long funds,Balance b) {
         if(cap(skill,b)>=b.progression.get("maximumCap")||price(skill,b)>funds||purchases==Long.MAX_VALUE||track(skill).purchases==Long.MAX_VALUE)return false;
         if(track(skill).limitOverride!=null)track(skill).limitOverride++;track(skill).purchases++;purchases++;revision++;return true;
@@ -132,7 +137,7 @@ public final class Progress {
     public static Progress parse(String json) {return parse(json,new Balance());}
     public static Progress parse(String json,Balance config) {
         Progress p=Balance.JSON.fromJson(json,Progress.class);
-        if(p==null||(p.schema!=1&&p.schema!=2)||p.tracks==null||p.counters==null||p.unlocked==null||p.disabled==null||p.disabled.contains(null)||p.discoveries==null||p.path==null||p.purchases<0||!Double.isFinite(p.stamina)||p.stamina<0||!Double.isFinite(p.fatigue)||p.fatigue< -1e9) throw new IllegalArgumentException("Invalid saved core data");
+        if(p==null||(p.schema!=1&&p.schema!=2&&p.schema!=3)||p.tracks==null||p.counters==null||p.unlocked==null||p.disabled==null||p.disabled.contains(null)||p.discoveries==null||p.path==null||p.purchases<0||!Double.isFinite(p.stamina)||p.stamina<0||!Double.isFinite(p.fatigue)||p.fatigue< -1e9) throw new IllegalArgumentException("Invalid saved core data");
         for(Skill s:Skill.values()) {Track t=p.track(s);if(t.level<0||!Double.isFinite(t.xp)||t.xp<0||t.purchases<0) throw new IllegalArgumentException("Invalid skill data");}
         if(p.schema==1&&StaminaServices.present()) {
             double newBase=p.baseStamina(config);
@@ -142,6 +147,8 @@ public final class Progress {
             for(var t:p.tracks.values())t.purchases=Math.min(10,t.purchases>2?10:t.purchases*5);
             p.schema=2;
         }
+        if(p.schema<3){p.initialCap=config.progression.getOrDefault("legacyInitialCap",5.0);p.schema=3;}
+        if(p.initialCap!=null&&(!Double.isFinite(p.initialCap)||p.initialCap<0))throw new IllegalArgumentException("Invalid initial cap");
         if(p.practice==null)throw new IllegalArgumentException("Invalid practice data");
         for(var values:p.practice.values()){if(values==null||values.values().stream().anyMatch(v->v==null||!Double.isFinite(v)||v<0))throw new IllegalArgumentException("Invalid practice counter");}
         if(!com.google.gson.JsonParser.parseString(json).getAsJsonObject().has("practice")){

@@ -132,7 +132,11 @@ public final class CoreScreen extends Screen {
                 if(rule.sprintOnly)lines.add(Component.translatable("core.stat.sprint_only"));
             }
         }else {
-            if(a.effect().equals("second_wind"))lines.add(Component.translatable("core.second_wind.rate",number(b.stamina.get("secondWindMultiplier")*100),number(b.stamina.get("runCost")*b.stamina.get("secondWindMultiplier"))));
+            if(a.id().equals("faustcore:metabolism")){
+                if(p.naturalRegeneration)lines.add(Component.translatable("core.effect.faustcore:metabolism"));
+                lines.add(Component.translatable("core.metabolism.potions"));
+            }
+            else if(a.effect().equals("second_wind"))lines.add(Component.translatable("core.second_wind.rate",number(b.stamina.get("secondWindMultiplier")*100),number(b.stamina.get("runCost")*b.stamina.get("secondWindMultiplier"))));
             else {
                 String key="core.effect."+(a.id().equals("faustcore:bow_efficiency")?"bow_cost_reduction_first":a.effect());
                 if(net.minecraft.client.resources.language.I18n.exists(key)){
