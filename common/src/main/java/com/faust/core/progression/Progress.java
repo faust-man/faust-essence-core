@@ -28,7 +28,7 @@ public final class Progress {
     }
     /** Raises tracks and grants only abilities within the requested characteristic levels. */
     public void max(Balance b,Skill selected,int level){
-        if(level<0||level>20)throw new IllegalArgumentException("Invalid level");
+        if(level<0)throw new IllegalArgumentException("Invalid level");
         for(var skill:Skill.values())if(selected==null||selected==skill){var t=track(skill);t.level=Math.max(level,t.level);t.limitOverride=Math.max(level,(int)cap(skill,b));reconcile(skill,b);}
         for(var a:b.abilities)if((selected==null||a.skill()==selected)&&a.skillRequirements().stream().allMatch(r->r.level()<=level&&track(r.skill()).level>=r.level())){unlocked.add(a.id());disabled.remove(a.id());}
         revision++;

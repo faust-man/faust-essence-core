@@ -30,15 +30,15 @@ public final class StaminaSpritesTest {
             check(input != null && emptyInput != null, "both lightning sprites are packaged");
             var image = ImageIO.read(input);
             var empty = ImageIO.read(emptyInput);
-            check(image.getWidth() == 16 && image.getHeight() == 16, "filled sprite is exactly 16x16");
-            check(empty.getWidth() == 16 && empty.getHeight() == 16, "empty sprite is exactly 16x16");
+            check(image.getWidth() == 8 && image.getHeight() == 8, "filled sprite is exactly 8x8");
+            check(empty.getWidth() == 8 && empty.getHeight() == 8, "empty sprite is exactly 8x8");
             int fullCount = 0, outlineCount = 0, leftCount = 0, rightCount = 0;
-            for (int y = 0; y < 16; y++) for (int x = 0; x < 16; x++) {
+            for (int y = 0; y < 8; y++) for (int x = 0; x < 8; x++) {
                 int full = image.getRGB(x, y), outline = empty.getRGB(x, y);
                 check(full == 0 || full == 0xFFFFFFFF, "binary white mask permits any tint");
                 check(outline == 0 || outline == 0xFFFFFFFF, "binary outline mask");
                 check(outline == 0 || full != 0, "outline stays inside filled silhouette");
-                if (full != 0) { fullCount++; if (x < 8) leftCount++; else rightCount++; }
+                if (full != 0) { fullCount++; if (x < 4) leftCount++; else rightCount++; }
                 if (outline != 0) outlineCount++;
             }
             check(fullCount > outlineCount && outlineCount > 0, "empty sprite has transparent interior");
@@ -47,10 +47,21 @@ public final class StaminaSpritesTest {
         }
         for (int state = 0; state < 3; state++) {
             int left = StaminaSprites.textureX(state, 0), right = StaminaSprites.textureX(state, 1);
-            check(right == left + 8 && right + 8 == 16, "halves cover exactly one 16px sprite");
+            check(right == left + 4 && right + 4 == 8, "halves cover exactly one 8px sprite");
             check(left == 0, "all states start at the left edge of their own sprite");
             check(StaminaSprites.texture(2).equals(StaminaSprites.texture(0)), "fatigue and stamina use the same silhouette");
         }
+        for(int filled=0;filled<=60;filled++) {
+            int layer=com.faust.stamina.client.StaminaLayers.layer(filled);
+            check(layer==Math.max(0,(filled-1)/20), "layer changes only above exact multiples of twenty");
+            for(int slot=0;slot<20;slot++) {
+                int state=com.faust.stamina.client.StaminaLayers.state(slot,60,55,filled);
+                check((state==2)==(layer==2&&slot>=15), "fatigue only on the capacity layer currently shown");
+            }
+        }
+        check(com.faust.stamina.client.StaminaLayers.state(5,30,25,20)!=2,"30/5 fatigue hidden at twenty");
+        check(com.faust.stamina.client.StaminaLayers.state(5,30,25,21)==2,"30/5 fatigue shown at twenty-one");
+        check(com.faust.stamina.client.StaminaLayers.state(0,30,25,21)==0,"second layer begins filled");
         System.out.println("Stamina lightning checks passed: " + checks);
     }
 }

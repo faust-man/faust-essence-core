@@ -70,7 +70,7 @@ public final class CoreCommands {
     }
     private static com.mojang.brigadier.builder.RequiredArgumentBuilder<CommandSourceStack,net.minecraft.commands.arguments.selector.EntitySelector> maxPlayers(Skill stat){
         return argument("player",EntityArgument.players()).executes(ctx->maximize(ctx,stat,true,20))
-            .then(argument("number",IntegerArgumentType.integer(0,20)).executes(ctx->maximize(ctx,stat,true,IntegerArgumentType.getInteger(ctx,"number"))));
+            .then(argument("number",IntegerArgumentType.integer(0)).executes(ctx->maximize(ctx,stat,true,IntegerArgumentType.getInteger(ctx,"number"))));
     }
     private static int maximize(CommandContext<CommandSourceStack> ctx,Skill stat,boolean explicit,int level) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
         Collection<ServerPlayer> targets=explicit?EntityArgument.getPlayers(ctx,"player"):List.of(ctx.getSource().getPlayerOrException());
