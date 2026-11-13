@@ -52,8 +52,10 @@ public final class StaminaSpritesTest {
         check(com.faust.stamina.client.StaminaLayers.state(5,30,25,20)!=2,"30/5 fatigue hidden at twenty");
         check(com.faust.stamina.client.StaminaLayers.state(5,30,25,21)==2,"30/5 fatigue shown at twenty-one");
         check(com.faust.stamina.client.StaminaLayers.state(0,30,25,21)==0,"second layer begins filled");
-        for(int slot=5;slot<20;slot++)check(com.faust.stamina.client.StaminaLayers.state(slot,30,25,21)==2,"entire right tail is fatigue, including past partial capacity");
-        check(com.faust.stamina.client.StaminaLayers.state(15,30,30,21)==0,"without fatigue lower layer remains visible");
+        for(int slot=5;slot<10;slot++)check(com.faust.stamina.client.StaminaLayers.state(slot,30,25,21)==2,"fatigue occupies only actual unavailable capacity");
+        for(int slot=10;slot<20;slot++)check(com.faust.stamina.client.StaminaLayers.state(slot,30,25,21)==1,"tail beyond capacity is nearly black spent state");
+        for(int slot=5;slot<20;slot++)check(com.faust.stamina.client.StaminaLayers.state(slot,25,25,25)==1,"25 stamina: extra cells are black without fatigue");
+        check(com.faust.stamina.client.StaminaLayers.state(5,30,30,21)==0,"valid capacity without fatigue retains lower layer");
         for(int layer=1;layer<5;layer++) {
             check(StaminaSprites.layerColor(layer,false,false)==StaminaSprites.STAMINA_COLOR,"spent upper layer reveals yellow base");
             check(StaminaSprites.layerColor(layer,true,false)==0xFFE9801C,"upper fill is orange");
