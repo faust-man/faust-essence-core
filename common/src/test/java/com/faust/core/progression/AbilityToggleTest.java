@@ -1,4 +1,6 @@
 package com.faust.core.progression;
+import com.faust.essence.api.Skill;
+
 public final class AbilityToggleTest {
     private static int checks;
     private static void check(boolean value,String message){checks++;if(!value)throw new AssertionError(message);}
@@ -8,10 +10,10 @@ public final class AbilityToggleTest {
         check(!p.toggle("faustcore:second_wind",b),"unlearned skill cannot toggle");check(p.revision==revision,"rejected request has no mutation");
         p.unlocked.add("test:unknown");check(!p.toggle("test:unknown",b),"unknown configuration ID rejected");
         for(var skill:Skill.values()){p.track(skill).level=3;p.track(skill).limitOverride=4;}
-        p.track(Skill.strength).level=27;p.track(Skill.strength).xp=15;p.track(Skill.strength).threshold=p.needed(Skill.strength,b);
+        p.track(CoreSkills.strength).level=27;p.track(CoreSkills.strength).xp=15;p.track(CoreSkills.strength).threshold=p.needed(CoreSkills.strength,b);
         p.max(b);check(p.unlocked.containsAll(b.abilities.stream().map(Balance.Ability::id).toList()),"max opens every ability");
-        for(var skill:Skill.values()){check(p.cap(skill,b)==20,"max cap "+skill);check(p.track(skill).level==(skill==Skill.strength?27:20),"max level never lowers "+skill);}
-        near(p.track(Skill.strength).xp,15,"max preserves XP at unchanged level");
+        for(var skill:Skill.values()){check(p.cap(skill,b)==20,"max cap "+skill);check(p.track(skill).level==(skill==CoreSkills.strength?27:20),"max level never lowers "+skill);}
+        near(p.track(CoreSkills.strength).xp,15,"max preserves XP at unchanged level");
         for(var a:b.abilities){
             double before=p.effect(a.effect(),b);check(p.enabled(a.id()),"learned active initially");
             check(p.toggle(a.id(),b),"disable learned");check(!p.enabled(a.id())&&p.unlocked.contains(a.id()),"disabled remains learned");

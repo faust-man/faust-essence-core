@@ -1,4 +1,6 @@
 package com.faust.core.progression;
+import com.faust.essence.api.Skill;
+
 
 import java.util.*;
 

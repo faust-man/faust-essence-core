@@ -1,4 +1,6 @@
 package com.faust.core.runtime;
+import com.faust.essence.api.Skill;
+
 import com.faust.core.progression.*;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;

@@ -44,4 +44,10 @@ loom {
     }
 }
 
-if(project.hasProperty('withStamina')) dependencies { modLocalRuntime project(':stamina-fabric') }
+if(project.hasProperty('withStamina')) {
+    evaluationDependsOn(':stamina-fabric')
+    dependencies { runtimeOnly project(':stamina-fabric').sourceSets.main.output }
+    loom.mods { fauststamina { sourceSet project(':stamina-fabric').sourceSets.main } }
+}
+
+dependencies { modImplementation files(new File(rootProject.file(providers.gradleProperty('apiProjectDir').getOrElse('../faust-essence-api')), 'fabric/build/libs/essence-api-fabric-1.21.1-1.0.0.jar')) }

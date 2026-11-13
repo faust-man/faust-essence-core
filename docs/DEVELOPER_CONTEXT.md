@@ -1,3 +1,36 @@
+## Отдельный Essence API
+
+Теперь требуется отдельный `essence-api` 1.0.0 на клиенте и сервере. Сначала соберите
+соседний `faust-essence-api` через `./gradlew.bat build`, затем Core и дополнения.
+Путь API можно изменить через `-PapiProjectDir=<путь>`. Публичный пакет —
+`com.faust.essence.api`: характеристики, дескрипторы регистрации, снимки прогресса,
+практика, события и ресурсы. Старый CoreApi удалён; дополнения пересобраны.
+Сохранённые ID и прогресс игроков сохраняются. Core объявляет шесть базовых
+характеристик и реализует прогрессию; API не зависит от Core.
+Подробности и примеры: `../faust-essence-api/docs/API.md`.
+
+## Пределы, Метаболизм и истощение
+
+Новые игроки начинают с пределами 3. Сохранения прежних версий сохраняют свою
+базу пределов и купленные повышения. Миграция progression.json сохраняет прежнюю
+базу в legacyInitialCap и резервную копию в migration-cap-3/.
+Цена повышения в Core: 1 + число покупок пределов всех шести характеристик;
+административная установка предела цену не повышает. Другие пространства имён
+имеют отдельный счётчик. В limitCosts.json можно переопределить `<namespace>:base`
+и `<namespace>:step` (по умолчанию 1 и 1; для основной вкладки namespace — core).
+За один уровень до предела рост 100%, за два 125%, далее +25% до максимума 200%.
+На пределе 50%, выше 25%, 13%, 7%…: ceil(100 × 2^(-N)), минимум 1%.
+
+Метаболизм сокращает длительность эффектов выпитых, взрывных, оседающих зелий
+и стрел вдвое и повышает силу на 1. Это относится и к отрицательным эффектам.
+Мгновенные, бесконечные эффекты и ID из metabolismExcludedEffects.json исключены;
+список изначально пуст. Еда, маяки, мобы и команды этим правилом не затрагиваются.
+При naturalRegeneration=false скрыта только часть описания про естественное
+лечение и расход еды; преобразование эффектов остаётся активным.
+
+Потраченная часть основной полосы выносливости прозрачная внутри рамки.
+Импульсный прыжок Epic Fight прекращает заряд сразу при истощении.
+
 ## Длинный меч со щитом и сброс собственного прогресса
 
 Мастер длинного меча требует одновременно 15 защиты и 10 силы, а также прежние
@@ -279,7 +312,7 @@ their legacy paths. Other core progression and abilities remain independent.
 Сервер объединяет игровые изменения в обновления не чаще одного раза за5 тиков;
 при неизменном состоянии снимки не сериализуются и не отправляются. Явные команды
 и вход игрока могут отправлять снимок сразу. Сериализация до/после каждого действия
-выполняется только при наличии подписчиков CoreApi.afterProgress.
+выполняется только при наличии подписчиков EssenceApi.afterProgress.
 
 Цена покупки потенциала: ceil(C + sum(max(0, C_i - C0)) / costDivisor),
 где C — выбранный текущий предел, C0 — progression.initialCap (по умолчанию5).
@@ -292,7 +325,7 @@ Strength → Building → Strength:5,6,7. Пять покупок Strength:5,7,8
 в migration-constitution-swap; прочие ссылки на эти два узла также переставляются.
 
 API дополнений: Progress.wantsCounter(key,balance), recordCounter(key,amount,balance),
-recordMaximum(key,value,balance); серверные обёртки — CoreApi.needsCounter,
+recordMaximum(key,value,balance); серверные обёртки — EssenceApi.needsCounter,
 recordCounter и recordMaximum. conditionCount(ability,condition) учитывает личную
 практику узла; старый conditionCount(condition) читает общий диагностический счётчик.
 Не изменяйте practice напрямую: для административного изменения есть setCounter.
@@ -356,8 +389,8 @@ recordCounter и recordMaximum. conditionCount(ability,condition) учитыва
 и сбрасывает выбор характеристики. Узлы из integratedTreeNamespaces показываются в core; остальные остаются в своих группах.
 Внутри группы показываются используемые характеристики; при количестве больше шести
 колесо на экране выбора листает страницы. В развёрнутом дереве книжки скрыты.
-Аддон регистрирует характеристики через CoreApi.registerSkill и добавляет способности
-и раскладки в серверный Balance через существующую конфигурацию. Группы выводятся
+Аддон регистрирует характеристики через EssenceApi.registerSkill, а способности,
+раскладки и действия — через Extensions. Core преобразует дескрипторы в свою конфигурацию. Группы выводятся
 из синхронизированных способностей, отдельная клиентская регистрация не требуется.
 Название книжки: ключ `core.tree_group.<namespace>`, по умолчанию сам namespace.
 Это группировка существующего API, а не механизм автоматической загрузки конфигов аддона.
@@ -1291,9 +1324,10 @@ recovery протокола нет. Команда /core теперь показ
 Протокол не предназначен для клиента без core. Ограничение строк payload — 262144
 символа; очень большие пользовательские конфиги требуют контроля размера.
 
-## Публичный API и минимальная интеграция пути (1.1)
+## Публичный API и минимальная интеграция пути (Essence API 1.0)
 
-API: com.faust.core.api.CoreApi, модели Skill, Balance, Progress. Серверные операции
+API: com.faust.essence.api.EssenceApi, Skill, PlayerSnapshot, Extensions и Resources.
+Balance и Progress — внутренние модели Core. Серверные операции
 нужно вызывать только в потоке соответствующего MinecraftServer. Регистрации
 выполняются один раз при инициализации мода, до начала игровых событий.
 
@@ -1304,7 +1338,7 @@ API: com.faust.core.api.CoreApi, модели Skill, Balance, Progress. Серв
 | registerPath(String id, Predicate<ServerPlayer>) | Уникальный путь с серверным условием выбора; встроенных путей нет |
 | paths() | Копия множества зарегистрированных путей |
 | meets(ServerPlayer, Skill, int) | Проверка уровня основного навыка |
-| snapshot(ServerPlayer) → Progress | Отдельная копия данных; её изменение не влияет на сервер |
+| snapshot(ServerPlayer) → PlayerSnapshot | Неизменяемый снимок без доступа к внутреннему сохранению |
 | grantAction(ServerPlayer, String action, double units, double count) | Подтверждённое адаптером действие; units×xp даёт X, count увеличивает counter. Неизвестное/отменённое действие возвращает false |
 | beforeProgress(ToDoubleFunction<Grant>) | Событие до изменения; обработчики в порядке регистрации, 0 отменяет, коэффициенты перемножаются с верхним ограничением 100 |
 | afterProgress(Consumer<Change>) | После зачёта: UUID игрока, action, JSON до/после. Изменять эти JSON бесполезно для сохранения |
@@ -1327,19 +1361,19 @@ Dodge, ни Create не заявлены как уже совместимые з
 Минимальная регистрация пути в init внешнего мода:
 
 ```java
-import com.faust.core.api.CoreApi;
-import com.faust.core.progression.Skill;
+import com.faust.essence.api.EssenceApi;
+import com.faust.essence.api.Skill;
 
 // Это пример интеграции, не реализованный путь ядра.
-CoreApi.registerPath("examplepath:scholar", player ->
-    CoreApi.meets(player, Skill.intelligence, 5));
+EssenceApi.registerPath("examplepath:scholar", player ->
+    EssenceApi.meets(player, Skill.valueOf("intelligence"), 5));
 
 // В обработчике подтверждённого серверного выбора:
-boolean selected = CoreApi.choosePath(serverPlayer, "examplepath:scholar");
+boolean selected = EssenceApi.choosePath(serverPlayer, "examplepath:scholar");
 // То же действие доступно через /core path examplepath:scholar.
 ```
 
-Для собственного навыка: зарегистрируйте CoreApi.registerSkill("examplepath:lore").
+Для собственной характеристики: зарегистрируйте EssenceApi.registerSkill("examplepath:lore").
 В actions.json сервера добавьте, например:
 
 ```json
@@ -1351,7 +1385,7 @@ boolean selected = CoreApi.choosePath(serverPlayer, "examplepath:scholar");
 ```
 
 В подтверждённом серверном событии вызовите
-`CoreApi.grantAction(player, "examplepath:study", 1, 1)`.
+`EssenceApi.grantAction(player, "examplepath:study", 1, 1)`.
 Только адаптер определяет реальность действия; клиент не должен вызывать выдачу.
 Свой узел добавляется в abilities.json с уникальным namespaced id и настроенными
 level/counter/amount/parent/effect/value. Для нового эффекта зарегистрируйте

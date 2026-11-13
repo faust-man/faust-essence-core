@@ -1,4 +1,6 @@
 package com.faust.core.client;
+import com.faust.essence.api.client.StaminaClient;
+
 import com.faust.core.progression.*;
 import com.faust.core.runtime.Snapshot;
 import com.mojang.blaze3d.platform.InputConstants;

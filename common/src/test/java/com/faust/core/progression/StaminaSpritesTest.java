@@ -26,6 +26,13 @@ public final class StaminaSpritesTest {
                 }
             }
         }
+        int hollowBorder=0;
+        for(int y=0;y<9;y++)for(int x=0;x<9;x++){
+            int hollow=StaminaSprites.hollowPixel(x,y,0xFF211D29);
+            if(hollow!=0){hollowBorder++;check(StaminaSprites.pixel(x,y,0,StaminaSprites.STAMINA_COLOR)==0xFF211D29,"hollow keeps only outline");}
+            else check(StaminaSprites.hollowPixel(x,y,StaminaSprites.EXHAUSTED_COLOR)==0,"hollow has no tinted body");
+        }
+        check(hollowBorder>0,"empty lightning keeps frame");
         String[] textures={"full","empty","fatigue"};
         for(int state=0;state<3;state++) {
             try(var input=StaminaSpritesTest.class.getResourceAsStream("/assets/faustcore/textures/gui/stamina_lightning_"+textures[state]+".png")) {

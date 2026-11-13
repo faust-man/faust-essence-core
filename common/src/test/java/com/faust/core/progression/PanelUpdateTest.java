@@ -1,11 +1,13 @@
 package com.faust.core.progression;
+import com.faust.essence.api.Skill;
+
 import java.nio.file.*;
 public final class PanelUpdateTest {
     private static void check(boolean ok,String message){if(!ok)throw new AssertionError(message);}
     public static void run() throws Exception {
         var levels=new Progress();check(levels.totalLevel()==0,"new player level0");
-        levels.track(Skill.strength).level=7;levels.track(Skill.dexterity).level=3;check(levels.totalLevel()==10,"sum characteristic levels");
-        levels.track(Skill.strength).xp=9999;levels.unlocked.add("example:ability");check(levels.totalLevel()==10,"XP and unlocked nodes do not change level");
+        levels.track(CoreSkills.strength).level=7;levels.track(CoreSkills.dexterity).level=3;check(levels.totalLevel()==10,"sum characteristic levels");
+        levels.track(CoreSkills.strength).xp=9999;levels.unlocked.add("example:ability");check(levels.totalLevel()==10,"XP and unlocked nodes do not change level");
         check(Progress.parse(levels.json()).totalLevel()==10,"level survives save");
         Balance b=new Balance();Progress p=new Progress();p.max(b);p.stamina=3;
         for(boolean air:new boolean[]{false,true})for(boolean ready:new boolean[]{false,true}){
@@ -22,8 +24,8 @@ public final class PanelUpdateTest {
         check(TreeGroups.groups(b).equals(java.util.List.of("faustcore")),"no redundant book");
         var a=b.abilities.getFirst();b.abilities.add(new Balance.Ability("panel_test:node",a.skill(),0,"",0,"","stamina",1));
         check(TreeGroups.groups(b).equals(java.util.List.of("faustcore","panel_test")),"addon book");check(TreeGroups.skills(b,"panel_test").equals(java.util.List.of(a.skill())),"addon skills");
-        b.abilities.add(new Balance.Ability("faust_epic_compat:epicfight/guard",Skill.defense,0,"",0,"","stamina",1));
-        b.abilities.add(new Balance.Ability("faust_epic_compat:other_addon/roll",Skill.dexterity,0,"",0,"","stamina",1));
+        b.abilities.add(new Balance.Ability("faust_epic_compat:epicfight/guard",CoreSkills.defense,0,"",0,"","stamina",1));
+        b.abilities.add(new Balance.Ability("faust_epic_compat:other_addon/roll",CoreSkills.dexterity,0,"",0,"","stamina",1));
         check(!TreeGroups.groups(b).contains("faust_epic_compat"),"compat and Epic addons merged by default");
         check(TreeGroups.contains(b,"faustcore","faust_epic_compat:epicfight/guard"),"merged nodes pass renderer filter");
         check(TreeGroups.contains(b,"faustcore","faust_epic_compat:other_addon/roll"),"other Epic namespace inside compat merges");
@@ -31,7 +33,7 @@ public final class PanelUpdateTest {
         b=b.edited("integratedTreeNamespaces","[]");
         check(TreeGroups.groups(b).contains("faust_epic_compat"),"config restores separate tab");
         check(!TreeGroups.contains(b,"faustcore","faust_epic_compat:epicfight/guard"),"separate nodes excluded from core");
-        check(TreeGroups.skills(b,"faust_epic_compat").containsAll(java.util.List.of(Skill.defense,Skill.dexterity)),"separate branches retained");
+        check(TreeGroups.skills(b,"faust_epic_compat").containsAll(java.util.List.of(CoreSkills.defense,CoreSkills.dexterity)),"separate branches retained");
         try {b.edited("integratedTreeNamespaces","[\"bad:id\"]");throw new AssertionError("invalid namespace accepted");}catch(IllegalArgumentException expected){}
         b=b.edited("integratedTreeNamespaces","[\"faust_epic_compat\",\"panel_test\"]");
         check(TreeGroups.groups(b).equals(java.util.List.of("faustcore")),"additional namespace configurable");
