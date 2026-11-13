@@ -68,16 +68,20 @@ public final class StaminaSpritesTest {
             check(StaminaSprites.layerColor(layer,false,false)==StaminaSprites.STAMINA_COLOR,"spent upper layer reveals yellow base");
             check(StaminaSprites.layerColor(layer,true,false)==0xFFE9801C,"upper fill is orange");
         }
-        int border=0,shine=0,body=0;
+        int border=0,shine=0,shadow=0,body=0;
         for(int y=0;y<8;y++)for(int x=0;x<8;x++) {
             int pixel=StaminaSprites.pixel(x,y,0,StaminaSprites.STAMINA_COLOR);
-            if(pixel==0xFF181818)border++;
-            if(pixel==0xFFFFF3CF)shine++;
+            if(pixel==0xFF241F2D)border++;
+            int overlay=StaminaSprites.overlay(x,y,0);
+            if(overlay==0x80FFFFCC)shine++;
+            if(overlay==0x50000000)shadow++;
+            if(overlay!=0)check((overlay>>>24)>0&&(overlay>>>24)<255,"shine and shadow are translucent");
+            check(StaminaSprites.overlay(x,y,2)==0,"fatigue never receives shine or shadow");
             if(pixel==StaminaSprites.STAMINA_COLOR)body++;
             int fatigue=StaminaSprites.pixel(x,y,2,StaminaSprites.STAMINA_COLOR);
             check(fatigue==0||fatigue==StaminaSprites.FATIGUE_COLOR,"fatigue has no colored outline or shine");
         }
-        check(border>0&&shine>0&&body>0,"native sprite contains outline, shine and tinted body");
+        check(border>0&&shine>0&&shadow>0&&body>0,"native sprite contains outline, shine and tinted body");
         System.out.println("Stamina lightning checks passed: " + checks);
     }
 }
