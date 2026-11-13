@@ -163,7 +163,7 @@ public final class Balance {
             case "faustcore:training_strength_damage" -> {level=5;amount=100;}
             case "faustcore:training_dexterity_sprint" -> {level=5;amount=1500;}
             case "faustcore:training_dexterity_attack" -> {level=10;counter="hits";amount=150;parent="faustcore:training_dexterity_sprint";}
-            case "faustcore:training_constitution_health" -> {level=7;amount=100;parent="faustcore:training_constitution_stamina";}
+            case "faustcore:training_constitution_health" -> {level=10;amount=100;parent="faustcore:training_constitution_stamina";}
             case "faustcore:training_constitution_stamina" -> {level=5;counter="constitution_run_metres";amount=2500;parent="";}
             case "faustcore:training_defense_armor" -> {level=3;counter="armor_metres";amount=1500;parent="faustcore:armor_familiarity";}
             case "faustcore:training_intelligence_luck" -> {level=5;amount=15;}
@@ -452,7 +452,7 @@ public final class Balance {
         migrateCoordinateUnits(directory);
         if(!StaminaServices.present()&&!Files.exists(directory.resolve("abilities.json")))Files.writeString(directory.resolve(".without-stamina"),"1\n");
         migrate(directory); migrateExhaustion(directory); migrateGrowth(directory); migrateStats(directory); migrateV12(directory); migrateEnvironment(directory); migrateV13(directory); migrateV14(directory); migrateV141(directory); migrateFatigueGrace(directory); migrateCakeFood(directory); migratePractice(directory); migrateConstitutionSwap(directory); migratePracticeLayout(directory); migratePanelUpdate(directory);
-        migrateBalanceRevision(directory);migrateFollowup(directory);migrateForestSkills(directory);migrateSkillRevision(directory);migrateTreePolish(directory);
+        migrateBalanceRevision(directory);migrateFollowup(directory);migrateForestSkills(directory);migrateSkillRevision(directory);migrateTreePolish(directory);migrateHealthTen(directory);migrateDefenseParents(directory);
         Path windFile=sectionFile(directory,"stamina");if(Files.exists(windFile)){var data=JSON.fromJson(Files.readString(windFile),com.google.gson.JsonObject.class);if(!data.has("secondWindMultiplier")){data.addProperty("secondWindMultiplier",1.5);Files.writeString(windFile,JSON.toJson(data)+"\n");}}
         Path skillsFile=directory.resolve("skills.json");if(Files.exists(skillsFile)){var data=JSON.fromJson(Files.readString(skillsFile),com.google.gson.JsonObject.class);if(!data.has("buildingReachMaximum")){data.addProperty("buildingReachMaximum",3);Files.writeString(skillsFile,JSON.toJson(data)+"\n");}}
         Balance result=new Balance();
@@ -579,6 +579,24 @@ public final class Balance {
         if(Files.exists(file)){Files.copy(file,backup.resolve("abilities.json"),StandardCopyOption.REPLACE_EXISTING);var data=com.google.gson.JsonParser.parseString(Files.readString(file)).getAsJsonArray();for(var entry:data){var a=entry.getAsJsonObject();if(a.get("id").getAsString().equals("faustcore:crossbow_efficiency")){a.addProperty("level",3);a.add("characteristics",new com.google.gson.JsonArray());}}Files.writeString(file,JSON.toJson(data)+"\n");}
         file=directory.resolve("trees.json");
         if(Files.exists(file)){Files.copy(file,backup.resolve("trees.json"),StandardCopyOption.REPLACE_EXISTING);var trees=JSON.fromJson(Files.readString(file),SkillTrees.Tree[].class);var result=new ArrayList<SkillTrees.Tree>();for(var tree:trees){var nodes=new ArrayList<SkillTrees.Node>();for(var n:tree.nodes()){boolean left=Set.of("faustcore:training_intelligence_luck","faustcore:crossbow_efficiency","faustcore:forester","faustcore:fire_starter").contains(n.ability());nodes.add(new SkillTrees.Node(n.ability(),n.x()-(left?SkillTrees.GRID:0),n.y(),n.icon()));}result.add(new SkillTrees.Tree(tree.skill(),nodes));}Files.writeString(file,JSON.toJson(result)+"\n");}
+        Files.writeString(marker,"1\n");
+    }
+    private static void migrateHealthTen(Path directory) throws IOException {
+        Path marker=directory.resolve(".health-ten");if(Files.exists(marker))return;Path file=directory.resolve("abilities.json");if(Files.exists(file)){Files.copy(file,directory.resolve("abilities-before-health-ten.json"),StandardCopyOption.REPLACE_EXISTING);var data=com.google.gson.JsonParser.parseString(Files.readString(file));for(var entry:data.getAsJsonArray()){var a=entry.getAsJsonObject();if(a.get("id").getAsString().equals("faustcore:training_constitution_health")){a.addProperty("level",10);a.add("characteristics",new com.google.gson.JsonArray());}}Files.writeString(file,JSON.toJson(data)+"\n");}Files.writeString(marker,"1\n");
+    }
+    private static void migrateDefenseParents(Path directory) throws IOException {
+        Path marker=directory.resolve(".defense-parents");if(Files.exists(marker))return;
+        Path file=directory.resolve("abilities.json");
+        if(Files.exists(file)){
+            Files.copy(file,directory.resolve("abilities-before-defense-parents.json"),StandardCopyOption.REPLACE_EXISTING);
+            var data=com.google.gson.JsonParser.parseString(Files.readString(file));
+            for(var entry:data.getAsJsonArray()){
+                var a=entry.getAsJsonObject();String id=a.get("id").getAsString();
+                if(id.equals("faustcore:training_defense_armor"))a.addProperty("parent","faustcore:armor_familiarity");
+                if(id.equals("faustcore:shield_recovery"))a.addProperty("parent","faustcore:shield_efficiency");
+            }
+            Files.writeString(file,JSON.toJson(data)+"\n");
+        }
         Files.writeString(marker,"1\n");
     }
     private static final Set<String> STAMINA_GROUPS=Set.of("stamina","fatigue","armor","sweetFoods","client");
