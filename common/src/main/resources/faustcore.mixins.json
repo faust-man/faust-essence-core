@@ -13,7 +13,18 @@
     "CrossbowItemMixin",
     "EnchantmentMenuMixin",
     "BrewingStandMixin",
-    "PotionTooltipMixin"
+    "PotionTooltipMixin",
+    "CraftingMenuMixin",
+    "PowderSnowMixin",
+    "CreeperMixin",
+    "CatMixin",
+    "ResultSlotMixin",
+    "FurnaceResultMixin",
+    "MetabolismMixin",
+    "PlacedLogMixin",
+    "LogChangeMixin",
+    "FireBlockAccessor",
+    "MiningMixin"
   ],
   "client": [
     "ClientMixin",

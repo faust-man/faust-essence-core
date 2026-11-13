@@ -4,8 +4,16 @@ import java.util.*;
 
 /** Configurable layouts and dependency graph validation; no platform or client types. */
 public final class SkillTrees {
-    public static final int NODE_SIZE=22;
-    public record Node(String ability,double x,double y,String icon) {}
+    public static final int PIXELS_PER_UNIT=11;
+    public static final int NODE_SIZE=2;
+    public static final int GRID=1;
+    public static double snap(double value){return Double.isFinite(value)?Math.round(value/GRID)*(double)GRID:value;}
+    public record Node(String ability,double x,double y,String icon) {public Node{x=snap(x);y=snap(y);}}
+    public static boolean validPosition(Node node,List<Node> nodes){return nodes.stream().filter(n->!n.ability().equals(node.ability())).allMatch(n->Math.hypot(Math.max(0,Math.abs(n.x()-node.x())-NODE_SIZE),Math.max(0,Math.abs(n.y()-node.y())-NODE_SIZE))>=GRID);}
+    public static List<Node> spaced(List<Node> nodes){
+        var placed=new ArrayList<Node>();
+        for(var node:nodes){if(!Double.isFinite(node.x())||!Double.isFinite(node.y()))throw new IllegalArgumentException("Nonfinite tree position");var n=node;while(!validPosition(n,placed)){if(n.y()>4096)throw new IllegalArgumentException("Tree exceeds layout bounds");n=new Node(n.ability(),n.x(),n.y()+GRID,n.icon());}placed.add(n);}return placed;
+    }
     public record Tree(Skill skill,List<Node> nodes) {}
     private SkillTrees() {}
     public static List<Tree> defaults(List<Balance.Ability> abilities){
@@ -14,27 +22,39 @@ public final class SkillTrees {
             var nodes=new ArrayList<Node>();
             for(var a:abilities)if(a.skill()==skill){
                 double[] pos=switch(a.id().replace("faustcore:","")){
-                    case "cushioned_landing" -> new double[]{-52,40};
-                    case "soft_landing","potion_duration" -> new double[]{-52,0};
-                    case "enchanting_power" -> new double[]{-104,0};
-                    case "crossbow_efficiency","bow_efficiency","second_wind" -> new double[]{52,0};
-                    case "mace_efficiency","training_dexterity_attack","training_constitution_health","training_building_reach" -> new double[]{0,40};
-                    case "bow_mastery","resilient_recovery","shield_care" -> new double[]{52,40};
-                    case "armor_mastery" -> new double[]{-26,40};
-                    case "training_defense_armor" -> new double[]{26,40};
-                    case "shield_efficiency" -> new double[]{78,0};
-                    case "shield_recovery" -> new double[]{104,40};
-                    default -> new double[]{0,nodes.isEmpty()?0:80+nodes.size()*36};
+                    case "metabolism" -> new double[]{10,0};
+                    case "cat_scent" -> new double[]{-9,4};
+                    case "soft_foot" -> new double[]{-9,4};
+                    case "forester" -> new double[]{4,0};
+                    case "fire_starter" -> new double[]{4,4};
+                    case "cushioned_landing" -> new double[]{-5,4};
+                    case "soft_landing","potion_duration" -> new double[]{-5,0};
+                    case "enchanting_power" -> new double[]{-9,0};
+                    case "crossbow_efficiency" -> new double[]{4,0};
+                    case "bow_efficiency","second_wind" -> new double[]{5,0};
+                    case "mace_efficiency","training_dexterity_attack","training_constitution_health","training_building_reach" -> new double[]{0,4};
+                    case "bow_mastery","resilient_recovery","shield_care" -> new double[]{5,4};
+                    case "armor_mastery" -> new double[]{-2,4};
+                    case "training_defense_armor" -> new double[]{2,4};
+                    case "shield_efficiency" -> new double[]{7,0};
+                    case "shield_recovery" -> new double[]{9,4};
+                    default -> new double[]{0,nodes.isEmpty()?0:7+nodes.size()*3};
                 };
                 if(Set.of("faustcore:training_strength_damage","faustcore:training_dexterity_sprint","faustcore:training_constitution_stamina","faustcore:training_intelligence_luck","faustcore:training_building_breaking","faustcore:armor_familiarity").contains(a.id()))pos=new double[]{0,0};
-                boolean collision;do{collision=false;for(var n:nodes)if(Math.abs(n.x()-pos[0])<NODE_SIZE&&Math.abs(n.y()-pos[1])<NODE_SIZE){pos=new double[]{0,nodes.stream().mapToDouble(Node::y).max().orElse(0)+40};collision=true;break;}}while(collision);
+                if(a.id().equals("faustcore:training_intelligence_luck"))pos[0]=-1;
+                boolean collision;do{collision=false;for(var n:nodes)if(Math.abs(n.x()-pos[0])<NODE_SIZE&&Math.abs(n.y()-pos[1])<NODE_SIZE){pos=new double[]{0,nodes.stream().mapToDouble(Node::y).max().orElse(0)+4};collision=true;break;}}while(collision);
                 nodes.add(new Node(a.id(),pos[0],pos[1],icon(a)));
             }
-            trees.add(new Tree(skill,nodes));
+            trees.add(new Tree(skill,spaced(nodes)));
         }
         return trees;
     }
     public static String icon(Balance.Ability a){return "minecraft:"+switch(a.id().replace("faustcore:","")){
+        case "metabolism" -> "cooked_porkchop";
+        case "cat_scent" -> "cod";
+        case "soft_foot" -> "leather_boots";
+        case "forester" -> "oak_sapling";
+        case "fire_starter" -> "campfire";
         case "training_strength_damage" -> "iron_sword";
         case "mace_efficiency" -> "mace";
         case "crossbow_efficiency" -> "crossbow";
@@ -63,8 +83,8 @@ public final class SkillTrees {
     /** Missing layout entries remain accessible, below the explicitly placed nodes. */
     public static List<Node> nodes(Balance b,Skill skill){
         var nodes=new ArrayList<Node>();b.trees.stream().filter(t->t.skill()==skill).findFirst().ifPresent(t->nodes.addAll(t.nodes().stream().filter(n->b.abilities.stream().anyMatch(a->a.id().equals(n.ability())&&a.skill()==skill)).toList()));
-        double y=nodes.stream().mapToDouble(Node::y).max().orElse(-40)+40;
-        for(var a:b.abilities)if(a.skill()==skill&&nodes.stream().noneMatch(n->n.ability().equals(a.id()))){nodes.add(new Node(a.id(),0,y,icon(a)));y+=40;}
+        double y=nodes.stream().mapToDouble(Node::y).max().orElse(-4)+4;
+        for(var a:b.abilities)if(a.skill()==skill&&nodes.stream().noneMatch(n->n.ability().equals(a.id()))){nodes.add(new Node(a.id(),0,y,icon(a)));y+=4;}
         return nodes;
     }
     public static int nodeColor(Progress p,Balance.Ability a,Balance b){

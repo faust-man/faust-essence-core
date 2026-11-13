@@ -33,6 +33,7 @@ public abstract class LivingEntityMixin {
         LivingEntity entity=(LivingEntity)(Object)this;
         float before=faustcore$health.pop();CombatContext.DAMAGE.get().pop();double lost=Math.max(0,before-entity.getHealth());
         if(entity.level().isClientSide||lost<=0)return;
+        if(entity instanceof ServerPlayer player&&source.is(net.minecraft.tags.DamageTypeTags.IS_FALL))CoreRuntime.data(player).recordCounter("fall_damage",lost,CoreRuntime.balance);
         // All sources count for constitution. Intentional damage training is explicitly allowed.
         if(entity instanceof ServerPlayer player&&com.faust.core.progression.SkillEffects.damageCounts(lost,CoreRuntime.balance)) CoreRuntime.grant(player,"damage",lost,lost);
         var attack=CombatContext.ATTACK.get().peek();

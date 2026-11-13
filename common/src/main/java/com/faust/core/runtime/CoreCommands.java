@@ -34,7 +34,6 @@ public final class CoreCommands {
         max.then(literal("all").executes(ctx->maximize(ctx,null,false,20)).then(maxPlayers(null)));
         for(var stat:Skill.values()){
             max.then(literal(stat.name()).executes(ctx->maximize(ctx,stat,false,20)).then(maxPlayers(stat)));
-            if(stat.name().equals("defense"))max.then(literal("defence").executes(ctx->maximize(ctx,stat,false,20)).then(maxPlayers(stat)));
         }
         root.then(max);
         root.then(literal("status").executes(ctx->{ctx.getSource().sendSuccess(()->CommandSupport.status(ctx.getSource().getPlayer()),false);return 1;})
@@ -63,7 +62,7 @@ public final class CoreCommands {
         root.then(literal("fatigue").requires(s->s.hasPermission(2))
             .then(literal("clear").then(argument("targets",EntityArgument.players()).executes(ctx->modify(ctx,p->CoreRuntime.data(p).fatigue=0))))
             .then(literal("set").then(argument("targets",EntityArgument.players()).then(argument("amount",DoubleArgumentType.doubleArg(-1000000,1000000)).executes(ctx->modify(ctx,p->{var data=CoreRuntime.data(p);data.fatigue=Math.max(-CoreRuntime.balance.fatigue.get("sleepReserve"),Math.min(DoubleArgumentType.getDouble(ctx,"amount"),data.maxFatigue(CoreRuntime.balance)));data.stamina=Math.min(data.stamina,data.maxStamina(CoreRuntime.balance));}))))));
-        root.then(literal("reset").requires(s->s.hasPermission(2)).then(argument("targets",EntityArgument.players()).executes(ctx->modify(ctx,p->((PlayerData)p).coreData(new Progress())))));
+        root.then(literal("reset").requires(s->s.hasPermission(2)).executes(ctx->reset(ctx,false)).then(argument("targets",EntityArgument.players()).executes(ctx->reset(ctx,true))));
         root.then(literal("path").then(argument("id",ResourceLocationArgument.id()).suggests((ctx,b)->SharedSuggestionProvider.suggest(CoreApi.paths(),b)).executes(ctx->reply(ctx,"core.action.ok",CoreApi.choosePath(ctx.getSource().getPlayerOrException(),ResourceLocationArgument.getId(ctx,"id").toString())))));
         root.then(literal("reload").requires(s->s.hasPermission(2)).executes(ctx->{try{CoreRuntime.reload(ctx.getSource().getServer());return reply(ctx,"core.reload.ok",true);}catch(RuntimeException e){ctx.getSource().sendFailure(Component.literal(e.getMessage()));return 0;}}));
         root.then(literal("panel").redirect(root.build(),ctx->ctx.getSource().withSuppressedOutput()));
@@ -76,6 +75,11 @@ public final class CoreCommands {
     private static int maximize(CommandContext<CommandSourceStack> ctx,Skill stat,boolean explicit,int level) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
         Collection<ServerPlayer> targets=explicit?EntityArgument.getPlayers(ctx,"player"):List.of(ctx.getSource().getPlayerOrException());
         for(var player:targets){CoreRuntime.data(player).max(CoreRuntime.balance,stat,level);CoreRuntime.refresh(player);}
+        ctx.getSource().sendSuccess(()->Component.translatable("core.command.updated",targets.size()),true);return targets.size();
+    }
+    private static int reset(CommandContext<CommandSourceStack> ctx,boolean explicit) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+        Collection<ServerPlayer> targets=explicit?EntityArgument.getPlayers(ctx,"targets"):List.of(ctx.getSource().getPlayerOrException());
+        for(var player:targets){((PlayerData)player).coreData(new Progress());CoreRuntime.refresh(player);}
         ctx.getSource().sendSuccess(()->Component.translatable("core.command.updated",targets.size()),true);return targets.size();
     }
     private static int help(CommandContext<CommandSourceStack> ctx) {

@@ -123,10 +123,20 @@ public final class Balance {
         for(int i=0;i<abilities.size();i++)abilities.set(i,tuneAbility(abilities.get(i)));
         stat("dexterity_safe_fall",Skill.dexterity,"safe_fall_distance","add",1,5,1e9,false);
         statBonuses.getLast().requiresAbility="faustcore:soft_landing";
-        ability("cushioned_landing",Skill.dexterity,10,"run_metres",1500,"soft_landing","fall_damage_reduction",0.5);
-        ability("soft_landing",Skill.dexterity,5,"run_metres",1500,"","stat_unlock",0);
+        ability("cushioned_landing",Skill.dexterity,15,"fall_damage",300,"soft_landing","fall_damage_reduction",0.5);
+        ability("soft_landing",Skill.dexterity,5,"fall_damage",100,"","stat_unlock",0);
         ability("enchanting_power",Skill.intelligence,5,"enchants",1,"","enchanting_power",1);
         ability("potion_duration",Skill.intelligence,5,"brewed",30,"","potion_duration",0.02);
+        ability("soft_foot",Skill.dexterity,10,"slow_falling_received",1,"soft_landing","faustcore:soft_foot",1);
+        ability("forester",Skill.building,3,"saplings_inventory",64,"","faustcore:forester",1);
+        ability("fire_starter",Skill.building,5,"charcoal_smelted",1,"forester","faustcore:fire_starter",1);
+        for(int i=0;i<abilities.size();i++)if(abilities.get(i).id().equals("faustcore:training_building_reach")){
+            var j=JSON.toJsonTree(abilities.get(i)).getAsJsonObject();
+            j.add("conditions",JSON.toJsonTree(List.of(new Condition("mined",1024),new Condition("placed",1024))));
+            abilities.set(i,JSON.fromJson(j,Ability.class));
+        }
+        ability("cat_scent",Skill.intelligence,5,"cats_tamed",1,"","faustcore:cat_scent",1);
+        ability("metabolism",Skill.constitution,15,"food_nutrition",20,"","faustcore:metabolism",1);
         swapShieldRules();
         StaminaContent.withoutProvider(this);
         trees=SkillTrees.defaults(abilities);
@@ -153,12 +163,13 @@ public final class Balance {
             case "faustcore:training_strength_damage" -> {level=5;amount=100;}
             case "faustcore:training_dexterity_sprint" -> {level=5;amount=1500;}
             case "faustcore:training_dexterity_attack" -> {level=10;counter="hits";amount=150;parent="faustcore:training_dexterity_sprint";}
-            case "faustcore:training_constitution_health" -> {level=7;amount=100;parent="faustcore:training_constitution_stamina";}
+            case "faustcore:training_constitution_health" -> {level=10;amount=100;parent="faustcore:training_constitution_stamina";}
             case "faustcore:training_constitution_stamina" -> {level=5;counter="constitution_run_metres";amount=2500;parent="";}
             case "faustcore:training_defense_armor" -> {level=3;counter="armor_metres";amount=1500;parent="faustcore:armor_familiarity";}
             case "faustcore:training_intelligence_luck" -> {level=5;amount=15;}
-            case "faustcore:training_building_breaking" -> {level=5;amount=500;}
+            case "faustcore:training_building_breaking" -> {level=5;counter="mined";amount=512;}
             case "faustcore:training_building_reach" -> {level=10;amount=1500;parent="faustcore:training_building_breaking";}
+            case "faustcore:crossbow_efficiency" -> level=3;
             case "faustcore:shield_care" -> value=0.25;
             case "faustcore:shield_recovery" -> value=0.25;
         }
@@ -380,7 +391,7 @@ public final class Balance {
             var ids=tree.skill()==Skill.intelligence?List.of("faustcore:potion_duration","faustcore:enchanting_power"):List.of("faustcore:soft_landing");
             for(int j=0;j<ids.size();j++){
                 String id=ids.get(j);String icon=nodes.stream().filter(n->n.ability().equals(id)).map(SkillTrees.Node::icon).findFirst().orElse(id.endsWith("soft_landing")?"minecraft:feather":id.endsWith("potion_duration")?"minecraft:brewing_stand":"minecraft:enchanting_table");
-                nodes.removeIf(n->n.ability().equals(id));nodes.add(new SkillTrees.Node(id,anchor.x()-52*(j+1),anchor.y(),icon));
+                nodes.removeIf(n->n.ability().equals(id));nodes.add(new SkillTrees.Node(id,anchor.x()-5*(j+1),anchor.y(),icon));
             }
             trees.set(i,new SkillTrees.Tree(tree.skill(),nodes));
         }
@@ -402,9 +413,9 @@ public final class Balance {
             }else{
                 for(var element:json.getAsJsonArray()){
                     var tree=element.getAsJsonObject();if(!tree.get("skill").getAsString().equals("dexterity"))continue;
-                    var nodes=tree.getAsJsonArray("nodes");boolean exists=false;double x=-52,y=0;
+                    var nodes=tree.getAsJsonArray("nodes");boolean exists=false;double x=-5,y=0;
                     for(var n:nodes){var node=n.getAsJsonObject();String id=node.get("ability").getAsString();if(id.equals("faustcore:cushioned_landing"))exists=true;if(id.equals("faustcore:soft_landing")){x=node.get("x").getAsDouble();y=node.get("y").getAsDouble();}}
-                    if(!exists)nodes.add(JSON.toJsonTree(new SkillTrees.Node("faustcore:cushioned_landing",x,y+40,"minecraft:feather")));
+                    if(!exists)nodes.add(JSON.toJsonTree(new SkillTrees.Node("faustcore:cushioned_landing",x,y+4,"minecraft:feather")));
                 }
             }
             Files.writeString(file,JSON.toJson(json)+"\n");
@@ -438,9 +449,10 @@ public final class Balance {
     private static String swappedConstitution(String id){return id.equals("faustcore:training_constitution_health")?"faustcore:training_constitution_stamina":id.equals("faustcore:training_constitution_stamina")?"faustcore:training_constitution_health":id;}
     public static Balance load(Path directory) throws IOException {
         Files.createDirectories(directory);
+        migrateCoordinateUnits(directory);
         if(!StaminaServices.present()&&!Files.exists(directory.resolve("abilities.json")))Files.writeString(directory.resolve(".without-stamina"),"1\n");
         migrate(directory); migrateExhaustion(directory); migrateGrowth(directory); migrateStats(directory); migrateV12(directory); migrateEnvironment(directory); migrateV13(directory); migrateV14(directory); migrateV141(directory); migrateFatigueGrace(directory); migrateCakeFood(directory); migratePractice(directory); migrateConstitutionSwap(directory); migratePracticeLayout(directory); migratePanelUpdate(directory);
-        migrateBalanceRevision(directory);migrateFollowup(directory);
+        migrateBalanceRevision(directory);migrateFollowup(directory);migrateForestSkills(directory);migrateSkillRevision(directory);migrateTreePolish(directory);migrateHealthTen(directory);migrateDefenseParents(directory);
         Path windFile=sectionFile(directory,"stamina");if(Files.exists(windFile)){var data=JSON.fromJson(Files.readString(windFile),com.google.gson.JsonObject.class);if(!data.has("secondWindMultiplier")){data.addProperty("secondWindMultiplier",1.5);Files.writeString(windFile,JSON.toJson(data)+"\n");}}
         Path skillsFile=directory.resolve("skills.json");if(Files.exists(skillsFile)){var data=JSON.fromJson(Files.readString(skillsFile),com.google.gson.JsonObject.class);if(!data.has("buildingReachMaximum")){data.addProperty("buildingReachMaximum",3);Files.writeString(skillsFile,JSON.toJson(data)+"\n");}}
         Balance result=new Balance();
@@ -494,6 +506,95 @@ public final class Balance {
             var data=com.google.gson.JsonParser.parseString(Files.readString(file));
             if(name.equals("actions")){Balance defaults=new Balance();for(String action:List.of("mine","dodge"))if(!data.getAsJsonObject().has(action))data.getAsJsonObject().add(action,JSON.toJsonTree(defaults.actions.get(action)));}
             else for(var entry:data.getAsJsonArray()){var a=entry.getAsJsonObject();String id=a.get("id").getAsString();if(id.equals("faustcore:shield_efficiency"))a.addProperty("value",1);if(id.equals("faustcore:potion_duration")){a.addProperty("amount",30);a.addProperty("value",0.02);a.add("conditions",new com.google.gson.JsonArray());}}
+            Files.writeString(file,JSON.toJson(data)+"\n");
+        }
+        Files.writeString(marker,"1\n");
+    }
+    private static void migrateForestSkills(Path directory) throws IOException {
+        Path marker=directory.resolve(".forest-skills");if(Files.exists(marker))return;
+        Balance defaults=new Balance();Path backup=directory.resolve("migration-forest-skills");
+        Set<String> changed=Set.of("faustcore:soft_landing","faustcore:cushioned_landing","faustcore:training_building_breaking","faustcore:training_building_reach");
+        Path file=directory.resolve("abilities.json");
+        if(Files.exists(file)){
+            Files.createDirectories(backup);Files.copy(file,backup.resolve("abilities.json"),StandardCopyOption.REPLACE_EXISTING);
+            var data=com.google.gson.JsonParser.parseString(Files.readString(file)).getAsJsonArray();
+            for(int i=0;i<data.size();i++){
+                var a=data.get(i).getAsJsonObject();String id=a.get("id").getAsString();
+                if(changed.contains(id)){
+                    var fresh=JSON.toJsonTree(defaults.abilities.stream().filter(x->x.id().equals(id)).findFirst().orElseThrow()).getAsJsonObject();
+                    for(String key:List.of("level","counter","amount","conditions"))a.add(key,fresh.get(key));
+                }
+            }
+            for(String id:List.of("soft_foot","forester","fire_starter","cat_scent"))if(java.util.stream.StreamSupport.stream(data.spliterator(),false).noneMatch(e->e.getAsJsonObject().get("id").getAsString().equals("faustcore:"+id)))data.add(JSON.toJsonTree(defaults.abilities.stream().filter(a->a.id().equals("faustcore:"+id)).findFirst().orElseThrow()));
+            Files.writeString(file,JSON.toJson(data)+"\n");
+        }
+        file=directory.resolve("trees.json");
+        if(Files.exists(file)){
+            Files.createDirectories(backup);Files.copy(file,backup.resolve("trees.json"),StandardCopyOption.REPLACE_EXISTING);
+            var data=com.google.gson.JsonParser.parseString(Files.readString(file)).getAsJsonArray();
+            for(var entry:data){var tree=entry.getAsJsonObject();var nodes=tree.getAsJsonArray("nodes");String skill=tree.get("skill").getAsString();
+                for(var fresh:defaults.trees)if(fresh.skill().name().equals(skill))for(var n:fresh.nodes())if(Set.of("faustcore:soft_foot","faustcore:forester","faustcore:fire_starter","faustcore:cat_scent").contains(n.ability())&&java.util.stream.StreamSupport.stream(nodes.spliterator(),false).noneMatch(e->e.getAsJsonObject().get("ability").getAsString().equals(n.ability())))nodes.add(JSON.toJsonTree(n));
+            }
+            Files.writeString(file,JSON.toJson(data)+"\n");
+        }
+        Files.writeString(marker,"1\n");
+    }
+    private static void migrateSkillRevision(Path directory) throws IOException {
+        Path marker=directory.resolve(".skill-revision");if(Files.exists(marker))return;
+        Path file=directory.resolve("abilities.json");Balance defaults=new Balance();
+        if(Files.exists(file)){
+            Path backup=directory.resolve("migration-skill-revision");Files.createDirectories(backup);Files.copy(file,backup.resolve("abilities.json"),StandardCopyOption.REPLACE_EXISTING);
+            var data=com.google.gson.JsonParser.parseString(Files.readString(file)).getAsJsonArray();
+            for(var e:data){var a=e.getAsJsonObject();String id=a.get("id").getAsString();
+                if(id.equals("faustcore:soft_foot"))a.addProperty("parent","faustcore:soft_landing");
+                if(id.equals("faustcore:fire_starter")){a.addProperty("level",5);a.addProperty("counter","charcoal_smelted");a.addProperty("amount",1);a.add("conditions",new com.google.gson.JsonArray());}
+            }
+            if(java.util.stream.StreamSupport.stream(data.spliterator(),false).noneMatch(e->e.getAsJsonObject().get("id").getAsString().equals("faustcore:metabolism")))data.add(JSON.toJsonTree(defaults.abilities.stream().filter(a->a.id().equals("faustcore:metabolism")).findFirst().orElseThrow()));
+            Files.writeString(file,JSON.toJson(data)+"\n");
+        }
+        Path trees=directory.resolve("trees.json");
+        if(Files.exists(trees)){
+            Path backup=directory.resolve("migration-skill-revision");Files.createDirectories(backup);Files.copy(trees,backup.resolve("trees.json"),StandardCopyOption.REPLACE_EXISTING);
+            var layouts=JSON.fromJson(Files.readString(trees),SkillTrees.Tree[].class);var output=new ArrayList<SkillTrees.Tree>();
+            for(var tree:layouts){var nodes=new ArrayList<>(tree.nodes());if(tree.skill()==Skill.constitution&&nodes.stream().noneMatch(n->n.ability().equals("faustcore:metabolism")))nodes.add(new SkillTrees.Node("faustcore:metabolism",10,0,"minecraft:cooked_porkchop"));output.add(new SkillTrees.Tree(tree.skill(),SkillTrees.spaced(nodes)));}
+            Files.writeString(trees,JSON.toJson(output)+"\n");
+        }
+        Files.writeString(marker,"1\n");
+    }
+    private static void migrateCoordinateUnits(Path directory) throws IOException {
+        Path marker=directory.resolve(".tree-coordinate-units");if(Files.exists(marker))return;
+        Path file=directory.resolve("trees.json");
+        if(Files.exists(file)){
+            Path backup=directory.resolve("migration-coordinate-units");Files.createDirectories(backup);Files.copy(file,backup.resolve("trees.json"),StandardCopyOption.REPLACE_EXISTING);
+            var data=com.google.gson.JsonParser.parseString(Files.readString(file));
+            for(var tree:data.getAsJsonArray())for(var entry:tree.getAsJsonObject().getAsJsonArray("nodes")){var node=entry.getAsJsonObject();for(String axis:List.of("x","y")){double value=node.get(axis).getAsDouble();if(!Double.isFinite(value))throw new IOException("Nonfinite tree coordinate");node.addProperty(axis,Math.round(value/SkillTrees.PIXELS_PER_UNIT));}}
+            Files.writeString(file,JSON.toJson(data)+"\n");
+        }
+        Files.writeString(marker,"1 unit = 11 pixels\n");
+    }
+    private static void migrateTreePolish(Path directory) throws IOException {
+        Path marker=directory.resolve(".tree-polish");if(Files.exists(marker))return;
+        Path backup=directory.resolve("migration-tree-polish");Files.createDirectories(backup);
+        Path file=directory.resolve("abilities.json");
+        if(Files.exists(file)){Files.copy(file,backup.resolve("abilities.json"),StandardCopyOption.REPLACE_EXISTING);var data=com.google.gson.JsonParser.parseString(Files.readString(file)).getAsJsonArray();for(var entry:data){var a=entry.getAsJsonObject();if(a.get("id").getAsString().equals("faustcore:crossbow_efficiency")){a.addProperty("level",3);a.add("characteristics",new com.google.gson.JsonArray());}}Files.writeString(file,JSON.toJson(data)+"\n");}
+        file=directory.resolve("trees.json");
+        if(Files.exists(file)){Files.copy(file,backup.resolve("trees.json"),StandardCopyOption.REPLACE_EXISTING);var trees=JSON.fromJson(Files.readString(file),SkillTrees.Tree[].class);var result=new ArrayList<SkillTrees.Tree>();for(var tree:trees){var nodes=new ArrayList<SkillTrees.Node>();for(var n:tree.nodes()){boolean left=Set.of("faustcore:training_intelligence_luck","faustcore:crossbow_efficiency","faustcore:forester","faustcore:fire_starter").contains(n.ability());nodes.add(new SkillTrees.Node(n.ability(),n.x()-(left?SkillTrees.GRID:0),n.y(),n.icon()));}result.add(new SkillTrees.Tree(tree.skill(),nodes));}Files.writeString(file,JSON.toJson(result)+"\n");}
+        Files.writeString(marker,"1\n");
+    }
+    private static void migrateHealthTen(Path directory) throws IOException {
+        Path marker=directory.resolve(".health-ten");if(Files.exists(marker))return;Path file=directory.resolve("abilities.json");if(Files.exists(file)){Files.copy(file,directory.resolve("abilities-before-health-ten.json"),StandardCopyOption.REPLACE_EXISTING);var data=com.google.gson.JsonParser.parseString(Files.readString(file));for(var entry:data.getAsJsonArray()){var a=entry.getAsJsonObject();if(a.get("id").getAsString().equals("faustcore:training_constitution_health")){a.addProperty("level",10);a.add("characteristics",new com.google.gson.JsonArray());}}Files.writeString(file,JSON.toJson(data)+"\n");}Files.writeString(marker,"1\n");
+    }
+    private static void migrateDefenseParents(Path directory) throws IOException {
+        Path marker=directory.resolve(".defense-parents");if(Files.exists(marker))return;
+        Path file=directory.resolve("abilities.json");
+        if(Files.exists(file)){
+            Files.copy(file,directory.resolve("abilities-before-defense-parents.json"),StandardCopyOption.REPLACE_EXISTING);
+            var data=com.google.gson.JsonParser.parseString(Files.readString(file));
+            for(var entry:data.getAsJsonArray()){
+                var a=entry.getAsJsonObject();String id=a.get("id").getAsString();
+                if(id.equals("faustcore:training_defense_armor"))a.addProperty("parent","faustcore:armor_familiarity");
+                if(id.equals("faustcore:shield_recovery"))a.addProperty("parent","faustcore:shield_efficiency");
+            }
             Files.writeString(file,JSON.toJson(data)+"\n");
         }
         Files.writeString(marker,"1\n");

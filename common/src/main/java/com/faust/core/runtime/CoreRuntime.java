@@ -89,7 +89,7 @@ public final class CoreRuntime {
             } else if(key.equals(Stats.TRADED_WITH_VILLAGER)) grant(player,"trade",amount,amount);
             else if(key.equals(Stats.ENCHANT_ITEM)) grant(player,"enchant",amount,amount);
         } else if(stat.getType()==Stats.BLOCK_MINED) {
-            double units=Math.min(amount,Math.max(0,balance.skills.get("blockMaximumPerMinute")-s.blocks));s.blocks+=units;grant(player,"mine",units,units);
+            // Mining is awarded from the successful server break with position/tool context.
         } else if(stat.getType()==Stats.ITEM_CRAFTED) {
             double units=Math.min(amount,Math.max(0,balance.skills.get("blockMaximumPerMinute")-s.blocks));s.blocks+=units;
             grant(player,"craft",units,units);
@@ -112,6 +112,12 @@ public final class CoreRuntime {
         if(data.actionsBlocked(balance))return false;
         data.spend(cost,balance,worldAge(player));s.lastSpent=player.tickCount;s.attackTick=player.tickCount;s.paidSwing=!air;return true;
     }
+    /** Full stamina payment without converting it to an addon resource; also delays recovery. */
+    public static boolean payStaminaExact(ServerPlayer player,double cost){
+        if(!Double.isFinite(cost)||cost<0)return false;if(player.isCreative()||player.isSpectator()||balance.stamina.get("enabled")==0)return true;
+        var progress=data(player);if(progress.actionsBlocked(balance)||progress.stamina<cost)return false;
+        progress.spend(cost,balance,worldAge(player));if(cost>0)session(player).lastSpent=player.tickCount;return true;
+    }
     public static boolean pay(ServerPlayer player,double cost){if(player.isCreative()||player.isSpectator()||balance.stamina.get("enabled")==0)return true;var p=data(player);if(p.actionsBlocked(balance))return false;p.spend(cost,balance,worldAge(player));if(cost>0)session(player).lastSpent=player.tickCount;return true;}
     public static boolean shieldPayment(ServerPlayer player){return shieldPayment(player,false);}
     public static boolean shieldPayment(ServerPlayer player,boolean projectile){double cost=ShieldCosts.block(projectile,balance.stamina.get("shieldCost"),data(player).effect("shield_cost_reduction",balance));return cost==0||pay(player,cost);}
@@ -119,7 +125,10 @@ public final class CoreRuntime {
     public static boolean canAct(ServerPlayer player){return !active(player)||!data(player).actionsBlocked(balance);}
     public static boolean ranged(ServerPlayer player,String weapon){return pay(player,data(player).actionCost(weapon,balance));}
     public static void sleptNight(net.minecraft.server.level.ServerLevel level){for(var player:level.players())if(player.isSleeping())data(player).sleptNight(balance);}
-    public static void food(ServerPlayer player,net.minecraft.world.item.ItemStack stack){if(!active(player))return;data(player).sweetFood(BuiltInRegistries.ITEM.getKey(stack.getItem()).toString(),balance);}
+    public static void mined(ServerPlayer player){
+        if(!active(player))return;var s=session(player);double units=Math.min(1,Math.max(0,balance.skills.get("blockMaximumPerMinute")-s.blocks));s.blocks+=units;grant(player,"mine",units,units);
+    }
+    public static void food(ServerPlayer player,net.minecraft.world.item.ItemStack stack){if(!active(player))return;data(player).sweetFood(BuiltInRegistries.ITEM.getKey(stack.getItem()).toString(),balance);var food=stack.get(net.minecraft.core.component.DataComponents.FOOD);if(food!=null)data(player).recordCounter("food_nutrition",food.nutrition(),balance);}
     public static void read(ServerPlayer p,ItemStack stack) {
         if(!(stack.is(Items.WRITTEN_BOOK)||stack.is(Items.WRITABLE_BOOK)))return;
         Session s=session(p);
@@ -155,6 +164,9 @@ public final class CoreRuntime {
     public static void tick(ServerPlayer player) {
         if(!active(player)) {if(player.tickCount%20==0)syncIfChanged(player);return;}
         Progress p=data(player); Session s=session(player); Balance b=balance;p.reconcile(b);
+        int saplings=0;for(var stack:player.getInventory().items)if(stack.is(net.minecraft.tags.ItemTags.SAPLINGS))saplings+=stack.getCount();
+        p.recordMaximum("saplings_inventory",saplings,b);
+        if(player.hasEffect(net.minecraft.world.effect.MobEffects.SLOW_FALLING))p.recordMaximum("slow_falling_received",1,b);
         StaminaServices.mechanics().tick(player,p,s,b);
         if(player.tickCount%20==0||s.wasSprinting!=player.isSprinting()){s.wasSprinting=player.isSprinting();attributes(player);}
         if(player.tickCount%5==0)syncIfChanged(player);

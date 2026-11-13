@@ -13,14 +13,20 @@ public final class CoreClient {
  public static java.nio.file.Path configDirectory;
  public static boolean configAllowed;
  public static void configResult(com.faust.core.runtime.ConfigResult result){configAllowed=result.allowed();var mc=Minecraft.getInstance();if(mc.screen instanceof CoreConfigScreen screen)screen.result(result);}
- public static void receive(Snapshot snapshot) {progress=Progress.parse(snapshot.progress());if(!snapshot.balance().isEmpty())balance=Balance.JSON.fromJson(snapshot.balance(),Balance.class);experience=snapshot.experience();weight=snapshot.armorWeight();}
+ public static void receive(Snapshot snapshot) {var previous=progress;var previousBalance=balance;progress=Progress.parse(snapshot.progress());if(!snapshot.balance().isEmpty())balance=Balance.JSON.fromJson(snapshot.balance(),Balance.class);experience=snapshot.experience();weight=snapshot.armorWeight();
+  if(previous!=null&&previousBalance!=null&&balance!=null)for(var a:balance.abilities)if(progress.canUnlock(a,balance)&&previousBalance.abilities.stream().filter(old->old.id().equals(a.id())).noneMatch(old->previous.canUnlock(old,previousBalance))){
+   String item=balance.trees.stream().flatMap(t->t.nodes().stream()).filter(n->n.ability().equals(a.id())).map(SkillTrees.Node::icon).findFirst().orElse(SkillTrees.icon(a));
+   var icon=CoreScreen.icon(item);
+   Minecraft.getInstance().getToasts().addToast(new SkillToast(CoreScreen.abilityName(a),icon));
+  }
+ }
  private static final StaminaClient STAMINA=java.util.ServiceLoader.load(StaminaClient.class,CoreClient.class.getClassLoader()).findFirst().orElseGet(()->new StaminaClient(){});
  public static void beginHud(){STAMINA.beginHud();}
  public static void airSprite(net.minecraft.resources.ResourceLocation sprite,int y){STAMINA.airSprite(sprite,y);}
  public static void reset(){progress=null;balance=null;STAMINA.reset();}
 
  public static boolean canSprint(Object entity){var mc=Minecraft.getInstance();return entity!=mc.player||mc.player==null||mc.player.isCreative()||mc.player.isSpectator()||progress==null||balance==null||!progress.actionsBlocked(balance);}
- static {com.faust.core.runtime.ClientActions.sprintAllowed=CoreClient::canSprint;com.faust.core.runtime.ClientActions.jumpAllowed=()->{var mc=Minecraft.getInstance();if(mc.player==null||mc.player.isCreative()||mc.player.isSpectator()||balance==null||progress==null||balance.stamina.get("enabled")==0)return true;if(progress.actionsBlocked(balance)){mc.player.setSprinting(false);return weight<=progress.capacity(balance);}return !mc.player.isSprinting()||progress.stamina>=balance.stamina.get("sprintJumpCost")+weight*balance.stamina.get("jumpArmorCost");};}
+ static {com.faust.core.runtime.ClientActions.softFoot=entity->entity==Minecraft.getInstance().player&&progress!=null&&balance!=null&&progress.enabled("faustcore:soft_foot",balance);com.faust.core.runtime.ClientActions.sprintAllowed=CoreClient::canSprint;com.faust.core.runtime.ClientActions.jumpAllowed=()->{var mc=Minecraft.getInstance();if(mc.player==null||mc.player.isCreative()||mc.player.isSpectator()||balance==null||progress==null||balance.stamina.get("enabled")==0)return true;if(progress.actionsBlocked(balance)){mc.player.setSprinting(false);return weight<=progress.capacity(balance);}return !mc.player.isSprinting()||progress.stamina>=balance.stamina.get("sprintJumpCost")+weight*balance.stamina.get("jumpArmorCost");};}
  public static void tick() {
   Minecraft mc=Minecraft.getInstance();if(mc.player==null||balance==null)return;
   if(balance.stamina.get("enabled")>0&&progress!=null&&progress.actionsBlocked(balance))mc.player.setSprinting(false);

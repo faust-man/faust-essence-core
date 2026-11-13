@@ -6,6 +6,11 @@ import net.fabricmc.fabric.api.networking.v1.*;
 import net.fabricmc.loader.api.FabricLoader;
 public final class CoreMod implements ModInitializer {
  public void onInitialize() {
+  var item=net.minecraft.core.Registry.register(net.minecraft.core.registries.BuiltInRegistries.ITEM,net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("faustcore","fire_starter"),new FireStarterItem());
+  FireStarterItem.ITEM=()->item;
+  var serializer=net.minecraft.core.Registry.register(net.minecraft.core.registries.BuiltInRegistries.RECIPE_SERIALIZER,net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("faustcore","skill_crafting"),new net.minecraft.world.item.crafting.SimpleCraftingRecipeSerializer<>(SkillCraftingRecipe::new));
+  SkillCraftingRecipe.SERIALIZER=()->serializer;
+  net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents.modifyEntriesEvent(net.minecraft.world.item.CreativeModeTabs.TOOLS_AND_UTILITIES).register(entries->entries.accept(item));
   CoreRuntime.initialize(FabricLoader.getInstance().getConfigDir().resolve(Constants.MOD_ID));
   PayloadTypeRegistry.playS2C().register(Snapshot.TYPE,Snapshot.CODEC);
   PayloadTypeRegistry.playS2C().register(ConfigResult.TYPE,ConfigResult.CODEC);

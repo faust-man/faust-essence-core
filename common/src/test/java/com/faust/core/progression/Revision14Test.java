@@ -40,6 +40,22 @@ public final class Revision14Test {
             var old=new ArrayList<>(b.abilities);var a=node(b,"training_strength_damage");old.removeIf(n->n.id().equals(a.id())||n.id().equals("faustcore:bow_mastery"));old.add(new Balance.Ability(a.id(),a.skill(),1,a.counter(),1,"",a.effect(),0));old.add(new Balance.Ability("test:custom",Skill.strength,7,"hits",42,"","damage",0.03));Files.writeString(dir.resolve("abilities.json"),Balance.JSON.toJson(old));
             Balance migrated=Balance.load(dir);near(migrated.progression.get("initialCap"),5,"migration reduces old default potential");near(migrated.stamina.get("runCost"),0.1,"migration halves old sprint rate");near(migrated.stamina.get("armorCost"),0.25,"migration halves old armor rate");near(migrated.stamina.get("swimCost"),0.4,"migration adds swim cost");near(migrated.stamina.get("bowCost"),3,"migration preserves custom costs");check(node(migrated,"training_strength_damage").level()==5,"migration hardens built-in requirements");check(migrated.abilities.stream().anyMatch(n->n.id().equals("test:custom")),"migration preserves custom node");check(node(migrated,"bow_mastery").level()==10,"migration adds ranged node");check(Files.exists(dir.resolve("migration-v1.4/progression.json")),"migration keeps backups");near(Balance.load(dir).stamina.get("bowCost"),3,"migration idempotent");
         }finally{try(var paths=Files.walk(dir)){for(Path file:paths.sorted(Comparator.reverseOrder()).toList())Files.delete(file);}}
+        Path parents=Files.createTempDirectory("core-defense-parents");try {
+            Balance.load(parents);Files.delete(parents.resolve(".defense-parents"));Files.delete(parents.resolve(".health-ten"));
+            var saved=Balance.JSON.toJsonTree(b.abilities).getAsJsonArray();
+            for(var entry:saved){var a=entry.getAsJsonObject();switch(a.get("id").getAsString()){
+                case "faustcore:training_defense_armor" -> {a.addProperty("parent","");a.addProperty("value",0.123);}
+                case "faustcore:shield_recovery" -> a.addProperty("parent","faustcore:shield_care");
+                case "faustcore:training_constitution_health" -> a.addProperty("level",7);
+            }}
+            Files.writeString(parents.resolve("abilities.json"),Balance.JSON.toJson(saved));Balance upgraded=Balance.load(parents);
+            check(node(upgraded,"training_defense_armor").parent().equals("faustcore:armor_familiarity"),"existing reinforced gains iron armor parent");
+            check(node(upgraded,"shield_recovery").parent().equals("faustcore:shield_efficiency"),"existing shield recovery gains efficient block parent");
+            near(node(upgraded,"training_defense_armor").value(),0.123,"dependency migration preserves custom effect value");
+            check(node(upgraded,"training_constitution_health").level()==10,"existing health requires constitution10");
+            check(Files.exists(parents.resolve("abilities-before-defense-parents.json")),"dependency migration backup");
+            check(Balance.load(parents).abilities.equals(upgraded.abilities),"dependency migration idempotent");
+        }finally{try(var paths=Files.walk(parents)){for(Path file:paths.sorted(Comparator.reverseOrder()).toList())Files.delete(file);}}
         System.out.println("Core 1.4 checks passed: "+checks);
     }
 }
