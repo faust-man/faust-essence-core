@@ -12,8 +12,8 @@ public final class StaminaSpritesTest {
 
     public static void run() throws Exception {
         check(StaminaSprites.color(0, false) == 0xFFFFD000, "normal stamina is yellow");
-        check(StaminaSprites.color(2, false) == 0xFF000000, "fatigue is black");
-        check(StaminaSprites.color(2, true) == 0xFF000000, "exhaustion never recolors fatigue");
+        check(StaminaSprites.color(2, false) == 0xFF37373B, "fatigue is dark grey");
+        check(StaminaSprites.color(2, true) == 0xFF37373B, "exhaustion never recolors fatigue");
         check(StaminaSprites.color(0, true) == 0xFFFF4040, "exhausted fill stays red");
         check(StaminaSprites.color(1, true) == 0xFFFF4040, "exhausted empty outline stays red");
         check(StaminaSprites.color(1, false) != StaminaSprites.FATIGUE_COLOR, "spent differs from fatigue");
@@ -26,31 +26,21 @@ public final class StaminaSpritesTest {
                 }
             }
         }
-        try (var input = StaminaSpritesTest.class.getResourceAsStream("/assets/faustcore/" + StaminaSprites.texture(0)); var emptyInput = StaminaSpritesTest.class.getResourceAsStream("/assets/faustcore/" + StaminaSprites.texture(1))) {
-            check(input != null && emptyInput != null, "both lightning sprites are packaged");
-            var image = ImageIO.read(input);
-            var empty = ImageIO.read(emptyInput);
-            check(image.getWidth() == 8 && image.getHeight() == 8, "filled sprite is exactly 8x8");
-            check(empty.getWidth() == 8 && empty.getHeight() == 8, "empty sprite is exactly 8x8");
-            int fullCount = 0, outlineCount = 0, leftCount = 0, rightCount = 0;
-            for (int y = 0; y < 8; y++) for (int x = 0; x < 8; x++) {
-                int full = image.getRGB(x, y), outline = empty.getRGB(x, y);
-                check(full == 0 || full == 0xFFFFFFFF, "binary white mask permits any tint");
-                check(outline == 0 || outline == 0xFFFFFFFF, "binary outline mask");
-                check(outline == 0 || full != 0, "outline stays inside filled silhouette");
-                if (full != 0) { fullCount++; if (x < 4) leftCount++; else rightCount++; }
-                if (outline != 0) outlineCount++;
+        String[] textures={"full","empty","fatigue"};
+        for(int state=0;state<3;state++) {
+            try(var input=StaminaSpritesTest.class.getResourceAsStream("/assets/faustcore/textures/gui/stamina_lightning_"+textures[state]+".png")) {
+                check(input!=null,"approved sprite packaged");
+                var expected=ImageIO.read(input);
+                check(expected.getWidth()==9&&expected.getHeight()==9,"approved sprites are 9x9");
+                var actual=new java.awt.image.BufferedImage(9,9,java.awt.image.BufferedImage.TYPE_INT_ARGB);
+                for(int y=0;y<9;y++)for(int x=0;x<9;x++)actual.setRGB(x,y,StaminaSprites.pixel(x,y,state,StaminaSprites.color(state,false)));
+                var overlay=new java.awt.image.BufferedImage(9,9,java.awt.image.BufferedImage.TYPE_INT_ARGB);
+                for(int y=0;y<9;y++)for(int x=0;x<9;x++)overlay.setRGB(x,y,StaminaSprites.overlay(x,y,state));
+                var graphics=actual.createGraphics();graphics.drawImage(overlay,0,0,null);graphics.dispose();
+                for(int y=0;y<9;y++)for(int x=0;x<9;x++)check(actual.getRGB(x,y)==expected.getRGB(x,y),"render matches approved preview including alpha overlays");
             }
-            check(fullCount > outlineCount && outlineCount > 0, "empty sprite has transparent interior");
-            check(leftCount > 0 && rightCount > 0, "both half-units are visible");
-            check(image.getRGB(0, 0) == 0, "transparent corners");
         }
-        for (int state = 0; state < 3; state++) {
-            int left = StaminaSprites.textureX(state, 0), right = StaminaSprites.textureX(state, 1);
-            check(right == left + 4 && right + 4 == 8, "halves cover exactly one 8px sprite");
-            check(left == 0, "all states start at the left edge of their own sprite");
-            check(StaminaSprites.texture(2).equals(StaminaSprites.texture(0)), "fatigue and stamina use the same silhouette");
-        }
+        check(StaminaSprites.textureX(0,1)==4,"split uses four left pixels and five right pixels");
         for(int filled=0;filled<=60;filled++) {
             int layer=com.faust.stamina.client.StaminaLayers.layer(filled);
             check(layer==Math.max(0,(filled-1)/20), "layer changes only above exact multiples of twenty");
@@ -69,17 +59,17 @@ public final class StaminaSpritesTest {
             check(StaminaSprites.layerColor(layer,true,false)==0xFFE9801C,"upper fill is orange");
         }
         int border=0,shine=0,shadow=0,body=0;
-        for(int y=0;y<8;y++)for(int x=0;x<8;x++) {
+        for(int y=0;y<9;y++)for(int x=0;x<9;x++) {
             int pixel=StaminaSprites.pixel(x,y,0,StaminaSprites.STAMINA_COLOR);
-            if(pixel==0xFF241F2D)border++;
+            if(pixel==0xFF211D29)border++;
             int overlay=StaminaSprites.overlay(x,y,0);
-            if(overlay==0x80FFFFCC)shine++;
+            if(overlay==0x60FFFFFF)shine++;
             if(overlay==0x50000000)shadow++;
             if(overlay!=0)check((overlay>>>24)>0&&(overlay>>>24)<255,"shine and shadow are translucent");
-            check(StaminaSprites.overlay(x,y,2)==0,"fatigue never receives shine or shadow");
+            check((overlay&0xFFFFFF)==0||(overlay&0xFFFFFF)==0xFFFFFF,"overlays are neutral without yellow tint");
             if(pixel==StaminaSprites.STAMINA_COLOR)body++;
             int fatigue=StaminaSprites.pixel(x,y,2,StaminaSprites.STAMINA_COLOR);
-            check(fatigue==0||fatigue==StaminaSprites.FATIGUE_COLOR,"fatigue has no colored outline or shine");
+            check(fatigue==0||fatigue==StaminaSprites.FATIGUE_COLOR||fatigue==0xFF211D29,"fatigue uses grey body and dark outline");
         }
         check(border>0&&shine>0&&shadow>0&&body>0,"native sprite contains outline, shine and tinted body");
         System.out.println("Stamina lightning checks passed: " + checks);
