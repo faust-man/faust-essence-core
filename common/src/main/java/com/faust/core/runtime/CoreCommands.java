@@ -34,7 +34,6 @@ public final class CoreCommands {
         max.then(literal("all").executes(ctx->maximize(ctx,null,false,20)).then(maxPlayers(null)));
         for(var stat:Skill.values()){
             max.then(literal(stat.name()).executes(ctx->maximize(ctx,stat,false,20)).then(maxPlayers(stat)));
-            if(stat.name().equals("defense"))max.then(literal("defence").executes(ctx->maximize(ctx,stat,false,20)).then(maxPlayers(stat)));
         }
         root.then(max);
         root.then(literal("status").executes(ctx->{ctx.getSource().sendSuccess(()->CommandSupport.status(ctx.getSource().getPlayer()),false);return 1;})

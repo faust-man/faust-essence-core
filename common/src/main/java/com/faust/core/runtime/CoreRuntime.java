@@ -112,6 +112,12 @@ public final class CoreRuntime {
         if(data.actionsBlocked(balance))return false;
         data.spend(cost,balance,worldAge(player));s.lastSpent=player.tickCount;s.attackTick=player.tickCount;s.paidSwing=!air;return true;
     }
+    /** Full stamina payment without converting it to an addon resource; also delays recovery. */
+    public static boolean payStaminaExact(ServerPlayer player,double cost){
+        if(!Double.isFinite(cost)||cost<0)return false;if(player.isCreative()||player.isSpectator()||balance.stamina.get("enabled")==0)return true;
+        var progress=data(player);if(progress.actionsBlocked(balance)||progress.stamina<cost)return false;
+        progress.spend(cost,balance,worldAge(player));if(cost>0)session(player).lastSpent=player.tickCount;return true;
+    }
     public static boolean pay(ServerPlayer player,double cost){if(player.isCreative()||player.isSpectator()||balance.stamina.get("enabled")==0)return true;var p=data(player);if(p.actionsBlocked(balance))return false;p.spend(cost,balance,worldAge(player));if(cost>0)session(player).lastSpent=player.tickCount;return true;}
     public static boolean shieldPayment(ServerPlayer player){return shieldPayment(player,false);}
     public static boolean shieldPayment(ServerPlayer player,boolean projectile){double cost=ShieldCosts.block(projectile,balance.stamina.get("shieldCost"),data(player).effect("shield_cost_reduction",balance));return cost==0||pay(player,cost);}
