@@ -170,6 +170,14 @@ public final class CoreRuntime {
         int saplings=0;for(var stack:player.getInventory().items)if(stack.is(net.minecraft.tags.ItemTags.SAPLINGS))saplings+=stack.getCount();
         p.recordMaximum("saplings_inventory",saplings,b);
         if(player.hasEffect(net.minecraft.world.effect.MobEffects.SLOW_FALLING))p.recordMaximum("slow_falling_received",1,b);
+        var speed=player.getEffect(net.minecraft.world.effect.MobEffects.MOVEMENT_SPEED);
+        if(speed!=null&&speed.getAmplifier()>=1)p.recordMaximum("speed_2_received",1,b);
+        var strength=player.getEffect(net.minecraft.world.effect.MobEffects.DAMAGE_BOOST);
+        if(strength!=null&&strength.getAmplifier()>=1)p.recordMaximum("strength_2_received",1,b);
+        var regen=player.getEffect(net.minecraft.world.effect.MobEffects.REGENERATION);
+        if(regen!=null&&regen.getAmplifier()>=1)p.recordMaximum("regeneration_2_received",1,b);
+        if(player.hasEffect(net.minecraft.world.effect.MobEffects.DAMAGE_RESISTANCE))p.recordMaximum("resistance_received",1,b);
+        if(player.getItemBySlot(net.minecraft.world.entity.EquipmentSlot.HEAD).is(net.minecraft.world.item.Items.TURTLE_HELMET))p.recordMaximum("turtle_helmet_worn",1,b);
         StaminaServices.mechanics().tick(player,p,s,b);
         if(player.tickCount%20==0||s.wasSprinting!=player.isSprinting()){s.wasSprinting=player.isSprinting();attributes(player);}
         if(player.tickCount%5==0)syncIfChanged(player);

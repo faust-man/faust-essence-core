@@ -100,7 +100,7 @@ public final class Balance {
         action("place",CoreSkills.building,1,"placed");
         action("mine",CoreSkills.building,0.05,"mined");
         action("dodge",CoreSkills.dexterity,0.05,"dodges");
-        action("craft",CoreSkills.intelligence,0.5,"crafted");
+        action("craft",CoreSkills.intelligence,0.25,"crafted");
         ability("controlled_strike",CoreSkills.strength,5,"hits",30,"","damage",0.01);
         ability("strong_grip",CoreSkills.strength,10,"hits",100,"controlled_strike","damage",0.02);
         StaminaServices.mechanics().defaults(this,1);
@@ -132,7 +132,7 @@ public final class Balance {
         statBonuses.getLast().requiresAbility="faustcore:soft_landing";
         ability("cushioned_landing",CoreSkills.dexterity,15,"fall_damage",300,"soft_landing","fall_damage_reduction",0.5);
         ability("soft_landing",CoreSkills.dexterity,5,"fall_damage",100,"","stat_unlock",0);
-        ability("enchanting_power",CoreSkills.intelligence,5,"enchants",1,"","enchanting_power",1);
+        ability("enchanting_power",CoreSkills.intelligence,7,"enchants",30,"","enchanting_power",1);
         ability("potion_duration",CoreSkills.intelligence,5,"brewed",30,"","potion_duration",0.02);
         ability("soft_foot",CoreSkills.dexterity,10,"slow_falling_received",1,"soft_landing","faustcore:soft_foot",1);
         ability("forester",CoreSkills.building,3,"saplings_inventory",64,"","faustcore:forester",1);
@@ -142,14 +142,48 @@ public final class Balance {
             j.add("conditions",JSON.toJsonTree(List.of(new Condition("mined",1024),new Condition("placed",1024))));
             abilities.set(i,JSON.fromJson(j,Ability.class));
         }
-        ability("cat_scent",CoreSkills.intelligence,5,"cats_tamed",1,"","faustcore:cat_scent",1);
+        ability("cat_scent",CoreSkills.intelligence,3,"cats_tamed",3,"","faustcore:cat_scent",1);
         ability("metabolism",CoreSkills.constitution,15,"food_nutrition",20,"","faustcore:metabolism",1);
+        applyRequestedRequirements();
         swapShieldRules();
         StaminaContent.withoutProvider(this);
         trees=SkillTrees.defaults(abilities);
         com.faust.core.runtime.EssenceBackendImpl.apply(this);
 
 
+    }
+    private void applyRequestedRequirements(){
+        for(int i=0;i<abilities.size();i++){
+            var a=abilities.get(i);var j=JSON.toJsonTree(a).getAsJsonObject();
+            switch(a.id()){
+                case "faustcore:training_strength_damage" -> {j.addProperty("level",3);j.addProperty("counter","strength_2_received");j.addProperty("amount",1);}
+                case "faustcore:training_dexterity_attack" -> {j.addProperty("counter","speed_2_received");j.addProperty("amount",1);}
+                case "faustcore:training_dexterity_sprint" -> j.addProperty("level",3);
+                case "faustcore:training_constitution_stamina" -> j.addProperty("level",3);
+                case "faustcore:training_constitution_health" -> {j.addProperty("level",5);j.addProperty("counter","regeneration_2_received");j.addProperty("amount",1);}
+                case "faustcore:armor_familiarity" -> {j.addProperty("level",3);j.add("conditions",JSON.toJsonTree(List.of(new Condition(a.counter(),a.amount()),new Condition("turtle_helmet_worn",1))));}
+                case "faustcore:training_defense_armor" -> {j.addProperty("level",7);j.addProperty("counter","resistance_received");j.addProperty("amount",1);}
+                case "faustcore:training_intelligence_luck" -> {j.addProperty("level",3);j.add("conditions",JSON.toJsonTree(List.of(new Condition("world_chests",15),new Condition("fish_caught",15))));}
+                default -> {continue;}
+            }
+            j.add("characteristics",new com.google.gson.JsonArray());
+            if(!Set.of("faustcore:training_intelligence_luck","faustcore:armor_familiarity").contains(a.id()))j.add("conditions",new com.google.gson.JsonArray());
+            abilities.set(i,JSON.fromJson(j,Ability.class));
+        }
+    }
+    private static void migrateRequestedRequirements(Path directory) throws IOException {
+        Path marker=directory.resolve(".requirements-2026-11");if(Files.exists(marker))return;
+        var defaults=new Balance();Path backup=directory.resolve("migration-requirements-2026-11");Files.createDirectories(backup);
+        Path file=directory.resolve("abilities.json");
+        if(Files.exists(file)){
+            Files.copy(file,backup.resolve("abilities.json"),StandardCopyOption.REPLACE_EXISTING);
+            var data=JSON.fromJson(Files.readString(file),Ability[].class);
+            Set<String> ids=Set.of("training_strength_damage","training_dexterity_attack","training_dexterity_sprint","training_constitution_stamina","training_constitution_health","armor_familiarity","training_defense_armor","training_intelligence_luck","enchanting_power","cat_scent");
+            for(int i=0;i<data.length;i++){String id=data[i].id();if(ids.contains(id.replace("faustcore:",""))){var replacement=defaults.abilities.stream().filter(a->a.id().equals(id)).findFirst();if(replacement.isPresent()){var j=JSON.toJsonTree(data[i]).getAsJsonObject();var d=JSON.toJsonTree(replacement.get()).getAsJsonObject();if(id.equals("faustcore:armor_familiarity")){j.add("level",d.get("level"));j.add("characteristics",d.get("characteristics"));var conditions=new ArrayList<>(data[i].actionConditions());if(conditions.stream().noneMatch(c->c.counter().equals("turtle_helmet_worn")))conditions.add(new Condition("turtle_helmet_worn",1));j.add("conditions",JSON.toJsonTree(conditions));j.addProperty("conditionMode","all");}else for(String field:List.of("level","counter","amount","conditions","characteristics","conditionMode","conditionsRequired"))j.add(field,d.get(field));data[i]=JSON.fromJson(j,Ability.class);}}}
+            Files.writeString(file,JSON.toJson(data)+"\n");
+        }
+        file=directory.resolve("actions.json");if(Files.exists(file)){Files.copy(file,backup.resolve("actions.json"),StandardCopyOption.REPLACE_EXISTING);var j=com.google.gson.JsonParser.parseString(Files.readString(file)).getAsJsonObject();if(j.has("craft")){var a=j.getAsJsonObject("craft");a.addProperty("xp",a.get("xp").getAsDouble()/2);}Files.writeString(file,JSON.toJson(j)+"\n");}
+        Files.writeString(marker,"1\n");
     }
     private void swapShieldRules(){
         String care="faustcore:shield_care",economy="faustcore:shield_efficiency";
@@ -463,7 +497,7 @@ public final class Balance {
         migrateCoordinateUnits(directory);
         if(!StaminaServices.present()&&!Files.exists(directory.resolve("abilities.json")))Files.writeString(directory.resolve(".without-stamina"),"1\n");
         migrate(directory); migrateExhaustion(directory); migrateGrowth(directory); migrateStats(directory); migrateV12(directory); migrateEnvironment(directory); migrateV13(directory); migrateV14(directory); migrateV141(directory); migrateFatigueGrace(directory); migrateCakeFood(directory); migratePractice(directory); migrateConstitutionSwap(directory); migratePracticeLayout(directory); migratePanelUpdate(directory);
-        migrateBalanceRevision(directory);migrateFollowup(directory);migrateForestSkills(directory);migrateSkillRevision(directory);migrateTreePolish(directory);migrateHealthTen(directory);migrateDefenseParents(directory);
+        migrateBalanceRevision(directory);migrateFollowup(directory);migrateForestSkills(directory);migrateSkillRevision(directory);migrateTreePolish(directory);migrateHealthTen(directory);migrateDefenseParents(directory);migrateRequestedRequirements(directory);
         Path windFile=sectionFile(directory,"stamina");if(Files.exists(windFile)){var data=JSON.fromJson(Files.readString(windFile),com.google.gson.JsonObject.class);if(!data.has("secondWindMultiplier")){data.addProperty("secondWindMultiplier",1.5);Files.writeString(windFile,JSON.toJson(data)+"\n");}}
         Path skillsFile=directory.resolve("skills.json");if(Files.exists(skillsFile)){var data=JSON.fromJson(Files.readString(skillsFile),com.google.gson.JsonObject.class);if(!data.has("buildingReachMaximum")){data.addProperty("buildingReachMaximum",3);Files.writeString(skillsFile,JSON.toJson(data)+"\n");}}
         Path capMarker=directory.resolve(".cap-format-3");

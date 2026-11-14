@@ -157,7 +157,7 @@
   "core.ability.soft_landing": "Soft landing",
   "core.ability.enchanting_power": "Enchanting power",
   "core.ability.potion_duration": "Lasting potions",
-  "core.effect.enchanting_power": "Adds the power of 1/3/5/7 bookshelves at intelligence 5/10/15/20. Replaces missing shelves; real shelves and this bonus count up to 15 total, the normal enchanting table limit.",
+  "core.effect.enchanting_power": "Adds 1/3/5/7 bookshelves of power at intelligence 5/10/15/20 on top of table power, exceeding its normal limit.",
   "core.effect.potion_duration": "Brewed potion duration: +2%% per intelligence level.",
   "core.ability.enabled": "Skill enabled",
   "core.ability.disabled": "Skill disabled",
@@ -182,10 +182,17 @@
   "core.effect.faustcore:fire_starter": "Craft two sticks into fire sticks. Hold use to ignite. Ignite the top of a player-placed log to turn it into a campfire.",
   "core.effect.faustcore:cat_scent": "Repels creepers within 5 blocks and prevents nearby explosions.",
   "core.counter.mined": "blocks broken",
-  "core.metabolism.potions": "Potion and tipped arrow effects last half as long with +1 potency. Excludes instant, infinite and configured effects.",
+  "core.metabolism.potions": "Potion and tipped arrow effects last half as long with +1 potency.",
   "core.ability.metabolism": "Metabolism",
   "core.effect.faustcore:metabolism": "Doubles natural health regeneration and its food consumption.",
   "core.counter.food_nutrition": "food points eaten",
   "core.counter.charcoal_smelted": "Collect charcoal from a furnace",
-  "core.skill.available": "New skill available!"
+  "core.skill.available": "New skill available!",
+  "core.counter.regeneration_2_received": "regeneration 2 received",
+  "core.counter.resistance_received": "resistance received",
+  "core.counter.turtle_helmet_worn": "turtle helmet worn",
+  "core.counter.world_chests": "world chests",
+  "core.counter.fish_caught": "fish caught",
+  "core.counter.strength_2_received": "Strength II effect",
+  "core.counter.speed_2_received": "Speed II effect"
 }

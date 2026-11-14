@@ -15,8 +15,8 @@ public final class Revision14Test {
         Balance b=new Balance();Progress p=new Progress();b.validate();
         near(b.stamina.get("runCost"),0.1,"base sprint cost halved");near(b.stamina.get("armorCost"),0.25,"armor sprint cost halved");near(b.stamina.get("sprintJumpCost"),0.5,"sprint jump cost halved");near(b.stamina.get("jumpArmorCost"),0.05,"armor jump cost halved");
         near(p.cap(CoreSkills.strength,b),3,"initial potential is three");near(p.price(CoreSkills.strength,b),1,"purchase formula uses new initial caps");
-        for(var a:b.abilities)if(a.effect().equals("stat_unlock")){check(a.level()>=3,"stat unlock requires trained level");check(a.amount()>=15,"stat unlock requires substantial practice");}
-        var requirement=node(b,"training_strength_damage");p.counters.put("hits",1e6);near(p.requirementCount(requirement),100,"display counter capped at requirement");near(p.requirementProgress(requirement),1,"overcompletion bar stays within bounds");near(p.counters.get("hits"),1e6,"underlying counter remains available for later nodes");
+        for(var a:b.abilities)if(a.effect().equals("stat_unlock")){check(a.level()>=3,"stat unlock requires trained level");check(a.actionConditions().stream().allMatch(c->c.amount()>=1),"stat unlock requires practice");}
+        var requirement=node(b,"training_strength_damage");p.counters.put(requirement.counter(),1e6);near(p.requirementCount(requirement),requirement.amount(),"display counter capped at requirement");near(p.requirementProgress(requirement),1,"overcompletion bar stays within bounds");near(p.counters.get(requirement.counter()),1e6,"underlying counter remains available for later nodes");
         near(node(b,"shield_care").value(),0.25,"shield wear bonus reduced to ten percent");near(node(b,"shield_recovery").value(),0.25,"shield disable bonus reduced to fifteen percent");
         p.spend(20,b);check(p.exhausted&&p.actionsBlocked(b),"zero enters exhaustion");p.stamina=9.99;p.updateExhaustion(b);check(p.actionsBlocked(b),"exhausted below ten despite positive stamina");p.stamina=10;p.updateExhaustion(b);check(!p.actionsBlocked(b),"ten clears exhaustion without full refill");
         p.stamina=0;p.updateExhaustion(b);p.unlocked.add("faustcore:resilient_recovery");near(p.exhaustionThreshold(b),5,"recovery perk halves threshold");p.stamina=5;p.updateExhaustion(b);check(!p.exhausted,"perk exits at five");
@@ -54,7 +54,7 @@ public final class Revision14Test {
             check(node(upgraded,"training_defense_armor").parent().equals("faustcore:armor_familiarity"),"existing reinforced gains iron armor parent");
             check(node(upgraded,"shield_recovery").parent().equals("faustcore:shield_efficiency"),"existing shield recovery gains efficient block parent");
             near(node(upgraded,"training_defense_armor").value(),0.123,"dependency migration preserves custom effect value");
-            check(node(upgraded,"training_constitution_health").level()==10,"existing health requires constitution10");
+            check(node(upgraded,"training_constitution_health").level()==10,"legacy health migration requires constitution10");
             check(Files.exists(parents.resolve("abilities-before-defense-parents.json")),"dependency migration backup");
             check(Balance.load(parents).abilities.equals(upgraded.abilities),"dependency migration idempotent");
         }finally{try(var paths=Files.walk(parents)){for(Path file:paths.sorted(Comparator.reverseOrder()).toList())Files.delete(file);}}

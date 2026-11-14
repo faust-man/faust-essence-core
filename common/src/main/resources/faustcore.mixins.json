@@ -28,7 +28,9 @@
     "PlacedLogMixin",
     "LogChangeMixin",
     "FireBlockAccessor",
-    "MiningMixin"
+    "MiningMixin",
+    "WorldChestMixin",
+    "FishingPracticeMixin"
   ],
   "client": [
     "ClientMixin",

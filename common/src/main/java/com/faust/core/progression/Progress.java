@@ -79,14 +79,16 @@ public final class Progress {
         recordCounter(rule.counter(),count,b); grant(rule.skill(),units*rule.xp()*b.progression.get("trainingMultiplier"),b); return true;
     }
     private CounterPlan counterPlan(Balance b){if(counterPlan==null||!counterPlan.valid(this,b))counterPlan=new CounterPlan(this,b);return counterPlan;}
+    private static final Set<String> LIFETIME_MILESTONES=Set.of("regeneration_2_received","strength_2_received","speed_2_received","resistance_received","turtle_helmet_worn","faust_epic_fire_resistance_lava","faust_epic_poison_regeneration","faust_epic_resistance_4_damage");
+    public boolean recordMilestone(String key,double value,Balance b){if(!Double.isFinite(value)||value<0)return false;if(value<=counters.getOrDefault(key,0.0))return false;setCounter(key,value,b);return true;}
     public boolean wantsCounter(String key,Balance b){return counterPlan(b).wants(this,key);}
     public boolean recordCounter(String key,double amount,Balance b){return Double.isFinite(amount)&&amount>0&&counterPlan(b).record(this,key,amount,false);}
-    public boolean recordMaximum(String key,double value,Balance b){return Double.isFinite(value)&&value>0&&counterPlan(b).record(this,key,value,true);}
+    public boolean recordMaximum(String key,double value,Balance b){if(LIFETIME_MILESTONES.contains(key))return recordMilestone(key,value,b);return Double.isFinite(value)&&value>0&&counterPlan(b).record(this,key,value,true);}
     /** Explicit administrative/fixture override; gameplay should use recordCounter. */
     public void setCounter(String key,double value,Balance b){if(!Double.isFinite(value)||value<0)throw new IllegalArgumentException("Invalid counter");counterPlan(b);counters.put(key,value);for(var a:b.abilities)if(prerequisites(a))for(var c:a.actionConditions())if(c.counter().equals(key))practice.get(a.id()).put(key,Math.min(value,c.amount()));counterPlan=null;revision++;}
     public double requirementCount(Balance.Ability a){return conditionCount(a,new Balance.Condition(a.counter(),a.amount()));}
     public double conditionCount(Balance.Condition c){return Math.max(0,Math.min(c.amount(),counters.getOrDefault(c.counter(),0.0)));}
-    public double conditionCount(Balance.Ability a,Balance.Condition c){if(!prerequisites(a))return 0;var values=practice.get(a.id());return Math.max(0,Math.min(c.amount(),(values==null?counters:values).getOrDefault(c.counter(),0.0)));}
+    public double conditionCount(Balance.Ability a,Balance.Condition c){if(!prerequisites(a))return 0;if(LIFETIME_MILESTONES.contains(c.counter()))return conditionCount(c);var values=practice.get(a.id());return Math.max(0,Math.min(c.amount(),(values==null?counters:values).getOrDefault(c.counter(),0.0)));}
     public long completedConditions(Balance.Ability a){return a.actionConditions().stream().filter(c->conditionCount(a,c)>=c.amount()).count();}
     public double requirementProgress(Balance.Ability a){if(!prerequisites(a))return 0;return a.actionConditions().stream().mapToDouble(c->c.amount()<=0?(a.skillRequirements().stream().allMatch(r->track(r.skill()).level>=r.level())?1:0):conditionCount(a,c)/c.amount()).boxed().sorted(java.util.Comparator.reverseOrder()).limit(a.requiredConditions()).mapToDouble(Double::doubleValue).sum()/a.requiredConditions();}
     public boolean excluded(Balance.Ability a,Balance b){return a.excludes().stream().anyMatch(unlocked::contains)||b.abilities.stream().anyMatch(other->unlocked.contains(other.id())&&other.excludes().contains(a.id()));}

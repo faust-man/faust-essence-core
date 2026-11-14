@@ -6,7 +6,7 @@ public final class BalanceRevisionTest {
     private static void check(boolean v){if(!v)throw new AssertionError("balance revision");}
     public static void run() throws Exception {
         Balance b=new Balance();b.validate();
-        check(b.actions.get("craft").xp()==0.5);check(Math.abs(b.actions.get("melee").xp()-2.0/3)<1e-9);
+        check(b.actions.get("craft").xp()==0.25);check(Math.abs(b.actions.get("melee").xp()-2.0/3)<1e-9);
         check(ShieldCosts.block(false,2,0)==2);check(ShieldCosts.block(true,2,0)==1);
         check(ShieldCosts.block(false,2,2)==0);check(ShieldCosts.block(true,2,2)==0);
         check(ShieldCosts.block(true,2,1.5)==0);check(ShieldCosts.block(true,2,0.5)==0.5);

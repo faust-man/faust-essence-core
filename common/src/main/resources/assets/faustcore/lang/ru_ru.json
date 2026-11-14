@@ -157,7 +157,7 @@
   "core.ability.soft_landing": "Мягкое падение",
   "core.ability.enchanting_power": "Сила зачарований",
   "core.ability.potion_duration": "Длительные зелья",
-  "core.effect.enchanting_power": "Добавляет силу 1/3/5/7 книжных полок при интеллекте 5/10/15/20. Заменяет недостающие полки: вместе с настоящими учитывается максимум 15 — обычный предел стола зачарований.",
+  "core.effect.enchanting_power": "Добавляет силу 1/3/5/7 книжных полок при интеллекте 5/10/15/20 к текущей силе стола, позволяя превысить обычный предел.",
   "core.effect.potion_duration": "Длительность сваренных зелий: +2%% за уровень интеллекта.",
   "core.ability.enabled": "Навык включён",
   "core.ability.disabled": "Навык выключен",
@@ -182,10 +182,17 @@
   "core.effect.faustcore:fire_starter": "Позволяет делать огниво из двух палок. Удерживайте ПКМ для розжига. Поджог верхней грани поставленного игроком бревна превращает его в костёр.",
   "core.effect.faustcore:cat_scent": "Криперы избегают игрока в радиусе 5 блоков и не взрываются рядом с ним.",
   "core.counter.mined": "сломанных блоков",
-  "core.metabolism.potions": "Длительные эффекты зелий и стрел действуют вдвое меньше, но их сила +1. Не влияет на мгновенные, бесконечные эффекты и исключения конфига.",
+  "core.metabolism.potions": "Длительные эффекты зелий и стрел действуют вдвое меньше, но их сила +1.",
   "core.ability.metabolism": "Метаболизм",
   "core.effect.faustcore:metabolism": "Естественное восстановление здоровья и расход еды на него ускорены вдвое.",
   "core.counter.food_nutrition": "единиц голода из еды",
   "core.counter.charcoal_smelted": "Получить древесный уголь из печи",
-  "core.skill.available": "Доступен новый навык!"
+  "core.skill.available": "Доступен новый навык!",
+  "core.counter.regeneration_2_received": "эффект регенерации II",
+  "core.counter.resistance_received": "эффект сопротивления",
+  "core.counter.turtle_helmet_worn": "ношение черепашьего шлема",
+  "core.counter.world_chests": "сгенерированных лутов сундуков мира",
+  "core.counter.fish_caught": "успешных рыбалок",
+  "core.counter.strength_2_received": "эффект силы II",
+  "core.counter.speed_2_received": "эффект скорости II"
 }
