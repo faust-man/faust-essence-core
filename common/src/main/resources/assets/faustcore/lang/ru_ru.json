@@ -196,11 +196,14 @@
   "core.counter.strength_2_received": "эффект силы II",
   "core.counter.speed_2_received": "эффект скорости II",
   "core.ability.experience_steal": "Похищение опыта",
-  "core.effect.faustcore:experience_steal": "При каждом успешном ближнем ударе по другому игроку крадёт 1% его накопленного опыта за уровень интеллекта, максимум 100%.",
+  "core.effect.faustcore:experience_steal": "При каждом успешном ближнем ударе по другому игроку крадёт 1% его накопленного опыта за уровень интеллекта.",
   "core.ability.silent_step": "Бесшумный",
   "core.effect.faustcore:silent_step": "Убирает звуки и вибрации шагов.",
   "core.counter.experience_levels_held": "одновременно накопленных уровней опыта",
   "core.counter.warden_noise": "призыв вардена своим шумом",
   "core.counter.invisibility_received": "получение эффекта невидимости",
-  "core.counter.breeze_kills": "убитых вихрей"
+  "core.counter.breeze_kills": "убитых вихрей",
+  "core.counter.strength_received": "эффект силы",
+  "core.counter.spectral_arrows_inventory": "спектральных стрел в инвентаре",
+  "core.counter.tipped_arrows_inventory": "стрел с эффектами в инвентаре"
 }

@@ -169,12 +169,19 @@ public final class CoreRuntime {
         boolean natural=player.level().getGameRules().getBoolean(net.minecraft.world.level.GameRules.RULE_NATURAL_REGENERATION);if(p.naturalRegeneration!=natural){p.naturalRegeneration=natural;p.revision++;}
         p.recordMaximum("experience_levels_held",Math.min(25,player.experienceLevel),b);
         if(player.hasEffect(net.minecraft.world.effect.MobEffects.INVISIBILITY))p.recordMaximum("invisibility_received",1,b);
+        int spectral=0,tipped=0;for(int slot=0;slot<player.getInventory().getContainerSize();slot++){
+            var stack=player.getInventory().getItem(slot);
+            if(stack.is(Items.SPECTRAL_ARROW))spectral+=stack.getCount();
+            if(stack.is(Items.TIPPED_ARROW)&&stack.getOrDefault(net.minecraft.core.component.DataComponents.POTION_CONTENTS,net.minecraft.world.item.alchemy.PotionContents.EMPTY).hasEffects())tipped+=stack.getCount();
+        }
+        p.recordMaximum("spectral_arrows_inventory",Math.min(16,spectral),b);p.recordMaximum("tipped_arrows_inventory",Math.min(16,tipped),b);
         int saplings=0;for(var stack:player.getInventory().items)if(stack.is(net.minecraft.tags.ItemTags.SAPLINGS))saplings+=stack.getCount();
         p.recordMaximum("saplings_inventory",saplings,b);
         if(player.hasEffect(net.minecraft.world.effect.MobEffects.SLOW_FALLING))p.recordMaximum("slow_falling_received",1,b);
         var speed=player.getEffect(net.minecraft.world.effect.MobEffects.MOVEMENT_SPEED);
         if(speed!=null&&speed.getAmplifier()>=1)p.recordMaximum("speed_2_received",1,b);
         var strength=player.getEffect(net.minecraft.world.effect.MobEffects.DAMAGE_BOOST);
+        if(strength!=null||p.counters.getOrDefault("strength_2_received",0.0)>0)p.recordMaximum("strength_received",1,b);
         if(strength!=null&&strength.getAmplifier()>=1)p.recordMaximum("strength_2_received",1,b);
         var regen=player.getEffect(net.minecraft.world.effect.MobEffects.REGENERATION);
         if(regen!=null&&regen.getAmplifier()>=1)p.recordMaximum("regeneration_2_received",1,b);

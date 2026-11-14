@@ -79,7 +79,7 @@ public final class Progress {
         recordCounter(rule.counter(),count,b); grant(rule.skill(),units*rule.xp()*b.progression.get("trainingMultiplier"),b); return true;
     }
     private CounterPlan counterPlan(Balance b){if(counterPlan==null||!counterPlan.valid(this,b))counterPlan=new CounterPlan(this,b);return counterPlan;}
-    private static final Set<String> LIFETIME_MILESTONES=Set.of("experience_levels_held","warden_noise","invisibility_received","regeneration_2_received","strength_2_received","speed_2_received","resistance_received","turtle_helmet_worn","faust_epic_fire_resistance_lava","faust_epic_poison_regeneration","faust_epic_resistance_4_damage");
+    private static final Set<String> LIFETIME_MILESTONES=Set.of("strength_received","spectral_arrows_inventory","tipped_arrows_inventory","experience_levels_held","warden_noise","invisibility_received","regeneration_2_received","strength_2_received","speed_2_received","resistance_received","turtle_helmet_worn","faust_epic_fire_resistance_lava","faust_epic_poison_regeneration","faust_epic_resistance_4_damage");
     public boolean recordMilestone(String key,double value,Balance b){if(!Double.isFinite(value)||value<0)return false;if(value<=counters.getOrDefault(key,0.0))return false;setCounter(key,value,b);return true;}
     public boolean wantsCounter(String key,Balance b){return counterPlan(b).wants(this,key);}
     public boolean recordCounter(String key,double amount,Balance b){return Double.isFinite(amount)&&amount>0&&counterPlan(b).record(this,key,amount,false);}

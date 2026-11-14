@@ -135,7 +135,7 @@ public final class Balance {
         ability("enchanting_power",CoreSkills.intelligence,7,"enchants",30,"","enchanting_power",1);
         ability("potion_duration",CoreSkills.intelligence,5,"brewed",30,"","potion_duration",0.02);
         ability("soft_foot",CoreSkills.dexterity,7,"slow_falling_received",1,"soft_landing","faustcore:soft_foot",1);
-        ability("experience_steal",CoreSkills.intelligence,7,"experience_levels_held",25,"","faustcore:experience_steal",1);
+        ability("experience_steal",CoreSkills.intelligence,7,"experience_levels_held",25,"enchanting_power","faustcore:experience_steal",1);
         ability("silent_step",CoreSkills.dexterity,10,"warden_noise",1,"soft_foot","faustcore:silent_step",1);
         {var j=JSON.toJsonTree(abilities.getLast()).getAsJsonObject();j.add("conditions",JSON.toJsonTree(List.of(new Condition("warden_noise",1),new Condition("invisibility_received",1),new Condition("breeze_kills",5))));abilities.set(abilities.size()-1,JSON.fromJson(j,Ability.class));}
         ability("forester",CoreSkills.building,3,"saplings_inventory",64,"","faustcore:forester",1);
@@ -148,6 +148,7 @@ public final class Balance {
         ability("cat_scent",CoreSkills.intelligence,3,"cats_tamed",3,"","faustcore:cat_scent",1);
         ability("metabolism",CoreSkills.constitution,15,"food_nutrition",20,"","faustcore:metabolism",1);
         applyRequestedRequirements();
+        for(int i=0;i<abilities.size();i++)if(abilities.get(i).id().equals("faustcore:bow_mastery"))abilities.set(i,bowArrowRequirements(abilities.get(i)));
         swapShieldRules();
         StaminaContent.withoutProvider(this);
         trees=SkillTrees.defaults(abilities);
@@ -208,6 +209,30 @@ public final class Balance {
             }Files.writeString(file,JSON.toJson(trees)+"\n");
         }
         Files.writeString(marker,"1\n");
+    }
+    private static void migrateExperienceStealParent(Path directory) throws IOException {
+        Path marker=directory.resolve(".experience-steal-parent");if(Files.exists(marker))return;
+        Path file=directory.resolve("abilities.json");if(Files.exists(file)){
+            Files.copy(file,directory.resolve("abilities-before-experience-steal-parent.json"),StandardCopyOption.REPLACE_EXISTING);
+            var data=com.google.gson.JsonParser.parseString(Files.readString(file)).getAsJsonArray();
+            for(var entry:data){var a=entry.getAsJsonObject();if(a.get("id").getAsString().equals("faustcore:experience_steal"))a.addProperty("parent","faustcore:enchanting_power");}
+            Files.writeString(file,JSON.toJson(data)+"\n");
+        }
+        Files.writeString(marker,"1\n");
+    }
+    private static Ability bowArrowRequirements(Ability ability){
+        var j=JSON.toJsonTree(ability).getAsJsonObject();var conditions=new ArrayList<>(ability.actionConditions());
+        for(String key:List.of("spectral_arrows_inventory","tipped_arrows_inventory"))if(conditions.stream().noneMatch(c->c.counter().equals(key)))conditions.add(new Condition(key,16));
+        j.add("conditions",JSON.toJsonTree(conditions));j.addProperty("conditionMode","all");return JSON.fromJson(j,Ability.class);
+    }
+    private static void migrateBowArrows(Path directory) throws IOException {
+        Path marker=directory.resolve(".bow-mastery-arrows");if(Files.exists(marker))return;
+        Path file=directory.resolve("abilities.json");if(Files.exists(file)){
+            Files.copy(file,directory.resolve("abilities-before-bow-mastery-arrows.json"),StandardCopyOption.REPLACE_EXISTING);
+            var data=JSON.fromJson(Files.readString(file),Ability[].class);
+            for(int i=0;i<data.length;i++)if(data[i].id().equals("faustcore:bow_mastery"))data[i]=bowArrowRequirements(data[i]);
+            Files.writeString(file,JSON.toJson(data)+"\n");
+        }Files.writeString(marker,"1\n");
     }
     private void swapShieldRules(){
         String care="faustcore:shield_care",economy="faustcore:shield_efficiency";
@@ -521,7 +546,7 @@ public final class Balance {
         migrateCoordinateUnits(directory);
         if(!StaminaServices.present()&&!Files.exists(directory.resolve("abilities.json")))Files.writeString(directory.resolve(".without-stamina"),"1\n");
         migrate(directory); migrateExhaustion(directory); migrateGrowth(directory); migrateStats(directory); migrateV12(directory); migrateEnvironment(directory); migrateV13(directory); migrateV14(directory); migrateV141(directory); migrateFatigueGrace(directory); migrateCakeFood(directory); migratePractice(directory); migrateConstitutionSwap(directory); migratePracticeLayout(directory); migratePanelUpdate(directory);
-        migrateBalanceRevision(directory);migrateFollowup(directory);migrateForestSkills(directory);migrateSkillRevision(directory);migrateTreePolish(directory);migrateHealthTen(directory);migrateDefenseParents(directory);migrateRequestedRequirements(directory);migrateExperienceSteal(directory);
+        migrateBalanceRevision(directory);migrateFollowup(directory);migrateForestSkills(directory);migrateSkillRevision(directory);migrateTreePolish(directory);migrateHealthTen(directory);migrateDefenseParents(directory);migrateRequestedRequirements(directory);migrateExperienceSteal(directory);migrateExperienceStealParent(directory);migrateBowArrows(directory);
         Path windFile=sectionFile(directory,"stamina");if(Files.exists(windFile)){var data=JSON.fromJson(Files.readString(windFile),com.google.gson.JsonObject.class);if(!data.has("secondWindMultiplier")){data.addProperty("secondWindMultiplier",1.5);Files.writeString(windFile,JSON.toJson(data)+"\n");}}
         Path skillsFile=directory.resolve("skills.json");if(Files.exists(skillsFile)){var data=JSON.fromJson(Files.readString(skillsFile),com.google.gson.JsonObject.class);if(!data.has("buildingReachMaximum")){data.addProperty("buildingReachMaximum",3);Files.writeString(skillsFile,JSON.toJson(data)+"\n");}}
         Path capMarker=directory.resolve(".cap-format-3");
