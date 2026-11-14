@@ -15,6 +15,9 @@ import java.util.ArrayDeque;
 public abstract class LivingEntityMixin {
     @Unique private final ArrayDeque<Float> faustcore$health=new ArrayDeque<>();
     @Unique private double faustcore$budget=-1;
+    @Unique private boolean core$breezeCounted;
+    @Inject(method="die",at=@At("HEAD")) private void core$breezeKill(DamageSource source,org.spongepowered.asm.mixin.injection.callback.CallbackInfo ci){if(!core$breezeCounted&&(Object)this instanceof net.minecraft.world.entity.monster.breeze.Breeze&&source.getEntity() instanceof ServerPlayer p&&CoreRuntime.active(p)){core$breezeCounted=true;CoreRuntime.data(p).recordCounter("breeze_kills",1,CoreRuntime.balance);}}
+
     @ModifyVariable(method="setSprinting",at=@At("HEAD"),argsOnly=true)
     private boolean core$sprint(boolean sprinting){if(!sprinting)return false;if((Object)this instanceof ServerPlayer p)return CoreRuntime.canAct(p);return com.faust.core.runtime.ClientActions.sprintAllowed.test(this);}
     @Inject(method="isDamageSourceBlocked",at=@At("RETURN"),cancellable=true)

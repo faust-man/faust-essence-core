@@ -28,7 +28,13 @@
     "PlacedLogMixin",
     "LogChangeMixin",
     "FireBlockAccessor",
-    "MiningMixin"
+    "MiningMixin",
+    "WorldChestMixin",
+    "FishingPracticeMixin",
+    "ExperienceStealMixin",
+    "MovementPerksMixin",
+    "MagmaPerkMixin",
+    "WardenNoiseMixin"
   ],
   "client": [
     "ClientMixin",

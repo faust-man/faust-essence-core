@@ -25,7 +25,9 @@ public final class SkillTrees {
             for(var a:abilities)if(a.skill()==skill){
                 double[] pos=switch(a.id().replace("faustcore:","")){
                     case "metabolism" -> new double[]{10,0};
-                    case "cat_scent" -> new double[]{-9,4};
+                    case "cat_scent" -> new double[]{-5,4};
+                    case "experience_steal" -> new double[]{-9,4};
+                    case "silent_step" -> new double[]{-9,8};
                     case "soft_foot" -> new double[]{-9,4};
                     case "forester" -> new double[]{4,0};
                     case "fire_starter" -> new double[]{4,4};
@@ -54,6 +56,8 @@ public final class SkillTrees {
     public static String icon(Balance.Ability a){return "minecraft:"+switch(a.id().replace("faustcore:","")){
         case "metabolism" -> "cooked_porkchop";
         case "cat_scent" -> "cod";
+        case "experience_steal" -> "experience_bottle";
+        case "silent_step" -> "chainmail_boots";
         case "soft_foot" -> "leather_boots";
         case "forester" -> "oak_sapling";
         case "fire_starter" -> "campfire";
