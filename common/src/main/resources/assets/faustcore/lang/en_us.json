@@ -177,7 +177,7 @@
   "core.counter.slow_falling_received": "Receive Slow Falling",
   "core.ability.cat_scent": "Cat Scent",
   "core.counter.cats_tamed": "Tame a cat",
-  "core.effect.faustcore:soft_foot": "Allows walking on powder snow.",
+  "core.effect.faustcore:soft_foot": "Allows walking on powder snow, prevents magma block damage and soul sand slowdown.",
   "core.effect.faustcore:forester": "Craft a sapling into two sticks.",
   "core.effect.faustcore:fire_starter": "Craft two sticks into fire sticks. Hold use to ignite. Ignite the top of a player-placed log to turn it into a campfire.",
   "core.effect.faustcore:cat_scent": "Repels creepers within 5 blocks and prevents nearby explosions.",
@@ -194,5 +194,13 @@
   "core.counter.world_chests": "world chests",
   "core.counter.fish_caught": "fish caught",
   "core.counter.strength_2_received": "Strength II effect",
-  "core.counter.speed_2_received": "Speed II effect"
+  "core.counter.speed_2_received": "Speed II effect",
+  "core.ability.experience_steal": "Experience Theft",
+  "core.effect.faustcore:experience_steal": "Each successful melee hit on another player steals 1% of their stored experience per intelligence level, up to 100%.",
+  "core.ability.silent_step": "Silent",
+  "core.effect.faustcore:silent_step": "Suppresses footstep sounds and vibrations.",
+  "core.counter.experience_levels_held": "experience levels held at once",
+  "core.counter.warden_noise": "warden summoned by your noise",
+  "core.counter.invisibility_received": "invisibility effect received",
+  "core.counter.breeze_kills": "breezes killed"
 }

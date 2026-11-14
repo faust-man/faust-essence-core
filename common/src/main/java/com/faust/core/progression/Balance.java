@@ -134,7 +134,10 @@ public final class Balance {
         ability("soft_landing",CoreSkills.dexterity,5,"fall_damage",100,"","stat_unlock",0);
         ability("enchanting_power",CoreSkills.intelligence,7,"enchants",30,"","enchanting_power",1);
         ability("potion_duration",CoreSkills.intelligence,5,"brewed",30,"","potion_duration",0.02);
-        ability("soft_foot",CoreSkills.dexterity,10,"slow_falling_received",1,"soft_landing","faustcore:soft_foot",1);
+        ability("soft_foot",CoreSkills.dexterity,7,"slow_falling_received",1,"soft_landing","faustcore:soft_foot",1);
+        ability("experience_steal",CoreSkills.intelligence,7,"experience_levels_held",25,"","faustcore:experience_steal",1);
+        ability("silent_step",CoreSkills.dexterity,10,"warden_noise",1,"soft_foot","faustcore:silent_step",1);
+        {var j=JSON.toJsonTree(abilities.getLast()).getAsJsonObject();j.add("conditions",JSON.toJsonTree(List.of(new Condition("warden_noise",1),new Condition("invisibility_received",1),new Condition("breeze_kills",5))));abilities.set(abilities.size()-1,JSON.fromJson(j,Ability.class));}
         ability("forester",CoreSkills.building,3,"saplings_inventory",64,"","faustcore:forester",1);
         ability("fire_starter",CoreSkills.building,5,"charcoal_smelted",1,"forester","faustcore:fire_starter",1);
         for(int i=0;i<abilities.size();i++)if(abilities.get(i).id().equals("faustcore:training_building_reach")){
@@ -183,6 +186,27 @@ public final class Balance {
             Files.writeString(file,JSON.toJson(data)+"\n");
         }
         file=directory.resolve("actions.json");if(Files.exists(file)){Files.copy(file,backup.resolve("actions.json"),StandardCopyOption.REPLACE_EXISTING);var j=com.google.gson.JsonParser.parseString(Files.readString(file)).getAsJsonObject();if(j.has("craft")){var a=j.getAsJsonObject("craft");a.addProperty("xp",a.get("xp").getAsDouble()/2);}Files.writeString(file,JSON.toJson(j)+"\n");}
+        Files.writeString(marker,"1\n");
+    }
+    private static void migrateExperienceSteal(Path directory) throws IOException {
+        Path marker=directory.resolve(".experience-steal-silence");if(Files.exists(marker))return;
+        Balance defaults=new Balance();Path backup=directory.resolve("migration-experience-steal-silence");Files.createDirectories(backup);
+        Path file=directory.resolve("abilities.json");if(Files.exists(file)){
+            Files.copy(file,backup.resolve("abilities.json"),StandardCopyOption.REPLACE_EXISTING);
+            var data=new ArrayList<>(Arrays.asList(JSON.fromJson(Files.readString(file),Ability[].class)));
+            for(var a:defaults.abilities)if(Set.of("faustcore:experience_steal","faustcore:silent_step").contains(a.id())&&data.stream().noneMatch(old->old.id().equals(a.id())))data.add(a);
+            for(int i=0;i<data.size();i++)if(data.get(i).id().equals("faustcore:soft_foot")){var j=JSON.toJsonTree(data.get(i)).getAsJsonObject();j.addProperty("level",7);j.add("characteristics",new com.google.gson.JsonArray());data.set(i,JSON.fromJson(j,Ability.class));}
+            Files.writeString(file,JSON.toJson(data)+"\n");
+        }
+        file=directory.resolve("trees.json");if(Files.exists(file)){
+            Files.copy(file,backup.resolve("trees.json"),StandardCopyOption.REPLACE_EXISTING);
+            var trees=JSON.fromJson(Files.readString(file),SkillTrees.Tree[].class);
+            for(int i=0;i<trees.length;i++){var t=trees[i];var nodes=new ArrayList<>(t.nodes());
+                if(t.skill()==CoreSkills.intelligence){var enchant=nodes.stream().filter(n->n.ability().equals("faustcore:enchanting_power")).findFirst().orElse(null);var brew=nodes.stream().filter(n->n.ability().equals("faustcore:potion_duration")).findFirst().orElse(null);nodes.removeIf(n->n.ability().equals("faustcore:experience_steal")||n.ability().equals("faustcore:cat_scent"));if(enchant!=null)nodes.add(new SkillTrees.Node("faustcore:experience_steal",enchant.x(),enchant.y()+4,"minecraft:experience_bottle"));if(brew!=null)nodes.add(new SkillTrees.Node("faustcore:cat_scent",brew.x(),brew.y()+4,"minecraft:cod"));}
+                if(t.skill()==CoreSkills.dexterity){var soft=nodes.stream().filter(n->n.ability().equals("faustcore:soft_foot")).findFirst().orElse(null);if(soft!=null&&nodes.stream().noneMatch(n->n.ability().equals("faustcore:silent_step")))nodes.add(new SkillTrees.Node("faustcore:silent_step",soft.x(),soft.y()+4,"minecraft:chainmail_boots"));}
+                trees[i]=new SkillTrees.Tree(t.skill(),SkillTrees.spaced(nodes));
+            }Files.writeString(file,JSON.toJson(trees)+"\n");
+        }
         Files.writeString(marker,"1\n");
     }
     private void swapShieldRules(){
@@ -497,7 +521,7 @@ public final class Balance {
         migrateCoordinateUnits(directory);
         if(!StaminaServices.present()&&!Files.exists(directory.resolve("abilities.json")))Files.writeString(directory.resolve(".without-stamina"),"1\n");
         migrate(directory); migrateExhaustion(directory); migrateGrowth(directory); migrateStats(directory); migrateV12(directory); migrateEnvironment(directory); migrateV13(directory); migrateV14(directory); migrateV141(directory); migrateFatigueGrace(directory); migrateCakeFood(directory); migratePractice(directory); migrateConstitutionSwap(directory); migratePracticeLayout(directory); migratePanelUpdate(directory);
-        migrateBalanceRevision(directory);migrateFollowup(directory);migrateForestSkills(directory);migrateSkillRevision(directory);migrateTreePolish(directory);migrateHealthTen(directory);migrateDefenseParents(directory);migrateRequestedRequirements(directory);
+        migrateBalanceRevision(directory);migrateFollowup(directory);migrateForestSkills(directory);migrateSkillRevision(directory);migrateTreePolish(directory);migrateHealthTen(directory);migrateDefenseParents(directory);migrateRequestedRequirements(directory);migrateExperienceSteal(directory);
         Path windFile=sectionFile(directory,"stamina");if(Files.exists(windFile)){var data=JSON.fromJson(Files.readString(windFile),com.google.gson.JsonObject.class);if(!data.has("secondWindMultiplier")){data.addProperty("secondWindMultiplier",1.5);Files.writeString(windFile,JSON.toJson(data)+"\n");}}
         Path skillsFile=directory.resolve("skills.json");if(Files.exists(skillsFile)){var data=JSON.fromJson(Files.readString(skillsFile),com.google.gson.JsonObject.class);if(!data.has("buildingReachMaximum")){data.addProperty("buildingReachMaximum",3);Files.writeString(skillsFile,JSON.toJson(data)+"\n");}}
         Path capMarker=directory.resolve(".cap-format-3");

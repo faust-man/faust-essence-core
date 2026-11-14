@@ -30,7 +30,11 @@
     "FireBlockAccessor",
     "MiningMixin",
     "WorldChestMixin",
-    "FishingPracticeMixin"
+    "FishingPracticeMixin",
+    "ExperienceStealMixin",
+    "MovementPerksMixin",
+    "MagmaPerkMixin",
+    "WardenNoiseMixin"
   ],
   "client": [
     "ClientMixin",

@@ -167,6 +167,8 @@ public final class CoreRuntime {
         if(!active(player)) {if(player.tickCount%20==0)syncIfChanged(player);return;}
         Progress p=data(player); Session s=session(player); Balance b=balance;p.reconcile(b);
         boolean natural=player.level().getGameRules().getBoolean(net.minecraft.world.level.GameRules.RULE_NATURAL_REGENERATION);if(p.naturalRegeneration!=natural){p.naturalRegeneration=natural;p.revision++;}
+        p.recordMaximum("experience_levels_held",Math.min(25,player.experienceLevel),b);
+        if(player.hasEffect(net.minecraft.world.effect.MobEffects.INVISIBILITY))p.recordMaximum("invisibility_received",1,b);
         int saplings=0;for(var stack:player.getInventory().items)if(stack.is(net.minecraft.tags.ItemTags.SAPLINGS))saplings+=stack.getCount();
         p.recordMaximum("saplings_inventory",saplings,b);
         if(player.hasEffect(net.minecraft.world.effect.MobEffects.SLOW_FALLING))p.recordMaximum("slow_falling_received",1,b);

@@ -177,7 +177,7 @@
   "core.counter.slow_falling_received": "Получить эффект плавного падения",
   "core.ability.cat_scent": "Кошачий запах",
   "core.counter.cats_tamed": "Приручить кота",
-  "core.effect.faustcore:soft_foot": "Позволяет стоять на рыхлом снегу.",
+  "core.effect.faustcore:soft_foot": "Позволяет стоять на рыхлом снегу, не получать урон от магмы и не замедляться на песке душ.",
   "core.effect.faustcore:forester": "Позволяет перекрафчивать саженец в две палки.",
   "core.effect.faustcore:fire_starter": "Позволяет делать огниво из двух палок. Удерживайте ПКМ для розжига. Поджог верхней грани поставленного игроком бревна превращает его в костёр.",
   "core.effect.faustcore:cat_scent": "Криперы избегают игрока в радиусе 5 блоков и не взрываются рядом с ним.",
@@ -194,5 +194,13 @@
   "core.counter.world_chests": "сгенерированных лутов сундуков мира",
   "core.counter.fish_caught": "успешных рыбалок",
   "core.counter.strength_2_received": "эффект силы II",
-  "core.counter.speed_2_received": "эффект скорости II"
+  "core.counter.speed_2_received": "эффект скорости II",
+  "core.ability.experience_steal": "Похищение опыта",
+  "core.effect.faustcore:experience_steal": "При каждом успешном ближнем ударе по другому игроку крадёт 1% его накопленного опыта за уровень интеллекта, максимум 100%.",
+  "core.ability.silent_step": "Бесшумный",
+  "core.effect.faustcore:silent_step": "Убирает звуки и вибрации шагов.",
+  "core.counter.experience_levels_held": "одновременно накопленных уровней опыта",
+  "core.counter.warden_noise": "призыв вардена своим шумом",
+  "core.counter.invisibility_received": "получение эффекта невидимости",
+  "core.counter.breeze_kills": "убитых вихрей"
 }

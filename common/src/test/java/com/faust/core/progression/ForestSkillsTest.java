@@ -9,7 +9,7 @@ public final class ForestSkillsTest {
   var reach=b.abilities.stream().filter(a->a.id().endsWith(":training_building_reach")).findFirst().orElseThrow();
   check(reach.actionConditions().size()==2,"reach needs both counters");
   var p=new Progress();p.max(b);p.unlocked.remove(reach.id());p.setCounter("mined",1024,b);p.setCounter("placed",1023,b);check(!p.canUnlock(reach,b),"placing below threshold");p.setCounter("placed",1024,b);check(p.canUnlock(reach,b),"both thresholds reached");
-  var soft=b.abilities.stream().filter(a->a.id().endsWith(":soft_foot")).findFirst().orElseThrow();check(soft.level()==10&&soft.counter().equals("slow_falling_received"),"soft foot requirements");
+  var soft=b.abilities.stream().filter(a->a.id().endsWith(":soft_foot")).findFirst().orElseThrow();check(soft.level()==7&&soft.counter().equals("slow_falling_received"),"soft foot requirements");
   var cat=b.abilities.stream().filter(a->a.id().endsWith(":cat_scent")).findFirst().orElseThrow();check(cat.level()==3&&cat.amount()==3&&cat.counter().equals("cats_tamed"),"cat requirements");
   check(soft.parent().equals("faustcore:soft_landing"),"soft foot needs soft landing");
   var fire=b.abilities.stream().filter(a->a.id().endsWith(":fire_starter")).findFirst().orElseThrow();
